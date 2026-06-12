@@ -1,0 +1,262 @@
+@import "tailwindcss";
+
+@theme {
+  /* ====== EasyInfra "INSTRUMENT" palette ====== */
+  --color-bg: #0a0d13;
+  --color-bg2: #0d1119;
+  --color-panel: #10141d;
+  --color-panel2: #161b27;
+  --color-line: #1f2735;
+  --color-line2: #2c3850;
+  --color-ink: #e9edf6;
+  --color-text: #b9c3d9;
+  --color-ink2: #8a96b0;
+  --color-ink3: #5d6985;
+  --color-volt: #b8f53d;
+  --color-cyan: #59d8ea;
+  --color-amber: #ffb454;
+  --color-rose: #ff5c7a;
+  --color-violet: #a18aff;
+
+  --font-display: "Chakra Petch", "Noto Sans SC", system-ui, sans-serif;
+  --font-sans: "Noto Sans SC", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, "Noto Sans SC", monospace;
+}
+
+@layer base {
+  html {
+    background: var(--color-bg);
+    scroll-behavior: smooth;
+  }
+  body {
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--color-volt) 24%, transparent);
+    color: var(--color-ink);
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-line2) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: var(--color-line2);
+    border-radius: 4px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  /* film grain overlay */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0.05;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+}
+
+@layer components {
+  /* ── tiny uppercase mono label, the signature of the design ── */
+  .microlabel {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-ink3);
+  }
+
+  .panel {
+    background: var(--color-panel);
+    border: 1px solid var(--color-line);
+    border-radius: 8px;
+  }
+
+  /* dotted engineering-grid background */
+  .bg-dots {
+    background-image: radial-gradient(circle, rgba(160, 180, 220, 0.08) 1px, transparent 1px);
+    background-size: 26px 26px;
+  }
+
+  .glow-volt {
+    box-shadow: 0 0 24px rgba(184, 245, 61, 0.12);
+  }
+  .text-glow {
+    text-shadow: 0 0 32px rgba(184, 245, 61, 0.4);
+  }
+
+  /* scroll reveal */
+  .reveal {
+    opacity: 0;
+    transform: translateY(14px);
+    transition: opacity 0.7s cubic-bezier(0.2, 0.7, 0.2, 1), transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  .reveal.is-in {
+    opacity: 1;
+    transform: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal {
+      transition: none;
+      opacity: 1;
+      transform: none;
+    }
+    html {
+      scroll-behavior: auto;
+    }
+  }
+
+  /* ── rich-text styles for chapter prose: wrap content in .doc ── */
+  .doc {
+    font-size: 15.5px;
+    line-height: 2;
+  }
+  .doc p {
+    margin: 0 0 1.15em;
+  }
+  .doc h3 {
+    color: var(--color-ink);
+    font-weight: 600;
+    font-size: 17px;
+    margin: 2.2em 0 0.8em;
+  }
+  .doc h3::before {
+    content: "▍";
+    color: var(--color-volt);
+    margin-right: 0.45em;
+  }
+  .doc strong {
+    color: var(--color-ink);
+    font-weight: 600;
+  }
+  .doc a {
+    color: var(--color-cyan);
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 4px;
+  }
+  .doc a:hover {
+    text-decoration-style: solid;
+  }
+  .doc code {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--color-cyan);
+    background: var(--color-panel2);
+    border: 1px solid var(--color-line);
+    border-radius: 4px;
+    padding: 0.1em 0.4em;
+    white-space: nowrap;
+  }
+  .doc pre code {
+    all: unset;
+    font-family: var(--font-mono);
+  }
+  .doc ul,
+  .doc ol {
+    padding-left: 1.5em;
+    margin: 0 0 1.15em;
+  }
+  .doc li {
+    margin: 0.35em 0;
+  }
+  .doc ul li::marker {
+    color: var(--color-volt);
+  }
+  .doc ol li::marker {
+    color: var(--color-ink3);
+    font-family: var(--font-mono);
+    font-size: 13px;
+  }
+  .doc blockquote {
+    border-left: 2px solid var(--color-line2);
+    padding-left: 1em;
+    color: var(--color-ink2);
+    margin: 0 0 1.15em;
+  }
+  .doc hr {
+    border: none;
+    border-top: 1px solid var(--color-line);
+    margin: 2.5em 0;
+  }
+  .doc kbd {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    background: var(--color-panel2);
+    border: 1px solid var(--color-line2);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    padding: 0.1em 0.45em;
+    color: var(--color-ink);
+  }
+
+  /* ── custom range input ── */
+  input[type="range"].ei-range {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 18px;
+    background: transparent;
+    cursor: pointer;
+  }
+  input[type="range"].ei-range::-webkit-slider-runnable-track {
+    height: 3px;
+    background: var(--color-line2);
+    border-radius: 2px;
+  }
+  input[type="range"].ei-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    margin-top: -5.5px;
+    width: 14px;
+    height: 14px;
+    background: var(--color-bg);
+    border: 1.5px solid var(--color-volt);
+    border-radius: 3px;
+    box-shadow: 0 0 8px rgba(184, 245, 61, 0.45);
+    transition: transform 0.15s ease;
+  }
+  input[type="range"].ei-range::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+  }
+  input[type="range"].ei-range::-moz-range-track {
+    height: 3px;
+    background: var(--color-line2);
+    border-radius: 2px;
+  }
+  input[type="range"].ei-range::-moz-range-thumb {
+    width: 13px;
+    height: 13px;
+    background: var(--color-bg);
+    border: 1.5px solid var(--color-volt);
+    border-radius: 3px;
+    box-shadow: 0 0 8px rgba(184, 245, 61, 0.45);
+  }
+  input[type="range"].ei-range:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* ── syntax highlight token palette ── */
+  .tok-kw { color: #c792ea; }
+  .tok-type { color: #59d8ea; }
+  .tok-str { color: #ecc48d; }
+  .tok-num { color: #f78c6c; }
+  .tok-com { color: #5d6985; font-style: italic; }
+  .tok-cuda { color: #b8f53d; }
+  .tok-fn { color: #82aaff; }
+  .tok-pre { color: #ff869a; }
+  .tok-punc { color: #8a96b0; }
+}
