@@ -1,4 +1,5 @@
 import { Slider } from '@/components/ui'
+import { useT } from '@/lib/i18n'
 import type { BufferDecl, KernelParam } from '../../lib/cudasim/types'
 
 /** 页面内可编辑的缓冲区行（init 多一个 'custom'：示例给的显式数组） */
@@ -26,13 +27,6 @@ export function declsToRows(decls: BufferDecl[]): BufferRow[] {
   })
 }
 
-const INIT_LABEL: Record<BufferRow['init'], string> = {
-  zero: 'zero · 全 0',
-  iota: 'iota · 0,1,2…',
-  random: 'random · 伪随机',
-  custom: 'custom · 自定义',
-}
-
 export function ConfigPanel({
   gridX,
   blockX,
@@ -57,6 +51,13 @@ export function ConfigPanel({
   onRows: (rows: BufferRow[]) => void
   disabled?: boolean
 }) {
+  const t = useT()
+  const INIT_LABEL: Record<BufferRow['init'], string> = {
+    zero: t('zero · all 0', 'zero · 全 0'),
+    iota: t('iota · 0,1,2…', 'iota · 0,1,2…'),
+    random: t('random · pseudo-random', 'random · 伪随机'),
+    custom: t('custom · explicit', 'custom · 自定义'),
+  }
   const total = gridX * blockX
   const overLimit = blockX > 1024 || total > 65536
 
@@ -72,12 +73,32 @@ export function ConfigPanel({
 
       {/* grid / block */}
       <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
-        <Slider label="GRID.X" value={gridX} min={1} max={64} onChange={onGrid} disabled={disabled} unit="blocks" />
-        <Slider label="BLOCK.X" value={blockX} min={1} max={1024} onChange={onBlock} disabled={disabled} unit="threads" />
+        <Slider
+          label="GRID.X"
+          value={gridX}
+          min={1}
+          max={64}
+          onChange={onGrid}
+          disabled={disabled}
+          unit={t('blocks', 'blocks')}
+        />
+        <Slider
+          label="BLOCK.X"
+          value={blockX}
+          min={1}
+          max={1024}
+          onChange={onBlock}
+          disabled={disabled}
+          unit={t('threads', 'threads')}
+        />
       </div>
       <div className={`mt-1.5 font-mono text-[11px] tabular-nums ${overLimit ? 'text-rose' : 'text-ink3'}`}>
         TOTAL = {gridX} × {blockX} = {total.toLocaleString('en-US')} threads
-        {overLimit && '  ⚠ 超出上限（block ≤ 1024，总线程 ≤ 65536）'}
+        {overLimit &&
+          t(
+            '  ⚠ over the limit (block ≤ 1024, total threads ≤ 65536)',
+            '  ⚠ 超出上限（block ≤ 1024，总线程 ≤ 65536）',
+          )}
       </div>
 
       {/* 标量参数（从 kernel.info.params 自动生成） */}
@@ -162,7 +183,15 @@ export function ConfigPanel({
             </table>
           </div>
           <p className="mt-2 text-[11px] leading-relaxed text-ink3">
-            缓冲区按<span className="text-ink2">同名</span>绑定到 kernel 的指针参数；改源码参数名，表会自动跟随。
+            {t(
+              <>
+                Buffers bind to the kernel's pointer params <span className="text-ink2">by name</span>; rename a param in
+                the source and this table follows automatically.
+              </>,
+              <>
+                缓冲区按<span className="text-ink2">同名</span>绑定到 kernel 的指针参数；改源码参数名，表会自动跟随。
+              </>,
+            )}
           </p>
         </div>
       )}

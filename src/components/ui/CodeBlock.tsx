@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { highlightLines, type Lang } from '@/lib/highlight'
+import { useT } from '@/lib/i18n'
 
 /**
  * 静态代码块（自带语法高亮、行号、行高亮、复制按钮）。
@@ -25,6 +26,7 @@ export function CodeBlock({
   const showNums = showLines ?? lines.length > 4
   const hl = useMemo(() => new Set(highlight ?? []), [highlight])
   const [copied, setCopied] = useState(false)
+  const t = useT()
 
   const copy = async () => {
     try {
@@ -49,7 +51,7 @@ export function CodeBlock({
         <button
           onClick={copy}
           className="font-mono text-[11px] text-ink3 transition-colors hover:text-volt"
-          title="复制代码"
+          title={t('Copy code', '复制代码')}
         >
           {copied ? '✓ COPIED' : 'COPY'}
         </button>

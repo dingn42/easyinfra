@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Widget, Slider, Stat } from '@/components/ui'
 import { fmtBytes, fmtSI } from '@/lib/format'
+import { useT } from '@/lib/i18n'
 import { LLAMA7B, LLAMA7B_PARAMS } from './model'
 
 /* ── LAB 03：Attention 显存增长 ──────────────────────────────────
@@ -32,6 +33,7 @@ interface Bar {
 }
 
 export function AttnMemoryLab() {
+  const t = useT()
   const [log2S, setLog2S] = useState(13) // 8192
   const [heads, setHeads] = useState<number>(LLAMA7B.nHeads)
   const [log2B, setLog2B] = useState(0)
@@ -45,9 +47,9 @@ export function AttnMemoryLab() {
   const kvBytes = B * S * LLAMA7B.L * 2 * (heads * LLAMA7B.headDim) * 2
 
   const bars: Bar[] = [
-    { label: 'score 矩阵（单层临时）', bytes: scoreBytes, color: 'var(--color-rose)', note: 'B·h·S²·2B' },
-    { label: '模型权重（7B · FP16）', bytes: WEIGHT_BYTES, color: 'var(--color-cyan)', note: '固定' },
-    { label: 'KV cache（32 层常驻）', bytes: kvBytes, color: 'var(--color-amber)', note: 'B·S·L·2·d·2B' },
+    { label: t('score matrix (per-layer, temporary)', 'score 矩阵（单层临时）'), bytes: scoreBytes, color: 'var(--color-rose)', note: 'B·h·S²·2B' },
+    { label: t('model weights (7B · FP16)', '模型权重（7B · FP16）'), bytes: WEIGHT_BYTES, color: 'var(--color-cyan)', note: t('fixed', '固定') },
+    { label: t('KV cache (resident across 32 layers)', 'KV cache（32 层常驻）'), bytes: kvBytes, color: 'var(--color-amber)', note: 'B·S·L·2·d·2B' },
   ]
 
   const overWeights = scoreBytes > WEIGHT_BYTES
@@ -64,16 +66,22 @@ export function AttnMemoryLab() {
   return (
     <Widget
       index={3}
-      title="Attention 显存增长"
-      subtitle="naive 实现的 S×S 临时账单 · 对数轴"
+      title={t('Attention memory growth', 'Attention 显存增长')}
+      subtitle={t('the S×S invoice of a naive implementation · log axis', 'naive 实现的 S×S 临时账单 · 对数轴')}
       onReset={reset}
-      footer={
+      footer={t(
+        <>
+          Pull SEQ LEN to 32K: a single layer&apos;s temporary score matrix already needs{' '}
+          <span className="text-rose">64 GB</span>, nearly devouring the whole 80GB card — and it&apos;s just an
+          intermediate result thrown away the instant it&apos;s computed. How do you avoid materializing this matrix?
+          That&apos;s the entire motivation for FlashAttention in the next chapter.
+        </>,
         <>
           把 SEQ LEN 拉到 32K：单层临时的 score 矩阵就要 <span className="text-rose">64 GB</span>，
           把整张 80GB 卡几乎吃光——而它只是个算完就丢的中间结果。怎么不物化这个矩阵？这就是下一章
           FlashAttention 的全部动机。
-        </>
-      }
+        </>,
+      )}
     >
       <div className="grid gap-x-6 gap-y-4 sm:grid-cols-3">
         <Slider label="seq len S" value={log2S} min={9} max={17} step={1} onChange={setLog2S} fmt={(v) => fmtSI(2 ** v, 0)} unit="token" />
@@ -82,12 +90,12 @@ export function AttnMemoryLab() {
       </div>
 
       <div className="mt-5 grid grid-cols-2 gap-4 border-t border-line pt-4 sm:grid-cols-3">
-        <Stat label="score 矩阵" value={fmtBytes(scoreBytes)} tone={overCeil ? 'rose' : overWeights ? 'amber' : 'ink'} size="lg" />
-        <Stat label="KV cache" value={fmtBytes(kvBytes)} tone="amber" />
-        <Stat label="score ÷ 权重" value={`${(scoreBytes / WEIGHT_BYTES).toFixed(scoreBytes / WEIGHT_BYTES < 10 ? 2 : 0)}×`} tone={overWeights ? 'rose' : 'cyan'} />
+        <Stat label={t('score matrix', 'score 矩阵')} value={fmtBytes(scoreBytes)} tone={overCeil ? 'rose' : overWeights ? 'amber' : 'ink'} size="lg" />
+        <Stat label={t('KV cache', 'KV cache')} value={fmtBytes(kvBytes)} tone="amber" />
+        <Stat label={t('score ÷ weights', 'score ÷ 权重')} value={`${(scoreBytes / WEIGHT_BYTES).toFixed(scoreBytes / WEIGHT_BYTES < 10 ? 2 : 0)}×`} tone={overWeights ? 'rose' : 'cyan'} />
       </div>
 
-      <svg viewBox={`0 0 ${VB_W} ${VB_H}`} className="mt-4 w-full" role="img" aria-label="三种显存占用的对数轴对比">
+      <svg viewBox={`0 0 ${VB_W} ${VB_H}`} className="mt-4 w-full" role="img" aria-label={t('log-axis comparison of three memory footprints', '三种显存占用的对数轴对比')}>
         {/* 轴刻度 */}
         {TICKS.map((v) => (
           <g key={v}>
@@ -137,8 +145,14 @@ export function AttnMemoryLab() {
       {(overWeights || overCeil) && (
         <div className={`mt-1 font-mono text-[12px] ${overCeil ? 'text-rose' : 'text-amber'}`}>
           {overCeil
-            ? '▲ 单层临时 score 矩阵已超过整卡 80GB HBM——naive attention 在这个序列长度下根本跑不起来。'
-            : '▲ 临时 score 矩阵已经超过全部模型权重——为一个算完就丢的中间结果付出比模型本身还贵的显存。'}
+            ? t(
+                '▲ The per-layer temporary score matrix already exceeds the full 80GB HBM — naive attention simply cannot run at this sequence length.',
+                '▲ 单层临时 score 矩阵已超过整卡 80GB HBM——naive attention 在这个序列长度下根本跑不起来。',
+              )
+            : t(
+                '▲ The temporary score matrix already exceeds all the model weights — paying more memory than the model itself for an intermediate result that gets thrown away.',
+                '▲ 临时 score 矩阵已经超过全部模型权重——为一个算完就丢的中间结果付出比模型本身还贵的显存。',
+              )}
         </div>
       )}
     </Widget>

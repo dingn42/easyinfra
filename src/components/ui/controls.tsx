@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useT } from '@/lib/i18n'
 
 /** ── 基础控件族：Slider / Segmented / Toggle / Btn / Stat / PlayBar ── */
 
@@ -196,18 +197,19 @@ export function PlayBar({
   /** 追加的自定义控件 */
   extra?: ReactNode
 }) {
+  const t = useT()
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Btn onClick={onToggle} className="min-w-[88px]">
-        {playing ? '❚❚ 暂停' : '▶ 播放'}
+        {playing ? t('❚❚ Pause', '❚❚ 暂停') : t('▶ Play', '▶ 播放')}
       </Btn>
       {onStep && (
-        <Btn variant="ghost" onClick={onStep} disabled={playing} title="单步执行">
-          ⇥ 单步
+        <Btn variant="ghost" onClick={onStep} disabled={playing} title={t('Step', '单步执行')}>
+          {t('⇥ Step', '⇥ 单步')}
         </Btn>
       )}
       {onReset && (
-        <Btn variant="ghost" onClick={onReset} title="重置">
+        <Btn variant="ghost" onClick={onReset} title={t('Reset', '重置')}>
           ↺
         </Btn>
       )}

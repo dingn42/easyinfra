@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Btn, Slider, Stat, Widget } from '@/components/ui'
 import { clamp } from '@/lib/format'
+import { useT } from '@/lib/i18n'
 import { ChipDie, DieLegend, aluCellCount } from './ChipDie'
 
 /**
@@ -49,13 +50,14 @@ function throughputScore(al: Alloc): number {
   return Math.round(al.alu)
 }
 
-const SLIDER_META: { key: Key; label: string }[] = [
-  { key: 'ctrl', label: '控制逻辑（分支预测 / 乱序）' },
-  { key: 'cache', label: '缓存（L1 / L2 / L3）' },
-  { key: 'alu', label: 'ALU（真正做算术的部分）' },
+const SLIDER_META: { key: Key; en: string; zh: string }[] = [
+  { key: 'ctrl', en: 'Control logic (branch prediction / OoO)', zh: '控制逻辑（分支预测 / 乱序）' },
+  { key: 'cache', en: 'Cache (L1 / L2 / L3)', zh: '缓存（L1 / L2 / L3）' },
+  { key: 'alu', en: 'ALU (the part that actually does arithmetic)', zh: 'ALU（真正做算术的部分）' },
 ]
 
 export function TransistorBudget({ index }: { index: number }) {
+  const t = useT()
   const [alloc, setAlloc] = useState<Alloc>(CPU_PRESET)
 
   // 展示用整数，保证三项之和恰为 100 且不出现负数
@@ -77,17 +79,24 @@ export function TransistorBudget({ index }: { index: number }) {
   return (
     <Widget
       index={index}
-      title="晶体管预算分配器"
-      subtitle="100% 的 die 面积，三种花法"
+      title={t('Transistor Budget Allocator', '晶体管预算分配器')}
+      subtitle={t('100% of the die area, three ways to spend it', '100% 的 die 面积，三种花法')}
       onReset={() => setAlloc(CPU_PRESET)}
       wide
-      footer={
+      footer={t(
+        <>
+          A toy model with unitless scores: the single-thread score applies diminishing returns to the
+          control + cache share (echoing Pollack&apos;s rule — double a core&apos;s complexity and single-thread
+          performance rises only by about √2), while the throughput score is strictly proportional to ALU count.
+          Real silicon is of course messier, but the shape — one side with diminishing returns, the other growing
+          linearly — is real.
+        </>,
         <>
           卡通模型，分数无量纲：单线程分按控制 + 缓存占比做收益递减（呼应 Pollack 法则 —— 核心复杂度翻倍，
           单线程性能只涨约 √2 倍）；吞吐分严格正比 ALU 数量。真实芯片当然更复杂，但「一边收益递减、
           一边线性增长」这个结构是真的。
-        </>
-      }
+        </>,
+      )}
     >
       <div className="grid items-start gap-x-7 gap-y-5 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
         <div>
@@ -97,10 +106,10 @@ export function TransistorBudget({ index }: { index: number }) {
 
         <div className="space-y-4">
           <div className="space-y-3">
-            {SLIDER_META.map(({ key, label }) => (
+            {SLIDER_META.map(({ key, en, zh }) => (
               <Slider
                 key={key}
-                label={label}
+                label={t(en, zh)}
                 value={display[key]}
                 min={0}
                 max={100}
@@ -114,17 +123,17 @@ export function TransistorBudget({ index }: { index: number }) {
           <div className="flex flex-wrap items-center gap-2">
             <span className="microlabel">PRESET</span>
             <Btn variant="ghost" size="sm" onClick={() => setAlloc(CPU_PRESET)}>
-              典型 CPU
+              {t('Typical CPU', '典型 CPU')}
             </Btn>
             <Btn variant="ghost" size="sm" onClick={() => setAlloc(GPU_PRESET)}>
-              典型 GPU
+              {t('Typical GPU', '典型 GPU')}
             </Btn>
           </div>
 
           <div className="flex flex-wrap items-end gap-x-8 gap-y-3 border-t border-line pt-4">
-            <Stat label="单线程性能分" value={single} unit="/100" tone="cyan" />
-            <Stat label="吞吐分" value={thr} unit="/100" tone="volt" />
-            <Stat label="ALU 单元" value={cells} unit="个" size="sm" />
+            <Stat label={t('Single-thread score', '单线程性能分')} value={single} unit="/100" tone="cyan" />
+            <Stat label={t('Throughput score', '吞吐分')} value={thr} unit="/100" tone="volt" />
+            <Stat label={t('ALU units', 'ALU 单元')} value={cells} unit={t('', '个')} size="sm" />
           </div>
         </div>
       </div>

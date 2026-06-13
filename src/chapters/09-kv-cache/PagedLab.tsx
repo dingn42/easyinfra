@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react'
 import { PlayBar, Segmented, Stat, Widget } from '@/components/ui'
+import { useT } from '@/lib/i18n'
+import { C, rgba } from '@/lib/palette'
 import { useRafLoop, useReducedMotion } from '@/lib/hooks'
 import { pct } from '@/lib/format'
 
@@ -12,9 +14,13 @@ const BT = 16 // 每 block 容纳 16 token
 const CAP = NB * BT // 3072 个 token 槽位
 const SEED = 20240613
 
+/**
+ * 每个请求一种区分色。浅色主题下需用更深、更饱和的色，才能在白底/浅卡上清晰可辨
+ * （旧深色版的霓虹绿/亮黄/浅蓝在白底上会糊成一片）。前五种与语义色板对齐。
+ */
 const PALETTE = [
-  '#59d8ea', '#b8f53d', '#ffb454', '#a18aff', '#ff5c7a',
-  '#34d399', '#f0abfc', '#facc15', '#93c5fd', '#fb923c',
+  C.cyan, C.volt, C.amber, C.violet, C.rose,
+  '#0f766e', '#a21caf', '#a16207', '#1d4ed8', '#c2410c',
 ]
 
 function mulberry32(seed: number) {
@@ -222,6 +228,7 @@ const WARMUP = 320
 
 /** LAB 03 PagedAttention 模拟器（wide）：同一请求流喂给两种分配器 */
 export default function PagedLab() {
+  const t = useT()
   const reduced = useReducedMotion()
   const [view, setView] = useState<'contig' | 'paged'>('paged')
   const [playing, setPlaying] = useState(!reduced)
@@ -340,23 +347,29 @@ export default function PagedLab() {
           REQ #{selReq.id} BLOCK TABLE
         </div>
         <div className="mb-2 font-mono text-[10.5px] leading-relaxed tabular-nums text-ink3">
-          prompt {selReq.prompt} · 已生成 {selReq.cur}/{selReq.actual} tok
+          prompt {selReq.prompt} · {t('generated', '已生成')} {selReq.cur}/{selReq.actual} tok
           {shown.contig
-            ? <> · 预留 {selReq.nblocks} 块（max_len {selReq.maxLen}）</>
-            : <> · 持有 {selReq.blocks.length} 块，按需追加</>}
+            ? <> · {t('reserved', '预留')} {selReq.nblocks} {t('blocks', '块')}（max_len {selReq.maxLen}）</>
+            : <> · {t('holds', '持有')} {selReq.blocks.length} {t('blocks, appended on demand', '块，按需追加')}</>}
         </div>
         <svg viewBox={`0 0 202 ${tH}`} className="w-full">
-          <text x={8} y={2} fontSize={8} className="font-mono" fill="var(--color-ink3)" dominantBaseline="hanging">逻辑块</text>
-          <text x={194} y={2} fontSize={8} textAnchor="end" className="font-mono" fill="var(--color-ink3)" dominantBaseline="hanging">物理块（按池内位置）</text>
+          <text x={8} y={2} fontSize={8} className="font-mono" fill="var(--color-ink3)" dominantBaseline="hanging">{t('logical block', '逻辑块')}</text>
+          <text x={194} y={2} fontSize={8} textAnchor="end" className="font-mono" fill="var(--color-ink3)" dominantBaseline="hanging">{t('physical block (by pool position)', '物理块（按池内位置）')}</text>
           {lines}
         </svg>
         {phys.length > MAXR && (
-          <div className="mt-1 font-mono text-[10px] text-ink3">… 还有 {phys.length - MAXR} 个块未画出</div>
+          <div className="mt-1 font-mono text-[10px] text-ink3">{t(`… ${phys.length - MAXR} more blocks not drawn`, `… 还有 ${phys.length - MAXR} 个块未画出`)}</div>
         )}
         <div className="mt-2 text-[11.5px] leading-relaxed text-ink3">
           {shown.contig
-            ? '物理上连续：寻址 = 基址 + 偏移，根本不需要表 —— 代价是整段区间被一次性锁死。'
-            : '物理块东一块西一块，靠这张表把逻辑位置翻译成物理地址 —— 和操作系统的页表一模一样。'}
+            ? t(
+                'Physically contiguous: address = base + offset, no table needed at all — the price is the whole span gets locked in one shot.',
+                '物理上连续：寻址 = 基址 + 偏移，根本不需要表 —— 代价是整段区间被一次性锁死。',
+              )
+            : t(
+                'Physical blocks scattered all over; this table translates logical positions into physical addresses — exactly like the OS page table.',
+                '物理块东一块西一块，靠这张表把逻辑位置翻译成物理地址 —— 和操作系统的页表一模一样。',
+              )}
         </div>
       </div>
     )
@@ -371,12 +384,12 @@ export default function PagedLab() {
     >
       <div className={`microlabel mb-2 ${view === key ? 'text-volt' : ''}`}>{label}</div>
       <div className="flex flex-wrap gap-x-5 gap-y-1.5">
-        <Stat label="并发" value={st.n} size="sm" tone={key === 'paged' ? 'volt' : 'ink'} />
-        <Stat label="利用率" value={pct(st.util)} size="sm" tone="cyan" />
-        <Stat label="浪费" value={pct(st.waste)} size="sm" tone={st.waste > 0.2 ? 'rose' : 'ink'} />
-        <Stat label="排队" value={st.queue} size="sm" />
-        <Stat label="已完成" value={st.finished} size="sm" />
-        {key === 'paged' && <Stat label="抢占" value={st.preempted} size="sm" />}
+        <Stat label={t('concurrent', '并发')} value={st.n} size="sm" tone={key === 'paged' ? 'volt' : 'ink'} />
+        <Stat label={t('utilization', '利用率')} value={pct(st.util)} size="sm" tone="cyan" />
+        <Stat label={t('waste', '浪费')} value={pct(st.waste)} size="sm" tone={st.waste > 0.2 ? 'rose' : 'ink'} />
+        <Stat label={t('queued', '排队')} value={st.queue} size="sm" />
+        <Stat label={t('finished', '已完成')} value={st.finished} size="sm" />
+        {key === 'paged' && <Stat label={t('preempted', '抢占')} value={st.preempted} size="sm" />}
       </div>
     </button>
   )
@@ -384,16 +397,22 @@ export default function PagedLab() {
   return (
     <Widget
       index={3}
-      title="PagedAttention 模拟器"
-      subtitle="同一条请求流 · 两种显存分配器"
+      title={t('PagedAttention simulator', 'PagedAttention 模拟器')}
+      subtitle={t('One request stream · two memory allocators', '同一条请求流 · 两种显存分配器')}
       onReset={reset}
       wide
-      footer={
+      footer={t(
+        <>
+          Hatching = memory allocated but holding no token, i.e. waste. Real vLLM has two more weapons this sim doesn't
+          draw: requests sharing the same prompt prefix point at the same batch of physical blocks (prefix sharing), and
+          copy-on-write keeps each branch separate only after it forks — an identical prefix ever only occupies memory
+          once.
+        </>,
         <>
           斜线 = 已分配却没有 token 的浪费。真实 vLLM 还有两件本模拟没画的武器：相同 prompt 前缀的请求共享同一批物理块
           （prefix sharing），写时复制（copy-on-write）保证分叉后才各存一份 —— 相同前缀永远只占一份显存。
-        </>
-      }
+        </>,
+      )}
     >
       <div className="mb-4 flex flex-wrap items-center gap-x-5 gap-y-3">
         <PlayBar playing={playing} onToggle={() => setPlaying(!playing)} onStep={() => advance(1)}
@@ -401,7 +420,7 @@ export default function PagedLab() {
           extra={
             <Segmented
               options={[
-                { value: 'contig', label: '连续预分配' },
+                { value: 'contig', label: t('Contiguous prealloc', '连续预分配') },
                 { value: 'paged', label: 'PAGED' },
               ]}
               value={view}
@@ -413,17 +432,18 @@ export default function PagedLab() {
       </div>
 
       <div className="mb-4 flex flex-col gap-3 sm:flex-row">
-        {statCard('连续预分配（按 MAX_LEN 圈地）', cStats, 'contig')}
-        {statCard('PAGEDATTENTION（按需给块）', pStats, 'paged')}
+        {statCard(t('CONTIGUOUS PREALLOC (FENCE BY MAX_LEN)', '连续预分配（按 MAX_LEN 圈地）'), cStats, 'contig')}
+        {statCard(t('PAGEDATTENTION (BLOCKS ON DEMAND)', 'PAGEDATTENTION（按需给块）'), pStats, 'paged')}
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_280px]">
         <div>
           <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-2">
             <span className="microlabel">
-              显存池 · {NB} BLOCK × {BT} TOKEN（{view === 'contig' ? '连续预分配' : 'PAGED'}视图）
+              {t('MEMORY POOL', '显存池')} · {NB} BLOCK × {BT} TOKEN
+              {' ('}{view === 'contig' ? t('contiguous prealloc', '连续预分配') : 'PAGED'} {t('view', '视图')}{')'}
             </span>
-            <span className="font-mono text-[10.5px] text-ink3">点击色块查看该请求的 block table</span>
+            <span className="font-mono text-[10.5px] text-ink3">{t('click a block to see that request’s block table', '点击色块查看该请求的 block table')}</span>
           </div>
           <svg viewBox={`0 0 ${gridW} ${gridH}`} className="w-full rounded-md border border-line bg-bg">
             <defs>
@@ -435,15 +455,18 @@ export default function PagedLab() {
             {blocks}
           </svg>
           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[10.5px] text-ink3">
-            <span><span className="mr-1 inline-block size-2 rounded-sm border border-line bg-bg2 align-middle" />空闲</span>
-            <span><span className="mr-1 inline-block size-2 rounded-sm bg-cyan/50 align-middle" />已存 KV token</span>
-            <span><span className="mr-1 inline-block size-2 rounded-sm align-middle" style={{ background: 'repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,92,122,0.5) 2px, rgba(255,92,122,0.5) 3px)' }} />已分配未使用（浪费）</span>
+            <span><span className="mr-1 inline-block size-2 rounded-sm border border-line bg-bg2 align-middle" />{t('free', '空闲')}</span>
+            <span><span className="mr-1 inline-block size-2 rounded-sm bg-cyan/50 align-middle" />{t('stored KV token', '已存 KV token')}</span>
+            <span><span className="mr-1 inline-block size-2 rounded-sm align-middle" style={{ background: `repeating-linear-gradient(45deg, transparent, transparent 2px, ${rgba(C.rose, 0.5)} 2px, ${rgba(C.rose, 0.5)} 3px)` }} />{t('allocated, unused (waste)', '已分配未使用（浪费）')}</span>
           </div>
         </div>
         <div>
           {table ?? (
             <div className="flex h-full min-h-[140px] items-center justify-center rounded-md border border-dashed border-line p-4 text-center text-[12px] leading-relaxed text-ink3">
-              点击左侧任意请求的色块，<br />查看它的逻辑块 → 物理块映射
+              {t(
+                <>Click any request’s colored block on the left<br />to see its logical → physical block mapping</>,
+                <>点击左侧任意请求的色块，<br />查看它的逻辑块 → 物理块映射</>,
+              )}
             </div>
           )}
         </div>

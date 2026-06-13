@@ -1,5 +1,8 @@
+import { useT } from '@/lib/i18n'
+
 /** SEC1 静态图：i = blockIdx.x * blockDim.x + threadIdx.x 的几何拆解 */
 export function IndexFigure() {
+  const t = useT()
   // 4 个 block，每个 8 线程；选中 block 2 的 thread 3 → i = 19
   const BD = 8 // blockDim.x
   const SEL_B = 2
@@ -16,7 +19,15 @@ export function IndexFigure() {
   const selX = cx(SEL_B, SEL_T)
 
   return (
-    <svg viewBox="0 0 850 165" className="w-full" role="img" aria-label="全局索引 i 的几何拆解：block 起点 + 块内偏移">
+    <svg
+      viewBox="0 0 850 165"
+      className="w-full"
+      role="img"
+      aria-label={t(
+        'Geometric breakdown of the global index i: block start + offset within block',
+        '全局索引 i 的几何拆解：block 起点 + 块内偏移',
+      )}
+    >
       {/* block 标签 */}
       {[0, 1, 2, 3].map((b) => (
         <text
@@ -109,7 +120,10 @@ export function IndexFigure() {
           fill="currentColor"
           className="text-cyan"
         >
-          blockIdx.x × blockDim.x = 2 × 8 = 16（跳过前两个 block）
+          {t(
+            'blockIdx.x × blockDim.x = 2 × 8 = 16 (skip the first two blocks)',
+            'blockIdx.x × blockDim.x = 2 × 8 = 16（跳过前两个 block）',
+          )}
         </text>
       </g>
       {/* 第二段：+ threadIdx.x —— 块内偏移 */}

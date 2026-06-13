@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Btn, PlayBar, Widget } from '@/components/ui'
+import { useT } from '@/lib/i18n'
 import { useInterval, useReducedMotion } from '@/lib/hooks'
 
 /** LAB 02 —— vecAdd 执行模拟器：N=24、blockSize=8 的玩具例，逐 block 重放执行过程 */
@@ -39,6 +40,7 @@ function randomOrder(prev: number[]): number[] {
 }
 
 export function VecAddSim() {
+  const t = useT()
   const [step, setStep] = useState(0) // 0..TOTAL；TOTAL = 全部完成
   const [playing, setPlaying] = useState(false)
   const [speed, setSpeed] = useState(1)
@@ -88,14 +90,23 @@ export function VecAddSim() {
 
   const curLine = phase === 0 ? 2 : phase === 1 ? 3 : phase >= 2 ? 4 : -1
   const statusText = done
-    ? `✓ ${N} 个元素全部算完 —— 无论 block 按什么顺序执行，C 的结果一模一样`
+    ? t(
+        `✓ all ${N} elements computed — whatever order the blocks run in, C comes out identical`,
+        `✓ ${N} 个元素全部算完 —— 无论 block 按什么顺序执行，C 的结果一模一样`,
+      )
     : phase === 0
-      ? `block ${curBlk} 的 8 个线程同时算出各自的 i = ${curBlk}×8 + (0…7) → ${lo}…${hi}`
+      ? t(
+          `block ${curBlk}'s 8 threads simultaneously compute their own i = ${curBlk}×8 + (0…7) → ${lo}…${hi}`,
+          `block ${curBlk} 的 8 个线程同时算出各自的 i = ${curBlk}×8 + (0…7) → ${lo}…${hi}`,
+        )
       : phase === 1
-        ? `8 个线程同时检查 i < 24 → 全部通过`
+        ? t(`8 threads simultaneously check i < 24 → all pass`, `8 个线程同时检查 i < 24 → 全部通过`)
         : phase === 2
-          ? `同时读取 A[${lo}…${hi}] 与 B[${lo}…${hi}]`
-          : `同时写入 C[${lo}…${hi}] —— 一步完成 8 个加法`
+          ? t(`reading A[${lo}…${hi}] and B[${lo}…${hi}] together`, `同时读取 A[${lo}…${hi}] 与 B[${lo}…${hi}]`)
+          : t(
+              `writing C[${lo}…${hi}] together — 8 additions in one step`,
+              `同时写入 C[${lo}…${hi}] —— 一步完成 8 个加法`,
+            )
 
   /* ── SVG 布局 ── */
   const cw = 29
@@ -158,16 +169,22 @@ export function VecAddSim() {
   return (
     <Widget
       index={2}
-      title="vecAdd 执行模拟器"
-      subtitle="N=24，blockSize=8 → 3 个 block"
+      title={t('vecAdd execution simulator', 'vecAdd 执行模拟器')}
+      subtitle={t('N=24, blockSize=8 → 3 blocks', 'N=24，blockSize=8 → 3 个 block')}
       onReset={reset}
-      footer={
+      footer={t(
+        <>
+          Hit "⇄ shuffle scheduling" to make the hardware run the 3 blocks in a random order, then compare C's
+          result — <span className="text-ink">identical</span>. CUDA doesn't guarantee block execution order;
+          precisely because each block is independent, the hardware can toss them at any idle SM it likes. When you
+          write code, never assume an ordering between blocks.
+        </>,
         <>
           点「⇄ 乱序调度」让硬件以随机顺序执行 3 个 block，再对比 C 的结果 ——{' '}
           <span className="text-ink">一模一样</span>。CUDA 不保证 block 的执行顺序，正因为每个 block 互相独立，
           硬件才能把它们随意扔给任何空闲的 SM。写代码时永远不要假设 block 间的先后关系。
-        </>
-      }
+        </>,
+      )}
     >
       {/* 迷你代码面板 */}
       <div className="overflow-hidden rounded-md border border-line bg-bg2">
@@ -232,7 +249,7 @@ export function VecAddSim() {
               className={!done && b === curBlk ? 'text-volt' : 'text-ink3'}
             >
               block {b}
-              {!done && b === curBlk ? ' ◀ 执行中' : ''}
+              {!done && b === curBlk ? t(' ◀ running', ' ◀ 执行中') : ''}
             </text>
           ))}
           {[1, 2].map((b) => (
@@ -299,13 +316,17 @@ export function VecAddSim() {
           speed={speed}
           onSpeed={setSpeed}
           extra={
-            <Btn variant="ghost" onClick={shuffle} title="随机打乱 block 执行顺序并重放">
-              ⇄ 乱序调度
+            <Btn
+              variant="ghost"
+              onClick={shuffle}
+              title={t('Randomly shuffle the block execution order and replay', '随机打乱 block 执行顺序并重放')}
+            >
+              {t('⇄ shuffle scheduling', '⇄ 乱序调度')}
             </Btn>
           }
         />
         <span className="font-mono text-[11px] text-ink3">
-          执行顺序:{' '}
+          {t('order:', '执行顺序:')}{' '}
           <span className={order.join() === IDENTITY.join() ? 'text-ink2' : 'text-amber'}>
             block {order.join(' → block ')}
           </span>

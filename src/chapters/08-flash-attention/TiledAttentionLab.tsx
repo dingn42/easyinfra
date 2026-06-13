@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import { PlayBar, Stat, Toggle, Widget } from '@/components/ui'
 import { useRafLoop, useReducedMotion } from '@/lib/hooks'
 import { fmtBytes } from '@/lib/format'
+import { useT } from '@/lib/i18n'
 
 /** ── LAB 02: 分块注意力动画 ──
  * 8×8 块的 score 矩阵「影子」（虚线 = 从未物化到 HBM）。
@@ -25,6 +26,7 @@ interface Cell {
 }
 
 export function TiledAttentionLab() {
+  const t = useT()
   const [causal, setCausal] = useState(false)
   const [sIdx, setSIdx] = useState(11) // 默认停在中途：打开页面即有信息量
   const [playing, setPlaying] = useState(false)
@@ -115,19 +117,27 @@ export function TiledAttentionLab() {
   return (
     <Widget
       index={2}
-      title="分块注意力动画"
-      subtitle="S=8192 · d=128 · 8×8 块 · fp16 · 单头"
+      title={t('Tiled Attention Animation', '分块注意力动画')}
+      subtitle={t('S=8192 · d=128 · 8×8 blocks · fp16 · single head', 'S=8192 · d=128 · 8×8 块 · fp16 · 单头')}
       wide
       onReset={rewind}
-      footer={
+      footer={t(
+        <>
+          The dashed cells are the "phantom" of the score matrix: each S<sub>ij</sub> block lives only in
+          SRAM, gets merged into (m, l, O) on the spot, and is never written back to HBM. The traffic model:
+          naive counts 4 round-trips of S², flash counts K/V re-read once per Q row (precisely the cost of
+          the outer Q loop, but it is O(S·d)-scale). Real implementations use much smaller blocks (Br/Bc ≈
+          64–128, limited by SRAM capacity); we slice into 8 blocks here so it stays legible. With 32 heads,
+          both sides' numbers scale by another ×32, and the ratio is unchanged.
+        </>,
         <>
           虚线格子是 score 矩阵的「影子」：每个 S<sub>ij</sub> 小块只活在 SRAM，
           算完就地合并进 (m, l, O)，从未写回 HBM。流量模型：naive 按 4 次 S² 往返计，
           flash 按 K/V 每个 Q 行重读一遍计（这正是外层 Q 循环的代价，但它是 O(S·d) 级的）。
           真实实现的块要小得多（Br/Bc ≈ 64~128，受 SRAM 容量限制），这里切成 8 块是为了看得清。
           32 个头的话，两边数字都再 ×32，差距比例不变。
-        </>
-      }
+        </>,
+      )}
     >
       <PlayBar
         playing={playing}
@@ -146,7 +156,7 @@ export function TiledAttentionLab() {
           <div className="ml-auto flex items-center gap-4">
             <Toggle label="causal mask" checked={causal} onChange={toggleCausal} />
             <span className="font-mono text-[11px] tabular-nums text-ink3">
-              块 {Math.min(sIdx, total)}/{total}
+              {t('BLOCK', '块')} {Math.min(sIdx, total)}/{total}
             </span>
           </div>
         }
@@ -155,7 +165,12 @@ export function TiledAttentionLab() {
       <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_250px]">
         {/* ── 左：score 矩阵影子网格 ── */}
         <div>
-          <svg viewBox={`0 0 ${W} ${H}`} className="w-full max-w-[440px]" role="img" aria-label="分块注意力扫描网格">
+          <svg
+            viewBox={`0 0 ${W} ${H}`}
+            className="w-full max-w-[440px]"
+            role="img"
+            aria-label={t('Tiled attention scan grid', '分块注意力扫描网格')}
+          >
             {/* 顶部 K/V 块标签 */}
             {Array.from({ length: NB }, (_, j) => (
               <text
@@ -228,7 +243,7 @@ export function TiledAttentionLab() {
                         fill="currentColor"
                         opacity={0.5}
                       >
-                        跳过
+                        {t('skip', '跳过')}
                       </text>
                     ) : (
                       <text
@@ -250,11 +265,11 @@ export function TiledAttentionLab() {
           </svg>
           <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[10px] text-ink3">
             <span>
-              <span className="text-volt">■</span> 当前块（SRAM 内）
+              <span className="text-volt">■</span> {t('active block (in SRAM)', '当前块（SRAM 内）')}
             </span>
-            <span>✓ 已合并</span>
-            <span>┄ 虚线 = 从未物化到 HBM</span>
-            {causal && <span>暗格 = causal 跳过</span>}
+            <span>{t('✓ merged', '✓ 已合并')}</span>
+            <span>{t('┄ dashed = never materialized to HBM', '┄ 虚线 = 从未物化到 HBM')}</span>
+            {causal && <span>{t('dim = causal skip', '暗格 = causal 跳过')}</span>}
           </div>
         </div>
 
@@ -271,14 +286,14 @@ export function TiledAttentionLab() {
             <span className="rounded border border-cyan/50 bg-cyan/10 px-2 py-0.5 font-mono text-[11px] text-cyan">
               V{active ? active.j : done ? '·' : 0}
             </span>
-            <span className="self-center font-mono text-[10px] text-ink3">{fmtBytes(BLK_BYTES)}/块</span>
+            <span className="self-center font-mono text-[10px] text-ink3">{fmtBytes(BLK_BYTES)}{t('/block', '/块')}</span>
           </div>
 
           {/* m, l 状态条 */}
           <div className="mb-1 flex items-baseline justify-between font-mono text-[10px]">
-            <span className="text-ink2">m, l（行状态）</span>
+            <span className="text-ink2">{t('m, l (row state)', 'm, l（行状态）')}</span>
             <span className="tabular-nums text-violet">
-              {done ? '全部行 ✓' : `已并 ${mergedInRow}/${rowLen} 块`}
+              {done ? t('all rows ✓', '全部行 ✓') : t(`merged ${mergedInRow}/${rowLen} blocks`, `已并 ${mergedInRow}/${rowLen} 块`)}
             </span>
           </div>
           <div className="mb-3 h-2 overflow-hidden rounded-sm bg-bg2">
@@ -290,8 +305,8 @@ export function TiledAttentionLab() {
 
           {/* O 累计条 */}
           <div className="mb-1 flex items-baseline justify-between font-mono text-[10px]">
-            <span className="text-ink2">O 累计（未归一化）</span>
-            <span className="tabular-nums text-amber">{done ? '已写回 ✓' : `Q${curRow} 行`}</span>
+            <span className="text-ink2">{t('O accumulator (un-normalized)', 'O 累计（未归一化）')}</span>
+            <span className="tabular-nums text-amber">{done ? t('written back ✓', '已写回 ✓') : t(`Q${curRow} row`, `Q${curRow} 行`)}</span>
           </div>
           <div className="relative mb-3 h-2 overflow-hidden rounded-sm bg-bg2">
             <div
@@ -309,20 +324,20 @@ export function TiledAttentionLab() {
               <>
                 <div>
                   S{active.i}{active.j} = Q{active.i}·K{active.j}
-                  <sup>T</sup> <span className="text-ink3">（{BLK}×{BLK}，仅 SRAM）</span>
+                  <sup>T</sup> <span className="text-ink3">{t(`(${BLK}×${BLK}, SRAM only)`, `（${BLK}×${BLK}，仅 SRAM）`)}</span>
                 </div>
                 <div>
-                  局部 softmax → 在线并入 (m, l, O{active.i})
+                  {t(`local softmax → merge online into (m, l, O${active.i})`, `局部 softmax → 在线并入 (m, l, O${active.i})`)}
                 </div>
                 {active.j === lastJ(active.i) && (
-                  <div className="text-amber">行尾：O{active.i}/l 写回 HBM</div>
+                  <div className="text-amber">{t(`end of row: O${active.i}/l written back to HBM`, `行尾：O${active.i}/l 写回 HBM`)}</div>
                 )}
-                {rowDone && <div className="text-volt">新行开始：载入 Q{active.i}，重置 m,l,O</div>}
+                {rowDone && <div className="text-volt">{t(`new row: load Q${active.i}, reset m, l, O`, `新行开始：载入 Q${active.i}，重置 m,l,O`)}</div>}
               </>
             ) : done ? (
-              <div className="text-volt">✓ 全部 {total} 块处理完毕，O 已写回</div>
+              <div className="text-volt">{t(`✓ all ${total} blocks processed, O written back`, `✓ 全部 ${total} 块处理完毕，O 已写回`)}</div>
             ) : (
-              <div>按播放开始扫描</div>
+              <div>{t('press play to start the scan', '按播放开始扫描')}</div>
             )}
           </div>
         </div>
@@ -330,7 +345,7 @@ export function TiledAttentionLab() {
 
       {/* ── 底部：HBM 流量双累计条 ── */}
       <div className="mt-5 space-y-2.5">
-        <div className="microlabel">HBM 读写累计（单头）</div>
+        <div className="microlabel">{t('HBM READ/WRITE CUMULATIVE (SINGLE HEAD)', 'HBM 读写累计（单头）')}</div>
         <div className="flex items-center gap-3">
           <span className="w-12 shrink-0 font-mono text-[11px] text-ink3">naive</span>
           <div className="h-3.5 flex-1 overflow-hidden rounded-sm border border-line bg-bg2">
@@ -358,10 +373,14 @@ export function TiledAttentionLab() {
           </span>
         </div>
         <div className="flex flex-wrap items-end gap-x-8 gap-y-2 pt-1">
-          <Stat label="naive 总流量" value={fmtBytes(NAIVE_TOTAL)} tone="rose" size="sm" />
-          <Stat label="flash 总流量" value={fmtBytes(flashTotal)} tone="volt" size="sm" />
-          <Stat label="流量比" value={`×${ratio.toFixed(1)}`} tone="volt" size="md" />
-          {causal && <span className="pb-1 font-mono text-[11px] text-ink3">causal：flash 流量再省约一半，naive 照算全表</span>}
+          <Stat label={t('naive total traffic', 'naive 总流量')} value={fmtBytes(NAIVE_TOTAL)} tone="rose" size="sm" />
+          <Stat label={t('flash total traffic', 'flash 总流量')} value={fmtBytes(flashTotal)} tone="volt" size="sm" />
+          <Stat label={t('traffic ratio', '流量比')} value={`×${ratio.toFixed(1)}`} tone="volt" size="md" />
+          {causal && (
+            <span className="pb-1 font-mono text-[11px] text-ink3">
+              {t('causal: flash saves about another half; naive still computes the full table', 'causal：flash 流量再省约一半，naive 照算全表')}
+            </span>
+          )}
         </div>
       </div>
 

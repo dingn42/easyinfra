@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { useT } from '@/lib/i18n'
 
 export interface QuizOption {
   text: ReactNode
@@ -10,13 +11,14 @@ export interface QuizOption {
 /** 单选小测。选择后即时反馈并展示解释。 */
 export function Quiz({ question, options }: { question: ReactNode; options: QuizOption[] }) {
   const [picked, setPicked] = useState<number | null>(null)
+  const t = useT()
   const done = picked != null
 
   return (
     <div className="panel my-8 overflow-hidden">
       <div className="flex items-center gap-3 border-b border-line bg-panel2/60 px-4 py-2.5">
         <span className="microlabel text-cyan">? QUIZ</span>
-        <span className="text-[13px] text-ink3">检验一下直觉</span>
+        <span className="text-[13px] text-ink3">{t('Check your intuition', '检验一下直觉')}</span>
       </div>
       <div className="p-4 sm:p-5">
         <p className="mb-4 text-[15px] font-medium leading-relaxed text-ink">{question}</p>
@@ -44,16 +46,16 @@ export function Quiz({ question, options }: { question: ReactNode; options: Quiz
           })}
         </div>
         {done && (
-          <div className="mt-4 rounded-md border border-line bg-bg2 px-4 py-3 text-[13.5px] leading-[1.9] text-text">
+          <div className="mt-4 rounded-md border border-line bg-bg2 px-4 py-3 text-[13.5px] leading-[1.85] text-text">
             <span className={`mr-2 font-mono text-xs ${options[picked].correct ? 'text-volt' : 'text-rose'}`}>
-              {options[picked].correct ? '✓ 正确' : '✗ 不对'}
+              {options[picked].correct ? t('✓ Correct', '✓ 正确') : t('✗ Not quite', '✗ 不对')}
             </span>
             {options[picked].explain ?? options.find((o) => o.correct)?.explain}
             <button
               onClick={() => setPicked(null)}
               className="ml-3 font-mono text-[11px] tracking-wider text-ink3 underline decoration-dotted underline-offset-4 hover:text-ink2"
             >
-              再试一次
+              {t('Try again', '再试一次')}
             </button>
           </div>
         )}

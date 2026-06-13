@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Widget } from '@/components/ui'
+import { useLocale, useT, pick, type Lang, type Loc } from '@/lib/i18n'
 
 /* ───────────────────────── LAB 01 GPU 解剖台 ─────────────────────────
  * 三层可点击 SVG：
@@ -28,177 +29,225 @@ type InfoKey =
   | 'tma'
 
 interface Info {
-  name: string
+  name: Loc
   en: string
-  count: string
-  duty: string
-  stats: [string, string][]
+  count: Loc
+  duty: Loc
+  stats: [Loc, Loc][]
 }
+
+/** 小工具：纯英文/数字串 → 同值 Loc（en === zh），让 stats 表保持统一结构 */
+const same = (s: string): Loc => ({ en: s, zh: s })
 
 const INFO: Record<InfoKey, Info> = {
   die: {
-    name: 'GH100 die（整片）',
+    name: { en: 'GH100 die (full chip)', zh: 'GH100 die（整片）' },
     en: 'Full Die',
-    count: '1 片 / GPU',
-    duty: '一整块硅片：计算单元做成 SM 后复制 144 份，再配上片上 L2 和片外 HBM 的接口。',
+    count: { en: '1 per GPU', zh: '1 片 / GPU' },
+    duty: {
+      en: 'A single slab of silicon: the compute unit is designed once as an SM, stamped out 144 times, then wired up with on-die L2 and the interfaces to off-die HBM.',
+      zh: '一整块硅片：计算单元做成 SM 后复制 144 份，再配上片上 L2 和片外 HBM 的接口。',
+    },
     stats: [
-      ['制程', 'TSMC 4N'],
-      ['面积', '814 mm²'],
-      ['晶体管', '800 亿'],
-      ['SM（H100 SXM 启用）', '132 / 144'],
+      [{ en: 'Process', zh: '制程' }, same('TSMC 4N')],
+      [{ en: 'Die area', zh: '面积' }, same('814 mm²')],
+      [{ en: 'Transistors', zh: '晶体管' }, { en: '80 billion', zh: '800 亿' }],
+      [{ en: 'SMs (H100 SXM enabled)', zh: 'SM（H100 SXM 启用）' }, same('132 / 144')],
     ],
   },
   gpc: {
-    name: 'GPC（图形处理簇）',
+    name: { en: 'GPC (Graphics Processing Cluster)', zh: 'GPC（图形处理簇）' },
     en: 'Graphics Processing Cluster',
-    count: '8 个 / die',
-    duty: '一组 SM 的行政区划：内部再分 9 个 TPC（每 TPC 2 个 SM），主要服务于物理布线和任务分发。',
+    count: { en: '8 per die', zh: '8 个 / die' },
+    duty: {
+      en: 'An administrative district of SMs: subdivided into 9 TPCs (2 SMs each), it exists mostly for physical floorplanning and work distribution.',
+      zh: '一组 SM 的行政区划：内部再分 9 个 TPC（每 TPC 2 个 SM），主要服务于物理布线和任务分发。',
+    },
     stats: [
-      ['TPC / GPC', '9'],
-      ['SM / GPC', '18'],
-      ['对程序员', '几乎透明'],
+      [same('TPC / GPC'), same('9')],
+      [same('SM / GPC'), same('18')],
+      [{ en: 'To the programmer', zh: '对程序员' }, { en: 'mostly invisible', zh: '几乎透明' }],
     ],
   },
   sm: {
-    name: 'SM（流式多处理器）',
+    name: { en: 'SM (Streaming Multiprocessor)', zh: 'SM（流式多处理器）' },
     en: 'Streaming Multiprocessor',
-    count: 'H100 SXM：132 个（A100：108）',
-    duty: 'GPU 真正的「核」：线程块（block）整块驻留在某个 SM 上，由它供给寄存器、共享内存和执行单元。点击可放大查看内部。',
+    count: { en: 'H100 SXM: 132 (A100: 108)', zh: 'H100 SXM：132 个（A100：108）' },
+    duty: {
+      en: "The GPU's real \"core\": a thread block resides entirely on one SM, which hands it registers, shared memory, and execution units. Click to zoom inside.",
+      zh: 'GPU 真正的「核」：线程块（block）整块驻留在某个 SM 上，由它供给寄存器、共享内存和执行单元。点击可放大查看内部。',
+    },
     stats: [
-      ['FP32 核 / SM', '128'],
-      ['Warp 调度器', '4'],
-      ['Tensor Core', '4'],
-      ['寄存器堆', '256 KB'],
-      ['最大驻留', '64 warp（2048 线程）'],
+      [{ en: 'FP32 cores / SM', zh: 'FP32 核 / SM' }, same('128')],
+      [{ en: 'Warp schedulers', zh: 'Warp 调度器' }, same('4')],
+      [same('Tensor Cores'), same('4')],
+      [{ en: 'Register file', zh: '寄存器堆' }, same('256 KB')],
+      [{ en: 'Max residency', zh: '最大驻留' }, { en: '64 warps (2048 threads)', zh: '64 warp（2048 线程）' }],
     ],
   },
   smoff: {
-    name: '被屏蔽的 SM',
+    name: { en: 'Disabled SM', zh: '被屏蔽的 SM' },
     en: 'Disabled SM',
-    count: '12 个 / die（H100 SXM）',
-    duty: '良率冗余：硅片这么大，难免有瑕疵。出厂时把有缺陷的 SM 熔断屏蔽，144 个里只开 132 个卖给你。',
+    count: { en: '12 per die (H100 SXM)', zh: '12 个 / die（H100 SXM）' },
+    duty: {
+      en: 'Yield insurance: a die this large is bound to have defects. At the factory the faulty SMs are fused off — of the 144 built, only 132 ship to you.',
+      zh: '良率冗余：硅片这么大，难免有瑕疵。出厂时把有缺陷的 SM 熔断屏蔽，144 个里只开 132 个卖给你。',
+    },
     stats: [
-      ['全配 SM', '144'],
-      ['启用 SM', '132（SXM5）'],
-      ['同款 die 的 PCIe 版', '114 个'],
+      [{ en: 'SMs built', zh: '全配 SM' }, same('144')],
+      [{ en: 'SMs enabled', zh: '启用 SM' }, { en: '132 (SXM5)', zh: '132（SXM5）' }],
+      [{ en: 'PCIe part, same die', zh: '同款 die 的 PCIe 版' }, { en: '114', zh: '114 个' }],
     ],
   },
   l2: {
-    name: 'L2 缓存',
+    name: { en: 'L2 Cache', zh: 'L2 缓存' },
     en: 'L2 Cache',
-    count: '1 个 / die（分两个分区）',
-    duty: '全片共享的最后一级片上缓存：所有 SM 的访存都路过这里，命中就不必去 HBM。',
+    count: { en: '1 per die (two partitions)', zh: '1 个 / die（分两个分区）' },
+    duty: {
+      en: 'The chip-wide last-level on-die cache: every SM memory access passes through here, and a hit means no trip to HBM.',
+      zh: '全片共享的最后一级片上缓存：所有 SM 的访存都路过这里，命中就不必去 HBM。',
+    },
     stats: [
-      ['容量', '50 MB（A100：40 MB）'],
-      ['延迟', '约 200~300 周期'],
-      ['带宽', '数 TB/s 量级'],
+      [{ en: 'Capacity', zh: '容量' }, { en: '50 MB (A100: 40 MB)', zh: '50 MB（A100：40 MB）' }],
+      [{ en: 'Latency', zh: '延迟' }, { en: '~200–300 cycles', zh: '约 200~300 周期' }],
+      [{ en: 'Bandwidth', zh: '带宽' }, { en: 'several TB/s', zh: '数 TB/s 量级' }],
     ],
   },
   hbm: {
-    name: 'HBM3 显存堆叠',
+    name: { en: 'HBM3 memory stacks', zh: 'HBM3 显存堆叠' },
     en: 'High Bandwidth Memory',
-    count: '5 堆启用（6 个堆位）',
-    duty: '片外显存：DRAM 芯片垂直堆叠后用硅中介层贴着 GPU die 摆放，靠超宽总线换带宽。',
+    count: { en: '5 stacks active (6 sites)', zh: '5 堆启用（6 个堆位）' },
+    duty: {
+      en: 'Off-die memory: DRAM dies stacked vertically and placed right against the GPU die on a silicon interposer, trading an ultra-wide bus for bandwidth.',
+      zh: '片外显存：DRAM 芯片垂直堆叠后用硅中介层贴着 GPU die 摆放，靠超宽总线换带宽。',
+    },
     stats: [
-      ['容量', '80 GB'],
-      ['带宽', '3.35 TB/s（A100：1.9~2.0）'],
-      ['总线位宽', '5120-bit'],
-      ['延迟', '约 500 周期以上'],
+      [{ en: 'Capacity', zh: '容量' }, same('80 GB')],
+      [{ en: 'Bandwidth', zh: '带宽' }, { en: '3.35 TB/s (A100: 1.9–2.0)', zh: '3.35 TB/s（A100：1.9~2.0）' }],
+      [{ en: 'Bus width', zh: '总线位宽' }, same('5120-bit')],
+      [{ en: 'Latency', zh: '延迟' }, { en: '~500+ cycles', zh: '约 500 周期以上' }],
     ],
   },
   nvlink: {
-    name: 'NVLink 4 接口',
+    name: { en: 'NVLink 4 interface', zh: 'NVLink 4 接口' },
     en: 'NVLink',
-    count: '18 条链路',
-    duty: '多卡互联的高速公路：8 卡 H100 服务器靠它组成一台「大 GPU」，第 12 章并行训练全靠它。',
+    count: { en: '18 links', zh: '18 条链路' },
+    duty: {
+      en: 'The high-speed freeway for multi-GPU: an 8-card H100 server fuses into one "big GPU" through it, and all of chapter 12 (parallel training) rides on it.',
+      zh: '多卡互联的高速公路：8 卡 H100 服务器靠它组成一台「大 GPU」，第 12 章并行训练全靠它。',
+    },
     stats: [
-      ['双向带宽', '900 GB/s'],
-      ['对比 PCIe Gen5', '约 7 倍'],
+      [{ en: 'Bidirectional BW', zh: '双向带宽' }, same('900 GB/s')],
+      [{ en: 'vs PCIe Gen5', zh: '对比 PCIe Gen5' }, { en: '~7×', zh: '约 7 倍' }],
     ],
   },
   host: {
-    name: 'PCIe Gen5 + GigaThread 引擎',
+    name: { en: 'PCIe Gen5 + GigaThread engine', zh: 'PCIe Gen5 + GigaThread 引擎' },
     en: 'Host Interface & Global Scheduler',
-    count: '1 套 / die',
-    duty: '与 CPU 的接口 + 全局调度器：kernel 启动后，GigaThread 引擎把成千上万个线程块分发到各个 SM 上。',
+    count: { en: '1 set per die', zh: '1 套 / die' },
+    duty: {
+      en: 'The interface to the CPU plus the global scheduler: once a kernel launches, the GigaThread engine hands out its thousands of thread blocks across the SMs.',
+      zh: '与 CPU 的接口 + 全局调度器：kernel 启动后，GigaThread 引擎把成千上万个线程块分发到各个 SM 上。',
+    },
     stats: [
-      ['PCIe Gen5 ×16', '128 GB/s'],
-      ['分发粒度', '线程块（block）'],
+      [same('PCIe Gen5 ×16'), same('128 GB/s')],
+      [{ en: 'Dispatch granularity', zh: '分发粒度' }, { en: 'thread block', zh: '线程块（block）' }],
     ],
   },
   sched: {
-    name: 'Warp 调度器',
+    name: { en: 'Warp scheduler', zh: 'Warp 调度器' },
     en: 'Warp Scheduler',
-    count: '4 个 / SM（每分区 1 个）',
-    duty: '每个周期从驻留在本分区的 warp 里挑一个「就绪」的，发射它的下一条指令 —— 延迟隐藏的总开关。',
+    count: { en: '4 per SM (1 per partition)', zh: '4 个 / SM（每分区 1 个）' },
+    duty: {
+      en: 'Each cycle it picks one "ready" warp from those resident in its partition and issues its next instruction — the master switch behind latency hiding.',
+      zh: '每个周期从驻留在本分区的 warp 里挑一个「就绪」的，发射它的下一条指令 —— 延迟隐藏的总开关。',
+    },
     stats: [
-      ['发射率', '1 条 warp 指令 / 周期'],
-      ['候选', '最多 16 warp / 分区'],
-      ['切换开销', '0 周期'],
+      [{ en: 'Issue rate', zh: '发射率' }, { en: '1 warp instr / cycle', zh: '1 条 warp 指令 / 周期' }],
+      [{ en: 'Candidates', zh: '候选' }, { en: 'up to 16 warps / partition', zh: '最多 16 warp / 分区' }],
+      [{ en: 'Switch cost', zh: '切换开销' }, { en: '0 cycles', zh: '0 周期' }],
     ],
   },
   regfile: {
-    name: '寄存器堆',
+    name: { en: 'Register file', zh: '寄存器堆' },
     en: 'Register File',
-    count: '64 KB / 分区，256 KB / SM',
-    duty: '所有驻留线程的「私人变量」常驻于此 —— warp 切换不需要保存/恢复任何状态，这是零成本切换的物质基础。',
+    count: { en: '64 KB / partition, 256 KB / SM', zh: '64 KB / 分区，256 KB / SM' },
+    duty: {
+      en: "Every resident thread's private variables live here — switching warps saves and restores nothing, which is the physical reason context switches cost zero.",
+      zh: '所有驻留线程的「私人变量」常驻于此 —— warp 切换不需要保存/恢复任何状态，这是零成本切换的物质基础。',
+    },
     stats: [
-      ['容量 / SM', '256 KB（16 万个 32-bit）'],
-      ['延迟', '约 1 周期'],
-      ['每线程上限', '255 个寄存器'],
+      [{ en: 'Capacity / SM', zh: '容量 / SM' }, { en: '256 KB (64K × 32-bit)', zh: '256 KB（16 万个 32-bit）' }],
+      [{ en: 'Latency', zh: '延迟' }, { en: '~1 cycle', zh: '约 1 周期' }],
+      [{ en: 'Per-thread cap', zh: '每线程上限' }, { en: '255 registers', zh: '255 个寄存器' }],
     ],
   },
   cores: {
-    name: 'FP32 CUDA 核阵列',
+    name: { en: 'FP32 CUDA core array', zh: 'FP32 CUDA 核阵列' },
     en: 'FP32 Cores',
-    count: '32 个 / 分区，128 个 / SM，16896 个 / GPU',
-    duty: '标量浮点运算单元：一个 warp 的 32 个线程恰好铺满一个分区的 32 个核，锁步执行同一条指令。',
+    count: { en: '32 / partition, 128 / SM, 16896 / GPU', zh: '32 个 / 分区，128 个 / SM，16896 个 / GPU' },
+    duty: {
+      en: 'Scalar floating-point units: a warp\'s 32 threads map exactly onto a partition\'s 32 cores, all executing the same instruction in lockstep.',
+      zh: '标量浮点运算单元：一个 warp 的 32 个线程恰好铺满一个分区的 32 个核，锁步执行同一条指令。',
+    },
     stats: [
-      ['FP32 峰值（全卡）', '约 67 TFLOPS'],
-      ['FP64 单元', '另有 64 个 / SM'],
-      ['INT32 单元', '64 个 / SM'],
+      [{ en: 'FP32 peak (whole GPU)', zh: 'FP32 峰值（全卡）' }, { en: '~67 TFLOPS', zh: '约 67 TFLOPS' }],
+      [{ en: 'FP64 units', zh: 'FP64 单元' }, { en: '64 more / SM', zh: '另有 64 个 / SM' }],
+      [{ en: 'INT32 units', zh: 'INT32 单元' }, { en: '64 / SM', zh: '64 个 / SM' }],
     ],
   },
   tensor: {
-    name: 'Tensor Core（第 4 代）',
+    name: { en: 'Tensor Core (4th gen)', zh: 'Tensor Core（第 4 代）' },
     en: 'Tensor Core',
-    count: '1 个 / 分区，4 个 / SM，528 个 / GPU',
-    duty: '矩阵乘加专用电路：一条 MMA 指令完成一小块矩阵乘并累加，大模型时代 95% 以上的 FLOPs 由它贡献。',
+    count: { en: '1 / partition, 4 / SM, 528 / GPU', zh: '1 个 / 分区，4 个 / SM，528 个 / GPU' },
+    duty: {
+      en: 'Dedicated matrix multiply-accumulate circuitry: one MMA instruction multiplies a small matrix tile and accumulates it. In the LLM era it contributes 95%+ of all FLOPs.',
+      zh: '矩阵乘加专用电路：一条 MMA 指令完成一小块矩阵乘并累加，大模型时代 95% 以上的 FLOPs 由它贡献。',
+    },
     stats: [
-      ['BF16 峰值（全卡）', '989 TFLOPS'],
-      ['FP8 峰值', '1979 TFLOPS'],
-      ['对比 FP32 CUDA 核', '约 15 倍'],
+      [{ en: 'BF16 peak (whole GPU)', zh: 'BF16 峰值（全卡）' }, same('989 TFLOPS')],
+      [{ en: 'FP8 peak', zh: 'FP8 峰值' }, same('1979 TFLOPS')],
+      [{ en: 'vs FP32 CUDA core', zh: '对比 FP32 CUDA 核' }, { en: '~15×', zh: '约 15 倍' }],
     ],
   },
   ldst: {
-    name: 'LD/ST 与 SFU',
+    name: { en: 'LD/ST & SFU', zh: 'LD/ST 与 SFU' },
     en: 'Load/Store & Special Function Units',
-    count: '每分区各一组',
-    duty: 'LD/ST 负责把访存指令发往 L1/L2/HBM；SFU 负责超越函数（sin、exp、倒数平方根）的快速近似。',
+    count: { en: 'one group per partition', zh: '每分区各一组' },
+    duty: {
+      en: 'LD/ST issues memory instructions out to L1/L2/HBM; the SFU computes fast approximations of transcendentals (sin, exp, reciprocal square root).',
+      zh: 'LD/ST 负责把访存指令发往 L1/L2/HBM；SFU 负责超越函数（sin、exp、倒数平方根）的快速近似。',
+    },
     stats: [
-      ['访存粒度', '32 B 扇区 / 128 B 缓存行'],
-      ['exp/sin 等', 'SFU 硬件近似'],
+      [{ en: 'Access granularity', zh: '访存粒度' }, { en: '32 B sector / 128 B line', zh: '32 B 扇区 / 128 B 缓存行' }],
+      [{ en: 'exp/sin etc.', zh: 'exp/sin 等' }, { en: 'SFU hardware approx.', zh: 'SFU 硬件近似' }],
     ],
   },
   l1shared: {
-    name: 'L1 数据缓存 / 共享内存',
+    name: { en: 'L1 data cache / shared memory', zh: 'L1 数据缓存 / 共享内存' },
     en: 'L1 / Shared Memory',
-    count: '1 块 / SM（4 个分区共用）',
-    duty: '一块 SRAM 两种用法：一部分当硬件管理的 L1，一部分当程序员显式管理的便笺（shared memory），比例可配。',
+    count: { en: '1 per SM (shared by 4 partitions)', zh: '1 块 / SM（4 个分区共用）' },
+    duty: {
+      en: 'One SRAM, two uses: part of it acts as a hardware-managed L1, part as a programmer-controlled scratchpad (shared memory), and the split is configurable.',
+      zh: '一块 SRAM 两种用法：一部分当硬件管理的 L1，一部分当程序员显式管理的便笺（shared memory），比例可配。',
+    },
     stats: [
-      ['总容量', '256 KB / SM'],
-      ['Shared 最大可配', '228 KB'],
-      ['延迟', '约 30 周期'],
+      [{ en: 'Total capacity', zh: '总容量' }, same('256 KB / SM')],
+      [{ en: 'Max shared config', zh: 'Shared 最大可配' }, same('228 KB')],
+      [{ en: 'Latency', zh: '延迟' }, { en: '~30 cycles', zh: '约 30 周期' }],
     ],
   },
   tma: {
-    name: 'TMA + 纹理单元',
+    name: { en: 'TMA + texture units', zh: 'TMA + 纹理单元' },
     en: 'Tensor Memory Accelerator',
-    count: '1 个 TMA / SM（Hopper 新增）',
-    duty: '异步搬运工：一条描述符就能把全局内存里的多维张量块整块搬进共享内存，搬运期间核心继续算别的。',
+    count: { en: '1 TMA / SM (new in Hopper)', zh: '1 个 TMA / SM（Hopper 新增）' },
+    duty: {
+      en: 'The async mover: a single descriptor copies a whole multi-dimensional tensor tile from global memory into shared memory while the cores keep computing.',
+      zh: '异步搬运工：一条描述符就能把全局内存里的多维张量块整块搬进共享内存，搬运期间核心继续算别的。',
+    },
     stats: [
-      ['搬运模式', '异步、整块、多维'],
-      ['受益者', 'FlashAttention 等（第 8 章）'],
+      [{ en: 'Transfer mode', zh: '搬运模式' }, { en: 'async, bulk, multi-dim', zh: '异步、整块、多维' }],
+      [{ en: 'Beneficiaries', zh: '受益者' }, { en: 'FlashAttention etc. (ch. 8)', zh: 'FlashAttention 等（第 8 章）' }],
     ],
   },
 }
@@ -231,9 +280,10 @@ function DieView({
   onSel: (k: InfoKey) => void
   onEnterSm: (id: number) => void
 }) {
+  const t = useT()
   const selCls = (k: InfoKey) => (sel === k ? 'stroke-volt' : 'stroke-line2 hover:stroke-volt/70')
   return (
-    <svg viewBox="0 0 760 470" className="w-full select-none" role="img" aria-label="GH100 die 布局图">
+    <svg viewBox="0 0 760 470" className="w-full select-none" role="img" aria-label={t('GH100 die layout', 'GH100 die 布局图')}>
       {/* die 外框 */}
       <rect
         x={84} y={14} width={592} height={442} rx={6}
@@ -241,7 +291,7 @@ function DieView({
         onClick={() => onSel('die')}
       />
       <text x={92} y={470 - 6} fontSize={10} className="pointer-events-none fill-ink3 font-mono">
-        GH100 · 814 mm² · 800 亿晶体管
+        {t('GH100 · 814 mm² · 80 B transistors', 'GH100 · 814 mm² · 800 亿晶体管')}
       </text>
 
       {/* HBM 两侧堆叠 */}
@@ -273,7 +323,7 @@ function DieView({
         onClick={() => onSel('nvlink')}
       />
       <text x={380} y={38} fontSize={11} textAnchor="middle" className="pointer-events-none fill-cyan font-mono">
-        NVLink 4 互联 ×18 · 900 GB/s
+        {t('NVLink 4 ×18 · 900 GB/s', 'NVLink 4 互联 ×18 · 900 GB/s')}
       </text>
 
       {/* 底部 PCIe + GigaThread */}
@@ -283,7 +333,7 @@ function DieView({
         onClick={() => onSel('host')}
       />
       <text x={380} y={441} fontSize={10} textAnchor="middle" className="pointer-events-none fill-ink2 font-mono">
-        PCIe Gen5 接口 · GigaThread 全局调度引擎
+        {t('PCIe Gen5 interface · GigaThread global scheduler', 'PCIe Gen5 接口 · GigaThread 全局调度引擎')}
       </text>
 
       {/* 中央 L2 */}
@@ -293,7 +343,7 @@ function DieView({
         onClick={() => onSel('l2')}
       />
       <text x={380} y={241} fontSize={11} textAnchor="middle" className="pointer-events-none fill-violet font-mono">
-        L2 缓存 50 MB（全片共享）
+        {t('L2 cache · 50 MB (chip-wide)', 'L2 缓存 50 MB（全片共享）')}
       </text>
 
       {/* 8 个 GPC */}
@@ -344,7 +394,7 @@ function DieView({
                   className="cursor-pointer fill-volt/15 stroke-volt/30 transition-colors hover:fill-volt/40 hover:stroke-volt"
                   onClick={() => onEnterSm(id)}
                 >
-                  <title>SM #{id} —— 点击放大</title>
+                  <title>{t(`SM #${id} — click to zoom in`, `SM #${id} —— 点击放大`)}</title>
                 </rect>
               )
             })}
@@ -357,6 +407,7 @@ function DieView({
 
 /* ── SM 层 ── */
 function SmView({ smId, sel, onSel }: { smId: number; sel: InfoKey; onSel: (k: InfoKey) => void }) {
+  const t = useT()
   const selCls = (k: InfoKey, base: string, hot: string) => (sel === k ? hot : base)
   const parts: [number, number][] = [
     [98, 64],
@@ -365,13 +416,13 @@ function SmView({ smId, sel, onSel }: { smId: number; sel: InfoKey; onSel: (k: I
     [384, 214],
   ]
   return (
-    <svg viewBox="0 0 760 470" className="w-full select-none" role="img" aria-label={`SM #${smId} 内部结构图`}>
+    <svg viewBox="0 0 760 470" className="w-full select-none" role="img" aria-label={t(`SM #${smId} internal layout`, `SM #${smId} 内部结构图`)}>
       <rect x={90} y={16} width={580} height={438} rx={6} className="fill-panel stroke-line2" />
       <text x={102} y={38} fontSize={12} className="fill-ink font-mono">
         SM #{smId}
       </text>
       <text x={658} y={38} fontSize={10} textAnchor="end" className="fill-ink3 font-mono">
-        L1 指令缓存（4 分区共用）
+        {t('L1 instruction cache (shared by 4 partitions)', 'L1 指令缓存（4 分区共用）')}
       </text>
       <line x1={98} x2={662} y1={48} y2={48} className="stroke-line" />
 
@@ -380,7 +431,7 @@ function SmView({ smId, sel, onSel }: { smId: number; sel: InfoKey; onSel: (k: I
         <g key={pi}>
           <rect x={px} y={py} width={278} height={142} rx={4} className="fill-bg2/70 stroke-line" />
           <text x={px + 270} y={py + 12} fontSize={8} textAnchor="end" className="pointer-events-none fill-ink3 font-mono">
-            分区 {pi}
+            {t(`Partition ${pi}`, `分区 ${pi}`)}
           </text>
 
           {/* warp 调度器 */}
@@ -390,7 +441,7 @@ function SmView({ smId, sel, onSel }: { smId: number; sel: InfoKey; onSel: (k: I
             onClick={() => onSel('sched')}
           />
           <text x={px + 109} y={py + 20} fontSize={10} textAnchor="middle" className="pointer-events-none fill-volt font-mono">
-            Warp 调度器 + 发射
+            {t('Warp scheduler + issue', 'Warp 调度器 + 发射')}
           </text>
 
           {/* 寄存器堆 */}
@@ -400,7 +451,7 @@ function SmView({ smId, sel, onSel }: { smId: number; sel: InfoKey; onSel: (k: I
             onClick={() => onSel('regfile')}
           />
           <text x={px + 139} y={py + 43} fontSize={10} textAnchor="middle" className="pointer-events-none fill-amber font-mono">
-            寄存器堆 64 KB
+            {t('Register file · 64 KB', '寄存器堆 64 KB')}
           </text>
 
           {/* 32 个 FP32 核 */}
@@ -420,7 +471,7 @@ function SmView({ smId, sel, onSel }: { smId: number; sel: InfoKey; onSel: (k: I
             ))}
           </g>
           <text x={px + 6} y={py + 99} fontSize={8.5} className="pointer-events-none fill-ink3 font-mono">
-            FP32 核 ×32（一个 warp 恰好铺满）
+            {t('FP32 cores ×32 (one warp fills it exactly)', 'FP32 核 ×32（一个 warp 恰好铺满）')}
           </text>
 
           {/* Tensor Core + LD/ST */}
@@ -450,7 +501,7 @@ function SmView({ smId, sel, onSel }: { smId: number; sel: InfoKey; onSel: (k: I
         onClick={() => onSel('l1shared')}
       />
       <text x={380} y={390} fontSize={11} textAnchor="middle" className="pointer-events-none fill-amber font-mono">
-        256 KB L1 数据缓存 / 共享内存（Shared 最多可配 228 KB）
+        {t('256 KB L1 data cache / shared memory (up to 228 KB shared)', '256 KB L1 数据缓存 / 共享内存（Shared 最多可配 228 KB）')}
       </text>
 
       {/* TMA + Tex */}
@@ -460,35 +511,36 @@ function SmView({ smId, sel, onSel }: { smId: number; sel: InfoKey; onSel: (k: I
         onClick={() => onSel('tma')}
       />
       <text x={380} y={430} fontSize={10} textAnchor="middle" className="pointer-events-none fill-ink2 font-mono">
-        TMA 张量内存加速器 · 纹理单元 ×4
+        {t('TMA tensor memory accelerator · texture units ×4', 'TMA 张量内存加速器 · 纹理单元 ×4')}
       </text>
     </svg>
   )
 }
 
 /* ── 信息卡 ── */
-function InfoCard({ k }: { k: InfoKey }) {
+function InfoCard({ k, lang }: { k: InfoKey; lang: Lang }) {
   const info = INFO[k]
+  const t = useT()
   return (
     <div className="flex h-full flex-col rounded-md border border-line bg-bg2/60 p-4">
-      <div className="microlabel text-volt">◈ 部件档案</div>
-      <div className="mt-1.5 font-display text-[15px] font-semibold text-ink">{info.name}</div>
+      <div className="microlabel text-volt">{t('◈ Component file', '◈ 部件档案')}</div>
+      <div className="mt-1.5 font-display text-[15px] font-semibold text-ink">{pick(info.name, lang)}</div>
       <div className="font-mono text-[10.5px] uppercase tracking-wider text-ink3">{info.en}</div>
       <div className="mt-3 border-t border-line pt-3">
-        <div className="microlabel mb-1">数量</div>
-        <div className="font-mono text-[12px] text-cyan">{info.count}</div>
+        <div className="microlabel mb-1">{t('Count', '数量')}</div>
+        <div className="font-mono text-[12px] text-cyan">{pick(info.count, lang)}</div>
       </div>
       <div className="mt-3">
-        <div className="microlabel mb-1">职责</div>
-        <p className="text-[12.5px] leading-[1.85] text-text">{info.duty}</p>
+        <div className="microlabel mb-1">{t('Role', '职责')}</div>
+        <p className="text-[12.5px] leading-[1.85] text-text">{pick(info.duty, lang)}</p>
       </div>
       <div className="mt-3">
-        <div className="microlabel mb-1.5">关键数字</div>
+        <div className="microlabel mb-1.5">{t('Key numbers', '关键数字')}</div>
         <dl className="space-y-1">
           {info.stats.map(([kk, v]) => (
-            <div key={kk} className="flex items-baseline justify-between gap-2 text-[11.5px]">
-              <dt className="text-ink3">{kk}</dt>
-              <dd className="text-right font-mono tabular-nums text-ink">{v}</dd>
+            <div key={kk.en} className="flex items-baseline justify-between gap-2 text-[11.5px]">
+              <dt className="text-ink3">{pick(kk, lang)}</dt>
+              <dd className="text-right font-mono tabular-nums text-ink">{pick(v, lang)}</dd>
             </div>
           ))}
         </dl>
@@ -498,6 +550,8 @@ function InfoCard({ k }: { k: InfoKey }) {
 }
 
 export function AnatomyLab() {
+  const t = useT()
+  const { lang } = useLocale()
   const [view, setView] = useState<View>('die')
   const [smId, setSmId] = useState(57)
   const [sel, setSel] = useState<InfoKey>('die')
@@ -519,16 +573,21 @@ export function AnatomyLab() {
   return (
     <Widget
       index={1}
-      title="GPU 解剖台"
-      subtitle="H100 · 点击部件查看档案，点击 SM 放大"
+      title={t('GPU dissection bench', 'GPU 解剖台')}
+      subtitle={t('H100 · click a component for its file, click an SM to zoom', 'H100 · 点击部件查看档案，点击 SM 放大')}
       onReset={reset}
       wide
-      footer={
+      footer={t(
+        <>
+          Drill down layer by layer: die → SM → component. Watch the area budget — there is almost no
+          "big cache" inside an SM; that silicon goes to the register file and execution units instead.
+          That is exactly where GPUs and CPUs part ways philosophically.
+        </>,
         <>
           逐层点开：die → SM → 部件。注意面积分配 —— SM 里几乎没有「大缓存」，
           省下的面积全部还给了寄存器堆和执行单元，这正是 GPU 与 CPU 在哲学上的分野。
-        </>
-      }
+        </>,
+      )}
     >
       {/* 面包屑 */}
       <div className="mb-3 flex flex-wrap items-center gap-1.5 font-mono text-[11px]">
@@ -556,11 +615,13 @@ export function AnatomyLab() {
         {sel !== 'die' && sel !== 'sm' && (
           <>
             <span className="text-ink3">▸</span>
-            <span className="text-volt">{INFO[sel].name}</span>
+            <span className="text-volt">{pick(INFO[sel].name, lang)}</span>
           </>
         )}
         <span className="ml-auto hidden text-ink3 sm:inline">
-          {view === 'die' ? '绿色小格 = SM，点击放大' : '点击内部部件查看档案'}
+          {view === 'die'
+            ? t('Green cells = SMs, click to zoom', '绿色小格 = SM，点击放大')
+            : t('Click an internal component for its file', '点击内部部件查看档案')}
         </span>
       </div>
 
@@ -575,7 +636,7 @@ export function AnatomyLab() {
           </div>
         </div>
         <div className="w-full shrink-0 lg:w-64">
-          <InfoCard k={sel} />
+          <InfoCard k={sel} lang={lang} />
         </div>
       </div>
     </Widget>

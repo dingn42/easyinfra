@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { MathTex, Segmented, Slider, Stat, Widget } from '@/components/ui'
 import { pct } from '@/lib/format'
+import { useT } from '@/lib/i18n'
 
 type Sched = 'gpipe' | '1f1b'
 interface Task {
@@ -84,6 +85,7 @@ function simulate(P: number, M: number, sched: Sched): { tasks: Task[]; total: n
 
 /** LAB: 流水线气泡 —— GPipe vs 1F1B 甘特图 + 气泡率读数 */
 export function PipelineBubbleLab() {
+  const t = useT()
   const [p, setP] = useState(4)
   const [m, setM] = useState(8)
   const [sched, setSched] = useState<Sched>('gpipe')
@@ -114,19 +116,23 @@ export function PipelineBubbleLab() {
   return (
     <Widget
       index={2}
-      title="流水线气泡"
-      subtitle="micro-batch 越多，启动/排空的空转被摊得越薄"
+      title={t('Pipeline Bubble', '流水线气泡')}
+      subtitle={t('The more micro-batches, the thinner the fill/drain idle time is spread', 'micro-batch 越多，启动/排空的空转被摊得越薄')}
       onReset={reset}
-      footer={
+      footer={t(
+        <>
+          <span className="text-cyan">Cyan = forward</span>, <span className="text-amber">amber = backward</span> (timed at 2× forward), gray ground = bubble (that stage idling).
+          Switch to 1F1B and watch total time — identical to GPipe, the bubble ratio is unchanged; what changes is "peak activation residency": backward starts as early as possible, so the micro-batches each stage holds at once drop from M to ≤P.
+        </>,
         <>
           <span className="text-cyan">青色 = 前向</span>，<span className="text-amber">琥珀 = 反向</span>（耗时取 2× 前向），灰底 = 气泡（该 stage 在空转）。
           切到 1F1B 看总时长 —— 和 GPipe 一模一样，气泡率没变；变的是「峰值激活驻留」：反向尽早开跑，每个 stage 同时挂着的 micro-batch 从 M 个降到 ≤P 个。
-        </>
-      }
+        </>,
+      )}
     >
       <div className="mb-4 grid gap-4 sm:grid-cols-3">
-        <Slider label="流水段数 P" value={p} min={2} max={8} onChange={setP} unit="stage" />
-        <Slider label="micro-batch 数 M" value={m} min={1} max={32} onChange={setM} unit="个" />
+        <Slider label={t('Pipeline stages P', '流水段数 P')} value={p} min={2} max={8} onChange={setP} unit="stage" />
+        <Slider label={t('Micro-batch count M', 'micro-batch 数 M')} value={m} min={1} max={32} onChange={setM} unit={t('', '个')} />
         <div className="flex items-end">
           <Segmented<Sched>
             options={[
@@ -140,7 +146,7 @@ export function PipelineBubbleLab() {
         </div>
       </div>
 
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full select-none" role="img" aria-label="流水线并行甘特图">
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full select-none" role="img" aria-label={t('Pipeline parallelism Gantt chart', '流水线并行甘特图')}>
         {/* 行底（气泡背景） */}
         {Array.from({ length: p }, (_, s) => (
           <g key={s}>
@@ -196,10 +202,10 @@ export function PipelineBubbleLab() {
       </svg>
 
       <div className="mt-4 flex flex-wrap items-end gap-x-8 gap-y-4">
-        <Stat label="总时长" value={total} unit="单位" tone="ink" />
-        <Stat label="理想时长 M(tf+tb)" value={ideal} unit="单位" tone="cyan" />
-        <Stat label="气泡率（实测）" value={pct(bubbleSim, 1)} tone={bubbleSim > 0.25 ? 'rose' : 'volt'} />
-        <Stat label="峰值激活驻留 / stage" value={inflight} unit="份" tone={sched === '1f1b' ? 'volt' : 'amber'} />
+        <Stat label={t('Total time', '总时长')} value={total} unit={t('units', '单位')} tone="ink" />
+        <Stat label={t('Ideal time M(tf+tb)', '理想时长 M(tf+tb)')} value={ideal} unit={t('units', '单位')} tone="cyan" />
+        <Stat label={t('Bubble ratio (measured)', '气泡率（实测）')} value={pct(bubbleSim, 1)} tone={bubbleSim > 0.25 ? 'rose' : 'volt'} />
+        <Stat label={t('Peak activation residency / stage', '峰值激活驻留 / stage')} value={inflight} unit={t('', '份')} tone={sched === '1f1b' ? 'volt' : 'amber'} />
         <div className="text-[13px] text-ink2">
           <MathTex tex={`\\text{bubble}=\\frac{P-1}{M+P-1}=\\frac{${p - 1}}{${m + p - 1}}\\approx ${(bubble * 100).toFixed(1)}\\%`} />
         </div>

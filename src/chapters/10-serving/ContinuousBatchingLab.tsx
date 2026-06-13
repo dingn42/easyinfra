@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PlayBar, Segmented, Slider, Stat, Widget } from '@/components/ui'
 import { useRafLoop, useReducedMotion } from '@/lib/hooks'
+import { useT } from '@/lib/i18n'
 import { clamp, fmtInt, pct } from '@/lib/format'
 import { genWorkload, simulate, statsAt, UTIL_DT, type Mode } from './sim'
 
@@ -19,6 +20,7 @@ const AXIS_H = 22
 const DEFAULTS = { rate: 2, promptMax: 1024, outMax: 256, slots: 8 }
 
 export function ContinuousBatchingLab() {
+  const tr = useT()
   const reduced = useReducedMotion()
   const [mode, setMode] = useState<Mode>('static')
   const [rate, setRate] = useState(DEFAULTS.rate)
@@ -108,23 +110,35 @@ export function ContinuousBatchingLab() {
   return (
     <Widget
       index={2}
-      title="连续批处理模拟器"
-      subtitle="同一条请求流，两种调度的命运"
+      title={tr('Continuous batching simulator', '连续批处理模拟器')}
+      subtitle={tr('One request stream, two scheduling fates', '同一条请求流，两种调度的命运')}
       wide
       onReset={fullReset}
       footer={
         <>
-          色带：<span className="text-ink3">灰=排队等待</span> · <span className="text-cyan">cyan=prefill</span> ·{' '}
-          <span className="text-volt">volt=decode</span> · 斜纹=已完成却占着槽位（仅 static）。
-          请求流固定种子 —— 切换调度模式时负载完全相同，读数可直接对比。
-          简化假设：TPOT 固定 30ms/token、prefill 8 token/ms，忽略 batch 大小对单步时延的影响。
+          {tr(
+            <>
+              Bands: <span className="text-ink3">gray = queue wait</span> ·{' '}
+              <span className="text-cyan">cyan = prefill</span> · <span className="text-volt">volt = decode</span>{' '}
+              · hatch = finished but still holding a slot (static only). The request stream uses a fixed seed —
+              the workload is identical when you switch schedulers, so the readouts are directly comparable.
+              Simplifying assumptions: TPOT fixed at 30 ms/token, prefill at 8 token/ms, ignoring the effect of
+              batch size on per-step latency.
+            </>,
+            <>
+              色带：<span className="text-ink3">灰=排队等待</span> · <span className="text-cyan">cyan=prefill</span> ·{' '}
+              <span className="text-volt">volt=decode</span> · 斜纹=已完成却占着槽位（仅 static）。
+              请求流固定种子 —— 切换调度模式时负载完全相同，读数可直接对比。
+              简化假设：TPOT 固定 30ms/token、prefill 8 token/ms，忽略 batch 大小对单步时延的影响。
+            </>,
+          )}
         </>
       }
     >
       {/* 控制区 */}
       <div className="flex flex-wrap items-end gap-x-6 gap-y-4">
         <div>
-          <div className="microlabel mb-1.5">调度模式</div>
+          <div className="microlabel mb-1.5">{tr('SCHEDULING MODE', '调度模式')}</div>
           <Segmented
             options={[
               { value: 'static', label: 'STATIC' },
@@ -134,24 +148,24 @@ export function ContinuousBatchingLab() {
             onChange={setMode}
           />
         </div>
-        <Slider className="w-[150px]" label="到达速率 λ" value={rate} min={0.5} max={6} step={0.5} onChange={setRate} unit="req/s" />
-        <Slider className="w-[150px]" label="PROMPT 区间" value={promptMax} min={256} max={2048} step={128} onChange={setPromptMax} fmt={(v) => `64–${v}`} unit="tok" />
-        <Slider className="w-[150px]" label="输出区间" value={outMax} min={64} max={512} step={32} onChange={setOutMax} fmt={(v) => `16–${v}`} unit="tok" />
-        <Slider className="w-[150px]" label="并发槽位" value={slots} min={4} max={32} step={2} onChange={setSlots} unit="槽" />
+        <Slider className="w-[150px]" label={tr('ARRIVAL RATE λ', '到达速率 λ')} value={rate} min={0.5} max={6} step={0.5} onChange={setRate} unit="req/s" />
+        <Slider className="w-[150px]" label={tr('PROMPT RANGE', 'PROMPT 区间')} value={promptMax} min={256} max={2048} step={128} onChange={setPromptMax} fmt={(v) => `64–${v}`} unit="tok" />
+        <Slider className="w-[150px]" label={tr('OUTPUT RANGE', '输出区间')} value={outMax} min={64} max={512} step={32} onChange={setOutMax} fmt={(v) => `16–${v}`} unit="tok" />
+        <Slider className="w-[150px]" label={tr('CONCURRENT SLOTS', '并发槽位')} value={slots} min={4} max={32} step={2} onChange={setSlots} unit={tr('slots', '槽')} />
       </div>
 
       {/* 读数面板 */}
       <div className="mt-5 grid grid-cols-2 gap-x-4 gap-y-3 rounded-md border border-line bg-bg2 px-4 py-3 sm:grid-cols-5">
-        <Stat label="吞吐" value={fmtInt(stats.throughput)} unit="tok/s" tone="volt" />
-        <Stat label="平均 TTFT" value={fmtMs(stats.avgTtft)} unit={msUnit(stats.avgTtft)} tone="cyan" />
-        <Stat label="P95 延迟" value={fmtMs(stats.p95Latency)} unit={msUnit(stats.p95Latency)} tone="amber" />
-        <Stat label="GPU 利用率" value={Math.round(stats.gpuUtil * 100)} unit="%" tone={stats.gpuUtil > 0.7 ? 'volt' : 'ink'} />
-        <Stat label="完成" value={`${stats.done}/${n}`} tone="ink" />
+        <Stat label={tr('THROUGHPUT', '吞吐')} value={fmtInt(stats.throughput)} unit="tok/s" tone="volt" />
+        <Stat label={tr('AVG TTFT', '平均 TTFT')} value={fmtMs(stats.avgTtft)} unit={msUnit(stats.avgTtft)} tone="cyan" />
+        <Stat label={tr('P95 LATENCY', 'P95 延迟')} value={fmtMs(stats.p95Latency)} unit={msUnit(stats.p95Latency)} tone="amber" />
+        <Stat label={tr('GPU UTILIZATION', 'GPU 利用率')} value={Math.round(stats.gpuUtil * 100)} unit="%" tone={stats.gpuUtil > 0.7 ? 'volt' : 'ink'} />
+        <Stat label={tr('DONE', '完成')} value={`${stats.done}/${n}`} tone="ink" />
       </div>
 
       {/* 瞬时利用率小条 */}
       <div className="mt-3 flex items-center gap-3">
-        <span className="microlabel shrink-0">GPU 瞬时</span>
+        <span className="microlabel shrink-0">{tr('GPU NOW', 'GPU 瞬时')}</span>
         <div className="h-[8px] flex-1 overflow-hidden rounded-sm border border-line bg-bg">
           <div className="h-full bg-volt transition-[width] duration-100" style={{ width: `${nowUtil * 100}%` }} />
         </div>
@@ -160,7 +174,7 @@ export function ContinuousBatchingLab() {
 
       {/* 时间轴 */}
       <div ref={scrollRef} className="mt-3 overflow-x-auto rounded-md border border-line bg-bg">
-        <svg width={totalW} height={totalH} className="block" role="img" aria-label="请求时间线：每行一个请求的等待、prefill、decode 色带">
+        <svg width={totalW} height={totalH} className="block" role="img" aria-label={tr('Request timeline: each row is one request with wait, prefill, and decode bands', '请求时间线：每行一个请求的等待、prefill、decode 色带')}>
           <defs>
             <clipPath id="cb-playclip">
               <rect x={0} y={0} width={phX} height={totalH} />
@@ -206,7 +220,10 @@ export function ContinuousBatchingLab() {
               const h = ROW_H - 4
               return (
                 <g key={s.spec.id}>
-                  <title>{`REQ ${s.spec.id} · prompt ${s.spec.promptLen} tok · 输出 ${s.spec.outLen} tok`}</title>
+                  <title>{tr(
+                    `REQ ${s.spec.id} · prompt ${s.spec.promptLen} tok · output ${s.spec.outLen} tok`,
+                    `REQ ${s.spec.id} · prompt ${s.spec.promptLen} tok · 输出 ${s.spec.outLen} tok`,
+                  )}</title>
                   {/* 等待 */}
                   {s.start > s.spec.arrival && (
                     <rect x={X(s.spec.arrival)} y={y} width={X(s.start - s.spec.arrival)} height={h} className="fill-ink3/25" rx={1} />

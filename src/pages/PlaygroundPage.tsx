@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Segmented } from '@/components/ui'
+import { useLocale, useT, pick } from '@/lib/i18n'
 import { compile, run } from '@/lib/cudasim'
 import type {
   AccessEvent,
@@ -50,6 +51,9 @@ interface RunArgs {
 
 type Verdict = { pass: boolean; msg: string }
 
+/** 当前语言的二选一 picker（与 useT 同形，但可在渲染外调用） */
+type Tr = <T>(en: T, zh: T) => T
+
 /* ──────────────────────── 挑战判定 ──────────────────────── */
 
 function judgeChallenge(
@@ -59,24 +63,41 @@ function judgeChallenge(
   scalarArgs: Record<string, number>,
   userBuffers: Record<string, number[]>,
   userStats: SimStats,
+  t: Tr,
 ): Verdict {
   const rc = compile(ch.referenceSource)
-  if (!rc.ok) return { pass: false, msg: '参考实现编译失败（这不应该发生）。' }
+  if (!rc.ok)
+    return { pass: false, msg: t('Reference implementation failed to compile (this should not happen).', '参考实现编译失败（这不应该发生）。') }
   const rr = run(rc.kernel, cfg, decls, { scalarArgs, recordAccesses: false })
   if (!rr.ok) {
-    return { pass: false, msg: `参考实现在当前配置下也无法运行（${rr.error.message}）。点「重新载入」还原配置后再试。` }
+    return {
+      pass: false,
+      msg: t(
+        `The reference implementation can't run under this config either (${rr.error.message}). Hit "Reload" to restore the original config and try again.`,
+        `参考实现在当前配置下也无法运行（${rr.error.message}）。点「重新载入」还原配置后再试。`,
+      ),
+    }
   }
   for (const name of ch.compareBuffers) {
     const a = userBuffers[name]
     const b = rr.buffers[name]
     if (!a || !b || a.length !== b.length) {
-      return { pass: false, msg: `输出缓冲区 ${name} 缺失或长度与参考不一致。` }
+      return {
+        pass: false,
+        msg: t(
+          `Output buffer ${name} is missing, or its length differs from the reference.`,
+          `输出缓冲区 ${name} 缺失或长度与参考不一致。`,
+        ),
+      }
     }
     for (let i = 0; i < a.length; i++) {
       if (Math.abs(a[i] - b[i]) > 1e-6) {
         return {
           pass: false,
-          msg: `${name}[${i}] = ${+a[i].toFixed(4)}，期望 ${+b[i].toFixed(4)} —— 输出还不对，再想想。`,
+          msg: t(
+            `${name}[${i}] = ${+a[i].toFixed(4)}, expected ${+b[i].toFixed(4)} — the output isn't right yet, keep thinking.`,
+            `${name}[${i}] = ${+a[i].toFixed(4)}，期望 ${+b[i].toFixed(4)} —— 输出还不对，再想想。`,
+          ),
         }
       }
     }
@@ -84,10 +105,21 @@ function judgeChallenge(
   if (ch.maxGlobalTransactions != null && userStats.globalTransactions > ch.maxGlobalTransactions) {
     return {
       pass: false,
-      msg: `输出正确，但 GLOBAL TXN = ${userStats.globalTransactions}，仍超过上限 ${ch.maxGlobalTransactions} —— 访存还不够合并。`,
+      msg: t(
+        `Output is correct, but GLOBAL TXN = ${userStats.globalTransactions} still exceeds the limit of ${ch.maxGlobalTransactions} — the access isn't coalesced enough.`,
+        `输出正确，但 GLOBAL TXN = ${userStats.globalTransactions}，仍超过上限 ${ch.maxGlobalTransactions} —— 访存还不够合并。`,
+      ),
     }
   }
-  return { pass: true, msg: '输出与参考实现逐元素一致' + (ch.maxGlobalTransactions != null ? '，且事务数达标' : '') + '。' }
+  return {
+    pass: true,
+    msg: ch.maxGlobalTransactions != null
+      ? t(
+          'Output matches the reference element-for-element, and the transaction count meets the target.',
+          '输出与参考实现逐元素一致，且事务数达标。',
+        )
+      : t('Output matches the reference implementation element-for-element.', '输出与参考实现逐元素一致。'),
+  }
 }
 
 /* ──────────────────────── 页面 ──────────────────────── */
@@ -95,6 +127,8 @@ function judgeChallenge(
 const FIRST = EXAMPLES[0]
 
 export default function PlaygroundPage() {
+  const t = useT()
+  const { lang } = useLocale()
   const [active, setActive] = useState<{ kind: 'example' | 'challenge'; id: string }>({
     kind: 'example',
     id: FIRST.id,
@@ -116,11 +150,11 @@ export default function PlaygroundPage() {
   const [passed, setPassed] = useLocalStorage<Record<string, boolean>>('ei-pg-passed', {})
 
   useEffect(() => {
-    document.title = 'Playground · CUDA 模拟器 · EasyInfra'
+    document.title = t('Playground · CUDA Simulator · EasyInfra', 'Playground · CUDA 模拟器 · EasyInfra')
     return () => {
-      document.title = 'EasyInfra · 从一个线程到一座 GPU 集群'
+      document.title = t('EasyInfra · From One Thread to a GPU Cluster', 'EasyInfra · 从一个线程到一座 GPU 集群')
     }
-  }, [])
+  }, [t])
 
   /* —— 实时编译：驱动标量输入框与 buffers 表自动跟随源码 —— */
   const liveInfo = useMemo<KernelInfo | null>(() => {
@@ -190,7 +224,8 @@ export default function PlaygroundPage() {
             order,
             ms,
           })
-          if (args.challenge) setVerdict({ pass: false, msg: `运行时错误：${r.error.message}` })
+          if (args.challenge)
+            setVerdict({ pass: false, msg: t(`Runtime error: ${r.error.message}`, `运行时错误：${r.error.message}`) })
           return
         }
         setResult({
@@ -204,7 +239,7 @@ export default function PlaygroundPage() {
           ms,
         })
         if (args.challenge) {
-          const v = judgeChallenge(args.challenge, cfg, decls, scalarArgs, r.buffers, r.stats)
+          const v = judgeChallenge(args.challenge, cfg, decls, scalarArgs, r.buffers, r.stats, t)
           setVerdict(v)
           if (v.pass) {
             const id = args.challenge.id
@@ -214,7 +249,10 @@ export default function PlaygroundPage() {
       } catch (err) {
         setRuntimeErr({
           kind: 'runtime',
-          message: `模拟器内部异常：${err instanceof Error ? err.message : String(err)}`,
+          message: t(
+            `Simulator internal error: ${err instanceof Error ? err.message : String(err)}`,
+            `模拟器内部异常：${err instanceof Error ? err.message : String(err)}`,
+          ),
         })
         setResult(null)
       } finally {
@@ -275,10 +313,14 @@ export default function PlaygroundPage() {
           <span className="inline-block size-1.5 rounded-full bg-volt" />
           PLAYGROUND · IN-BROWSER SIMULATOR
         </div>
-        <h1 className="font-display text-3xl font-bold text-ink sm:text-4xl">CUDA 模拟器</h1>
+        <h1 className="font-display text-3xl font-bold text-ink sm:text-4xl">
+          {t('CUDA Simulator', 'CUDA 模拟器')}
+        </h1>
         <p className="mt-3 max-w-[680px] text-[15px] leading-relaxed text-ink2">
-          在浏览器里写 kernel、配置 grid / block、按 RUN —— 模拟器逐线程执行你的代码，记录每一次内存访问，
-          告诉你访存合并得怎么样、bank 撞没撞、warp 有没有分家。错误信息精确到线程坐标。
+          {t(
+            'Write a kernel in the browser, set your grid / block, and hit RUN — the simulator executes your code thread by thread, logs every memory access, and tells you how well it coalesced, whether banks collided, and whether the warp split apart. Error messages pin down the exact thread coordinate.',
+            '在浏览器里写 kernel、配置 grid / block、按 RUN —— 模拟器逐线程执行你的代码，记录每一次内存访问，告诉你访存合并得怎么样、bank 撞没撞、warp 有没有分家。错误信息精确到线程坐标。',
+          )}
         </p>
       </header>
 
@@ -297,23 +339,25 @@ export default function PlaygroundPage() {
                 key={ex.id}
                 onClick={() => loadItem('example', ex)}
                 className={`panel group px-3 py-2.5 text-left transition-all hover:border-volt/40 ${
-                  isActive ? 'border-volt/60 bg-volt/[0.06] shadow-[0_0_20px_rgba(184,245,61,0.08)]' : ''
+                  isActive ? 'border-volt/60 bg-volt/[0.06] shadow-[0_0_20px_rgba(28,138,63,0.1)]' : ''
                 }`}
               >
                 <div className={`font-mono text-[12.5px] ${isActive ? 'text-volt' : 'text-ink group-hover:text-volt'}`}>
-                  {ex.title}
+                  {pick(ex.title, lang)}
                 </div>
-                <div className="microlabel mt-1 !text-[9.5px]">{ex.badge}</div>
-                <div className="mt-1.5 hidden text-[11px] leading-snug text-ink3 sm:block">{ex.blurb}</div>
+                <div className="microlabel mt-1 !text-[9.5px]">{pick(ex.badge, lang)}</div>
+                <div className="mt-1.5 hidden text-[11px] leading-snug text-ink3 sm:block">{pick(ex.blurb, lang)}</div>
               </button>
             )
           })}
         </div>
         {(activeExample || activeChallenge) && (
           <div className="mt-3 flex gap-2.5 rounded-md border border-cyan/25 bg-cyan/[0.05] px-3.5 py-2.5">
-            <span className="shrink-0 font-mono text-[11px] tracking-widest text-cyan">⌖ 观察</span>
+            <span className="shrink-0 font-mono text-[11px] tracking-widest text-cyan">{t('⌖ OBSERVE', '⌖ 观察')}</span>
             <p className="text-[12.5px] leading-relaxed text-ink2">
-              {activeExample ? activeExample.hint : `${activeChallenge!.desc} ${activeChallenge!.goal}`}
+              {activeExample
+                ? pick(activeExample.hint, lang)
+                : `${pick(activeChallenge!.desc, lang)} ${pick(activeChallenge!.goal, lang)}`}
             </p>
           </div>
         )}
@@ -328,7 +372,7 @@ export default function PlaygroundPage() {
               <span className="microlabel">KERNEL SOURCE</span>
               {activeChallenge && (
                 <span className="font-mono text-[11px] tracking-wider text-violet">
-                  ⌬ CHALLENGE {String(activeChallenge.num).padStart(2, '0')} · {activeChallenge.title}
+                  ⌬ CHALLENGE {String(activeChallenge.num).padStart(2, '0')} · {pick(activeChallenge.title, lang)}
                 </span>
               )}
               {info && (
@@ -368,8 +412,9 @@ export default function PlaygroundPage() {
               <p className="mt-1.5 font-mono text-[12.5px] leading-relaxed text-rose">{runtimeErr.message}</p>
               {runtimeErr.thread && (
                 <p className="mt-1 font-mono text-[11.5px] text-rose/80">
-                  触发线程：block({runtimeErr.thread.block.x},{runtimeErr.thread.block.y},{runtimeErr.thread.block.z}
-                  ) thread({runtimeErr.thread.thread.x},{runtimeErr.thread.thread.y},{runtimeErr.thread.thread.z})
+                  {t('offending thread: ', '触发线程：')}block({runtimeErr.thread.block.x},{runtimeErr.thread.block.y},
+                  {runtimeErr.thread.block.z}) thread({runtimeErr.thread.thread.x},{runtimeErr.thread.thread.y},
+                  {runtimeErr.thread.thread.z})
                 </p>
               )}
             </div>
@@ -391,7 +436,7 @@ export default function PlaygroundPage() {
           <button
             onClick={runNow}
             disabled={running || overLimit}
-            className="w-full rounded-md border border-volt/50 bg-volt/15 px-6 py-3.5 font-mono text-sm font-semibold tracking-[0.2em] text-volt transition-all hover:bg-volt/25 hover:shadow-[0_0_28px_rgba(184,245,61,0.25)] disabled:cursor-not-allowed disabled:opacity-40"
+            className="w-full rounded-md border border-volt/50 bg-volt/15 px-6 py-3.5 font-mono text-sm font-semibold tracking-[0.2em] text-volt transition-all hover:bg-volt/25 hover:shadow-[0_0_28px_rgba(28,138,63,0.25)] disabled:cursor-not-allowed disabled:opacity-40"
           >
             {running ? '⌬ RUNNING…' : '▶ RUN'}
           </button>
@@ -444,7 +489,9 @@ export default function PlaygroundPage() {
             {!result && compileErr && (
               <div className="flex flex-col items-center gap-2 py-16 text-center">
                 <span className="microlabel text-rose">COMPILE FAILED</span>
-                <p className="text-[13px] text-ink3">修好左边的编译错误，再来一次。</p>
+                <p className="text-[13px] text-ink3">
+                  {t('Fix the compile error on the left, then try again.', '修好左边的编译错误，再来一次。')}
+                </p>
               </div>
             )}
             {result && tab === 'buffers' && (

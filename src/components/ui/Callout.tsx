@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react'
+import { useT } from '@/lib/i18n'
 
 const STYLES = {
-  insight: { tone: 'var(--color-volt)', label: 'INSIGHT', zh: '直觉' },
-  note: { tone: 'var(--color-cyan)', label: 'NOTE', zh: '注' },
-  warn: { tone: 'var(--color-amber)', label: 'CAUTION', zh: '当心' },
-  deep: { tone: 'var(--color-violet)', label: 'DEEP DIVE', zh: '深入一点' },
+  insight: { tone: 'var(--color-volt)', label: 'INSIGHT', en: 'Insight', zh: '直觉' },
+  note: { tone: 'var(--color-cyan)', label: 'NOTE', en: 'Note', zh: '注' },
+  warn: { tone: 'var(--color-amber)', label: 'CAUTION', en: 'Caution', zh: '当心' },
+  deep: { tone: 'var(--color-violet)', label: 'DEEP DIVE', en: 'Deep dive', zh: '深入一点' },
 } as const
 
 export type CalloutType = keyof typeof STYLES
@@ -20,21 +21,22 @@ export function Callout({
   children: ReactNode
 }) {
   const s = STYLES[type]
+  const t = useT()
   return (
     <aside
       className="my-6 rounded-r-lg border-l-2 py-3.5 pl-5 pr-5"
       style={{
         borderColor: s.tone,
-        background: `color-mix(in srgb, ${s.tone} 5%, transparent)`,
+        background: `color-mix(in srgb, ${s.tone} 6%, transparent)`,
       }}
     >
       <div className="mb-1.5 flex items-baseline gap-2.5">
         <span className="microlabel" style={{ color: s.tone }}>
           ⌬ {s.label}
         </span>
-        <span className="text-[13px] font-medium text-ink">{title ?? s.zh}</span>
+        <span className="text-[13px] font-medium text-ink">{title ?? t(s.en, s.zh)}</span>
       </div>
-      <div className="text-[14.5px] leading-[1.95] text-text [&>p]:mb-2 [&>p:last-child]:mb-0">{children}</div>
+      <div className="text-[14.5px] leading-[1.9] text-text [&>p]:mb-2 [&>p:last-child]:mb-0">{children}</div>
     </aside>
   )
 }

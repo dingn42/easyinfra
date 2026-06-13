@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Btn, MathTex, Segmented, Stat, Widget } from '@/components/ui'
 import { clamp } from '@/lib/format'
+import { useT, useLocale, pick, type Loc } from '@/lib/i18n'
 
 /* ────────── 浮点格式定义与位级编解码 ────────── */
 
@@ -146,28 +147,34 @@ function texNum(v: number): string {
   return s
 }
 
-function formulaTex(dec: Decoded, f: FloatFmt): string {
+function formulaTex(dec: Decoded, f: FloatFmt, L: typeof FORMULA_L.en): string {
   const denom = `2^{${f.M}}`
   switch (dec.kind) {
     case 'normal':
       return `(-1)^{${dec.s}}\\times\\Bigl(1+\\tfrac{${dec.m}}{${denom}}\\Bigr)\\times 2^{\\,${dec.e}-${f.bias}} = ${texNum(dec.value)}`
     case 'subnormal':
-      return `(-1)^{${dec.s}}\\times\\tfrac{${dec.m}}{${denom}}\\times 2^{\\,1-${f.bias}} = ${texNum(dec.value)}\\;(\\text{无隐含 1})`
+      return `(-1)^{${dec.s}}\\times\\tfrac{${dec.m}}{${denom}}\\times 2^{\\,1-${f.bias}} = ${texNum(dec.value)}\\;(\\text{${L.noImplicit}})`
     case 'zero':
       return `e=0,\\ m=0\\ \\Rightarrow\\ ${dec.s ? '-0' : '+0'}`
     case 'inf':
-      return `e=\\text{全1},\\ m=0\\ \\Rightarrow\\ ${dec.s ? '-' : '+'}\\infty`
+      return `e=\\text{${L.allOnes}},\\ m=0\\ \\Rightarrow\\ ${dec.s ? '-' : '+'}\\infty`
     case 'nan':
-      return f.e4m3 ? `\\texttt{S.1111.111}\\ \\Rightarrow\\ \\mathrm{NaN}` : `e=\\text{全1},\\ m\\neq 0\\ \\Rightarrow\\ \\mathrm{NaN}`
+      return f.e4m3 ? `\\texttt{S.1111.111}\\ \\Rightarrow\\ \\mathrm{NaN}` : `e=\\text{${L.allOnes}},\\ m\\neq 0\\ \\Rightarrow\\ \\mathrm{NaN}`
   }
 }
 
-const KIND_INFO: Record<Kind, { label: string; zh: string; cls: string; tone: 'volt' | 'amber' | 'ink' | 'rose' }> = {
-  normal: { label: 'NORMAL', zh: '正规数', cls: 'border-volt/50 text-volt', tone: 'volt' },
-  subnormal: { label: 'SUBNORMAL', zh: '次正规数', cls: 'border-amber/50 text-amber', tone: 'amber' },
-  zero: { label: 'ZERO', zh: '零', cls: 'border-line2 text-ink2', tone: 'ink' },
-  inf: { label: 'INF', zh: '无穷', cls: 'border-rose/50 text-rose', tone: 'rose' },
-  nan: { label: 'NAN', zh: '非数', cls: 'border-rose/50 text-rose', tone: 'rose' },
+/** formulaTex 里需要本地化的少量文字（嵌在 KaTeX \text{} 中） */
+const FORMULA_L: Loc<{ noImplicit: string; allOnes: string }> = {
+  en: { noImplicit: 'no implicit 1', allOnes: 'all 1s' },
+  zh: { noImplicit: '无隐含 1', allOnes: '全1' },
+}
+
+const KIND_INFO: Record<Kind, { label: string; desc: Loc; cls: string; tone: 'volt' | 'amber' | 'ink' | 'rose' }> = {
+  normal: { label: 'NORMAL', desc: { en: 'normal', zh: '正规数' }, cls: 'border-volt/50 text-volt', tone: 'volt' },
+  subnormal: { label: 'SUBNORMAL', desc: { en: 'subnormal', zh: '次正规数' }, cls: 'border-amber/50 text-amber', tone: 'amber' },
+  zero: { label: 'ZERO', desc: { en: 'zero', zh: '零' }, cls: 'border-line2 text-ink2', tone: 'ink' },
+  inf: { label: 'INF', desc: { en: 'infinity', zh: '无穷' }, cls: 'border-rose/50 text-rose', tone: 'rose' },
+  nan: { label: 'NAN', desc: { en: 'not-a-number', zh: '非数' }, cls: 'border-rose/50 text-rose', tone: 'rose' },
 }
 
 const TONES = {
@@ -204,6 +211,8 @@ function rangeOf(f: FloatFmt) {
 /* ────────── 组件 ────────── */
 
 export function FloatBitLab() {
+  const t = useT()
+  const { lang } = useLocale()
   const [fmtId, setFmtId] = useState<FmtId>('fp16')
   const f = fmtById(fmtId)
   const [bits, setBits] = useState<number[]>(() => encode(1, fmtById('fp16')))
@@ -223,12 +232,12 @@ export function FloatBitLab() {
     setBits(encode(1, fmtById('fp16')))
   }
 
-  const presets: { label: string; make: () => number[] }[] = [
-    { label: '1.0', make: () => encode(1, f) },
-    { label: '0.1', make: () => encode(0.1, f) },
-    { label: '最大值', make: () => maxBits(f) },
-    { label: '最小正规值', make: () => bitsFromFields(f, 0, 1, 0) },
-    { label: 'NaN', make: () => nanBits(f) },
+  const presets: { id: string; label: string; make: () => number[] }[] = [
+    { id: 'one', label: '1.0', make: () => encode(1, f) },
+    { id: 'tenth', label: '0.1', make: () => encode(0.1, f) },
+    { id: 'max', label: t('max value', '最大值'), make: () => maxBits(f) },
+    { id: 'minnorm', label: t('min normal', '最小正规值'), make: () => bitsFromFields(f, 0, 1, 0) },
+    { id: 'nan', label: 'NaN', make: () => nanBits(f) },
   ]
 
   const total = 1 + f.E + f.M
@@ -259,17 +268,23 @@ export function FloatBitLab() {
   return (
     <Widget
       index={1}
-      title="浮点位拆解器"
-      subtitle="点一位，翻一位，看值怎么变"
+      title={t('Floating-Point Bit Dissector', '浮点位拆解器')}
+      subtitle={t('Click a bit, flip a bit, watch the value move', '点一位，翻一位，看值怎么变')}
       onReset={reset}
       wide
-      footer={
+      footer={t(
+        <>
+          Bit colors: <span className="text-rose">sign</span> / <span className="text-cyan">exponent</span> /{' '}
+          <span className="text-volt">mantissa</span>. Switching format re-encodes the current value with
+          round-to-nearest — try hitting "0.1" in FP32, then flip to BF16 and watch where the value drifts
+          once the lower mantissa bits get chopped off.
+        </>,
         <>
           位颜色：<span className="text-rose">sign 符号</span> / <span className="text-cyan">exponent 指数</span> /{' '}
           <span className="text-volt">mantissa 尾数</span>。切换格式时会把当前值四舍五入重编码 ——
           试试在 FP32 下按「0.1」再切到 BF16，看尾数被砍掉后值偏到哪去了。
-        </>
-      }
+        </>,
+      )}
     >
       {/* 控件行 */}
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -280,7 +295,7 @@ export function FloatBitLab() {
         />
         <div className="flex flex-wrap gap-1.5">
           {presets.map((p) => (
-            <Btn key={p.label} size="sm" variant="ghost" onClick={() => setBits(p.make())}>
+            <Btn key={p.id} size="sm" variant="ghost" onClick={() => setBits(p.make())}>
               {p.label}
             </Btn>
           ))}
@@ -292,12 +307,17 @@ export function FloatBitLab() {
         {bits.map((b, i) => {
           const region = i === 0 ? 'sign' : i <= f.E ? 'exp' : 'man'
           const firstOfGroup = i === 1 || i === 1 + f.E
-          const name = region === 'sign' ? '符号位' : region === 'exp' ? `指数位 ${i}` : `尾数位 ${i - f.E}`
+          const name =
+            region === 'sign'
+              ? t('sign bit', '符号位')
+              : region === 'exp'
+                ? t(`exponent bit ${i}`, `指数位 ${i}`)
+                : t(`mantissa bit ${i - f.E}`, `尾数位 ${i - f.E}`)
           return (
             <button
               key={i}
               onClick={() => toggleBit(i)}
-              title={`${name} · 点击翻转`}
+              title={t(`${name} · click to flip`, `${name} · 点击翻转`)}
               className={`${bitCls} ${firstOfGroup ? 'ml-2' : ''} rounded border font-mono transition-colors hover:brightness-125 ${TONES[region][b ? 'on' : 'off']}`}
             >
               {b}
@@ -309,7 +329,7 @@ export function FloatBitLab() {
         <span className="text-rose">SIGN s={dec.s}</span>
         <span className="text-cyan">
           EXP e={dec.e}
-          {dec.kind === 'normal' ? `（e−bias = ${dec.e - f.bias}）` : ''}
+          {dec.kind === 'normal' ? t(` (e−bias = ${dec.e - f.bias})`, `（e−bias = ${dec.e - f.bias}）`) : ''}
         </span>
         <span className="text-volt">
           MANTISSA m={dec.m}/{1 << f.M}
@@ -319,19 +339,19 @@ export function FloatBitLab() {
       {/* 读数 */}
       <div className="mt-4 grid gap-x-6 gap-y-2 rounded-md border border-line bg-bg2/60 px-4 py-3 sm:grid-cols-[auto_1fr] sm:items-center">
         <div className="flex items-center gap-3">
-          <Stat label="十进制值" value={fmtVal(dec.value)} tone={kindInfo.tone} size="md" />
+          <Stat label={t('decimal value', '十进制值')} value={fmtVal(dec.value)} tone={kindInfo.tone} size="md" />
           <span className={`rounded border px-2 py-0.5 font-mono text-[10px] tracking-wider ${kindInfo.cls}`}>
-            {kindInfo.label} · {kindInfo.zh}
+            {kindInfo.label} · {pick(kindInfo.desc, lang)}
           </span>
         </div>
         <div className="overflow-x-auto [&>div]:my-1 [&>div]:text-left sm:[&>div]:text-center">
-          <MathTex block tex={formulaTex(dec, f)} />
+          <MathTex block tex={formulaTex(dec, f, pick(FORMULA_L, lang))} />
         </div>
       </div>
 
       {/* 全景：动态范围对比 */}
       <div className="mt-5">
-        <div className="microlabel mb-2">全景 · 各格式可表示范围（log₂ 数轴，点 = 当前值）</div>
+        <div className="microlabel mb-2">{t('Panorama · representable range per format (log₂ axis, dot = current value)', '全景 · 各格式可表示范围（log₂ 数轴，点 = 当前值）')}</div>
         <svg viewBox={`0 0 ${PANO_W} 196`} className="w-full">
           {FORMATS.map((ff, i) => {
             const r = rangeOf(ff)
@@ -405,7 +425,7 @@ export function FloatBitLab() {
 
       {/* 放大：一格内的格点 */}
       <div className="mt-4">
-        <div className="microlabel mb-2">放大 · 当前值所在的一格（相邻两个 2 的幂之间）</div>
+        <div className="microlabel mb-2">{t('Zoom · the bucket the current value sits in (between two adjacent powers of 2)', '放大 · 当前值所在的一格（相邻两个 2 的幂之间）')}</div>
         <svg viewBox={`0 0 ${ZW} 84`} className="w-full">
           <line x1={ZPAD} y1={48} x2={ZW - ZPAD} y2={48} stroke="currentColor" strokeWidth={1} className="text-ink3" opacity={0.5} />
           {/* 边界 */}
@@ -428,10 +448,18 @@ export function FloatBitLab() {
           </text>
         </svg>
         <p className="mt-1 text-[12.5px] leading-relaxed text-ink3">
-          这一格内共有 <span className="font-mono text-volt">{(1 << f.M).toLocaleString()}</span> 个可表示值，相邻间隔{' '}
+          {t('This bucket holds ', '这一格内共有 ')}
+          <span className="font-mono text-volt">{(1 << f.M).toLocaleString()}</span>
+          {t(' representable values, spaced ', ' 个可表示值，相邻间隔 ')}
           <span className="font-mono text-volt">{fmtVal(zoom.step)}</span>
-          {zoom.stride > 1 ? `（图中每 ${zoom.stride.toLocaleString()} 个画 1 个）` : '（已逐个画出）'}。
-          同样 16 位：FP16 每格 1024 个值但只覆盖到 6.5 万；BF16 每格 128 个值却覆盖到 3.4×10³⁸ —— 取舍就在这。
+          {t(' apart', '')}
+          {zoom.stride > 1
+            ? t(` (one line drawn per ${zoom.stride.toLocaleString()} values)`, `（图中每 ${zoom.stride.toLocaleString()} 个画 1 个）`)
+            : t(' (every value drawn)', '（已逐个画出）')}
+          {t(
+            '. Same 16 bits: FP16 packs 1024 values per bucket but only reaches ~65k; BF16 fits 128 per bucket yet stretches to 3.4×10³⁸ — that is the whole trade-off.',
+            '。同样 16 位：FP16 每格 1024 个值但只覆盖到 6.5 万；BF16 每格 128 个值却覆盖到 3.4×10³⁸ —— 取舍就在这。',
+          )}
         </p>
       </div>
     </Widget>

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Segmented, Slider, Stat, Widget } from '@/components/ui'
 import { clamp, pct } from '@/lib/format'
+import { useT } from '@/lib/i18n'
 
 /* ────────── 确定性数据生成（固定种子） ────────── */
 
@@ -112,6 +113,7 @@ const median = (xs: number[]) => {
 const DEFAULTS = { sigma: 1.0, outPct: 0.5, outMag: 12 }
 
 export function QuantErrorLab() {
+  const t = useT()
   const [sigma, setSigma] = useState(DEFAULTS.sigma)
   const [outPct, setOutPct] = useState(DEFAULTS.outPct)
   const [outMag, setOutMag] = useState(DEFAULTS.outMag)
@@ -185,23 +187,31 @@ export function QuantErrorLab() {
   return (
     <Widget
       index={2}
-      title="量化误差实验场"
-      subtitle="一个 outlier 如何毁掉整个 tensor 的精度"
+      title={t('Quantization Error Playground', '量化误差实验场')}
+      subtitle={t('How a single outlier wrecks a whole tensor', '一个 outlier 如何毁掉整个 tensor 的精度')}
       onReset={reset}
-      footer={
+      footer={t(
+        <>
+          The histogram (<span className="text-cyan">cyan</span>, √-scaled height) is 4096 "weights";
+          the vertical lines are quantization grid points:
+          <span className="text-volt"> volt = grid points inside the ±4σ body that actually do work</span>,
+          <span className="text-rose"> rose = points stretched out by the outlier with almost no values to land on</span>.
+          In g=128 mode the grid of the group containing the outlier is drawn separately (dashed rose) —
+          the damage is locked inside its 128 numbers. The data uses a fixed seed, so results are reproducible.
+        </>,
         <>
           直方图（<span className="text-cyan">cyan</span>，√ 高度刻度）是 4096 个「权重」；竖线是量化格点：
           <span className="text-volt"> volt = 落在主体 ±4σ 内、真正干活的格点</span>，
           <span className="text-rose"> rose = 被 outlier 撑出去、几乎没值可接的格点</span>。
           g=128 模式下另画出含 outlier 的那一组的格点（玫瑰色）—— 灾难被锁在 128 个数里。数据固定种子，结果可复现。
-        </>
-      }
+        </>,
+      )}
     >
       {/* 控件 */}
       <div className="grid gap-x-6 gap-y-3 sm:grid-cols-3">
-        <Slider label="主体 σ" value={sigma} min={0.2} max={3} step={0.05} onChange={setSigma} fmt={(v) => v.toFixed(2)} />
-        <Slider label="OUTLIER 比例" value={outPct} min={0} max={2} step={0.05} onChange={setOutPct} fmt={(v) => v.toFixed(2)} unit="%" />
-        <Slider label="OUTLIER 幅度" value={outMag} min={2} max={40} step={1} onChange={setOutMag} fmt={(v) => `×${v}`} unit="σ" />
+        <Slider label={t('BODY σ', '主体 σ')} value={sigma} min={0.2} max={3} step={0.05} onChange={setSigma} fmt={(v) => v.toFixed(2)} />
+        <Slider label={t('OUTLIER FRACTION', 'OUTLIER 比例')} value={outPct} min={0} max={2} step={0.05} onChange={setOutPct} fmt={(v) => v.toFixed(2)} unit="%" />
+        <Slider label={t('OUTLIER MAGNITUDE', 'OUTLIER 幅度')} value={outMag} min={2} max={40} step={1} onChange={setOutMag} fmt={(v) => `×${v}`} unit="σ" />
       </div>
       <div className="mt-3">
         <Segmented options={SCHEMES} value={scheme} onChange={setScheme} block />
@@ -269,17 +279,17 @@ export function QuantErrorLab() {
           unit="dB"
           tone={res.snrDb > 20 ? 'volt' : res.snrDb > 10 ? 'amber' : 'rose'}
         />
-        <Stat label="被裁剪比例" value={pct(res.clipped, 2)} tone={res.clipped > 0 ? 'rose' : 'ink'} />
+        <Stat label={t('Clipped fraction', '被裁剪比例')} value={pct(res.clipped, 2)} tone={res.clipped > 0 ? 'rose' : 'ink'} />
         {isGroup ? (
-          <Stat label="组间 scale 极差" value={`×${(maxScale / medScale).toFixed(1)}`} tone="amber" />
+          <Stat label={t('Cross-group scale spread', '组间 scale 极差')} value={`×${(maxScale / medScale).toFixed(1)}`} tone="amber" />
         ) : (
-          <Stat label="主体外的格点" value={pct(wastedRatio, 0)} tone={wastedRatio > 0.3 ? 'rose' : 'ink'} />
+          <Stat label={t('Grid points outside body', '主体外的格点')} value={pct(wastedRatio, 0)} tone={wastedRatio > 0.3 ? 'rose' : 'ink'} />
         )}
       </div>
 
       {/* 四方案 SNR 对比 */}
       <div className="mt-5 space-y-1.5">
-        <div className="microlabel mb-2">同一份数据下四种方案的 SNR 对比</div>
+        <div className="microlabel mb-2">{t('SNR across all four schemes on the same data', '同一份数据下四种方案的 SNR 对比')}</div>
         {allSnr.map((s) => {
           const active = s.value === scheme
           return (

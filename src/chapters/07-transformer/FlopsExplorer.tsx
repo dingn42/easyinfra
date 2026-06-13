@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Widget, Slider, Segmented, Btn, Stat } from '@/components/ui'
 import { fmtBytes, fmtFlops, fmtInt, fmtSI, pct } from '@/lib/format'
+import { pick, useLocale, useT, type Loc } from '@/lib/i18n'
 import { calcDecodeFlops, calcParams, calcPrefillFlops, type ModelCfg } from './model'
 
 /* ── LAB 02：FLOPs 巡览器 ─────────────────────────────────────────
@@ -26,7 +27,16 @@ const PRESETS: Preset[] = [
 
 const DEFAULT = PRESETS[0]
 
+const SEG_LABELS: Loc[] = [
+  { en: 'QKV projection', zh: 'QKV 投影' },
+  { en: 'score · AV', zh: 'score · AV' },
+  { en: 'O projection', zh: 'O 投影' },
+  { en: 'MLP', zh: 'MLP' },
+]
+
 export function FlopsExplorer() {
+  const t = useT()
+  const { lang } = useLocale()
   const [d, setD] = useState<number>(DEFAULT.d)
   const [L, setL] = useState<number>(DEFAULT.L)
   const [ratio, setRatio] = useState<number>(DEFAULT.ratio)
@@ -46,10 +56,10 @@ export function FlopsExplorer() {
   const prefill = calcPrefillFlops(cfg, S, B)
 
   const segs = [
-    { key: 'QKV 投影', v: f.qkv, color: 'var(--color-cyan)' },
-    { key: 'score · AV', v: f.score, color: 'var(--color-amber)' },
-    { key: 'O 投影', v: f.oproj, color: 'var(--color-violet)' },
-    { key: 'MLP', v: f.mlp, color: 'var(--color-volt)' },
+    { label: SEG_LABELS[0], v: f.qkv, color: 'var(--color-cyan)' },
+    { label: SEG_LABELS[1], v: f.score, color: 'var(--color-amber)' },
+    { label: SEG_LABELS[2], v: f.oproj, color: 'var(--color-violet)' },
+    { label: SEG_LABELS[3], v: f.mlp, color: 'var(--color-volt)' },
   ]
   const segSum = segs.reduce((a, s) => a + s.v, 0)
 
@@ -75,19 +85,24 @@ export function FlopsExplorer() {
   return (
     <Widget
       index={2}
-      title="FLOPs 巡览器"
-      subtitle="参数量与每 token 计算量的实时账本"
+      title={t('FLOPs explorer', 'FLOPs 巡览器')}
+      subtitle={t('A live ledger of parameter count and per-token compute', '参数量与每 token 计算量的实时账本')}
       onReset={reset}
-      footer={
+      footer={t(
+        <>
+          Try pulling SEQ LEN from 2K to 32K: the linear layers&apos; FLOPs don&apos;t move, but the{' '}
+          <span className="text-amber">score·AV</span> segment grows ever wider — attention is the only term that
+          gets pricier with context length. Then switch to the GPT-3 preset and feel the force of d².
+        </>,
         <>
           试着把 SEQ LEN 从 2K 拉到 32K：线性层的 FLOPs 一动不动，<span className="text-amber">score·AV</span> 那一段
           却越来越宽——attention 是唯一随上下文长度涨价的项。再换到 GPT-3 预设，感受 d² 的威力。
-        </>
-      }
+        </>,
+      )}
     >
       {/* 预设 */}
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <span className="microlabel mr-1">预设</span>
+        <span className="microlabel mr-1">{t('preset', '预设')}</span>
         {PRESETS.map((pr) => (
           <Btn key={pr.name} size="sm" variant={matched?.name === pr.name ? 'solid' : 'ghost'} onClick={() => applyPreset(pr)}>
             {pr.name}
@@ -95,7 +110,7 @@ export function FlopsExplorer() {
         ))}
         {matched && (
           <span className="font-mono text-[11px] text-volt">
-            ✓ 计算值 {fmtSI(p.total, 2)} ≈ 官方 {matched.official}
+            {t(`✓ computed ${fmtSI(p.total, 2)} ≈ official ${matched.official}`, `✓ 计算值 ${fmtSI(p.total, 2)} ≈ 官方 ${matched.official}`)}
           </span>
         )}
       </div>
@@ -103,7 +118,7 @@ export function FlopsExplorer() {
       {/* 滑杆 */}
       <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
         <Slider label="d_model" value={d} min={1024} max={12288} step={256} onChange={setD} fmt={fmtInt} />
-        <Slider label="层数 L" value={L} min={8} max={96} step={4} onChange={setL} />
+        <Slider label={t('layers L', '层数 L')} value={L} min={8} max={96} step={4} onChange={setL} />
         <Slider
           label="d_ff / d"
           value={ratio}
@@ -130,7 +145,7 @@ export function FlopsExplorer() {
             />
           </div>
           <div>
-            <div className="microlabel mb-1.5">MLP 结构</div>
+            <div className="microlabel mb-1.5">{t('MLP structure', 'MLP 结构')}</div>
             <Segmented<number>
               options={[
                 { value: 3, label: 'SwiGLU ×3' },
@@ -145,23 +160,23 @@ export function FlopsExplorer() {
 
       {/* 读数 */}
       <div className="mt-5 grid grid-cols-2 gap-4 border-t border-line pt-4 lg:grid-cols-4">
-        <Stat label="总参数" value={fmtSI(p.total, 2)} tone="volt" size="lg" />
-        <Stat label="权重显存 · FP16" value={fmtBytes(p.total * 2)} tone="amber" />
-        <Stat label="decode · 单 token 前向" value={fmtFlops(f.total)} tone="cyan" />
-        <Stat label={`prefill 总量 · B=${B}`} value={fmtFlops(prefill)} tone="ink" />
+        <Stat label={t('total params', '总参数')} value={fmtSI(p.total, 2)} tone="volt" size="lg" />
+        <Stat label={t('weight memory · FP16', '权重显存 · FP16')} value={fmtBytes(p.total * 2)} tone="amber" />
+        <Stat label={t('decode · forward / token', 'decode · 单 token 前向')} value={fmtFlops(f.total)} tone="cyan" />
+        <Stat label={t(`prefill total · B=${B}`, `prefill 总量 · B=${B}`)} value={fmtFlops(prefill)} tone="ink" />
       </div>
 
       {/* 堆叠条：单 token FLOPs 去向 */}
       <div className="mt-5">
         <div className="mb-2 flex items-baseline justify-between">
-          <span className="microlabel">单 token FLOPs 去向（decode @ S={fmtSI(S, 0)}）</span>
-          <span className="font-mono text-[11px] text-ink3">attention（score·AV）占 {pct(f.score / segSum, 1)}</span>
+          <span className="microlabel">{t(`where per-token FLOPs go (decode @ S=${fmtSI(S, 0)})`, `单 token FLOPs 去向（decode @ S=${fmtSI(S, 0)}）`)}</span>
+          <span className="font-mono text-[11px] text-ink3">{t(`attention (score·AV) = ${pct(f.score / segSum, 1)}`, `attention（score·AV）占 ${pct(f.score / segSum, 1)}`)}</span>
         </div>
         <div className="flex h-7 w-full overflow-hidden rounded-md border border-line bg-bg2">
           {segs.map((s) => (
             <div
-              key={s.key}
-              title={`${s.key}: ${fmtFlops(s.v)} (${pct(s.v / segSum, 1)})`}
+              key={s.label.en}
+              title={`${pick(s.label, lang)}: ${fmtFlops(s.v)} (${pct(s.v / segSum, 1)})`}
               className="h-full transition-[width] duration-200"
               style={{
                 width: `${(s.v / segSum) * 100}%`,
@@ -173,9 +188,9 @@ export function FlopsExplorer() {
         </div>
         <div className="mt-2.5 grid gap-x-6 gap-y-1.5 sm:grid-cols-2">
           {segs.map((s) => (
-            <div key={s.key} className="flex items-baseline gap-2 font-mono text-[12px]">
+            <div key={s.label.en} className="flex items-baseline gap-2 font-mono text-[12px]">
               <span className="inline-block size-2 shrink-0 translate-y-px rounded-[2px]" style={{ background: s.color }} />
-              <span className="text-ink2">{s.key}</span>
+              <span className="text-ink2">{pick(s.label, lang)}</span>
               <span className="ml-auto tabular-nums text-ink">{fmtFlops(s.v)}</span>
               <span className="w-14 text-right tabular-nums text-ink3">{pct(s.v / segSum, 1)}</span>
             </div>

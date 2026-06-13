@@ -1,3 +1,5 @@
+import { useT } from '@/lib/i18n'
+
 const SHOW_MAX = 64
 
 function fmtVal(v: number): string {
@@ -18,11 +20,14 @@ export function BuffersView({
   initial: Record<string, number[]> | null
   order: string[]
 }) {
+  const t = useT()
   if (!buffers) {
     return (
       <div className="flex flex-col items-center gap-2 py-14 text-center">
         <span className="microlabel text-rose">NO OUTPUT</span>
-        <p className="text-[13px] text-ink3">运行未完成，没有可展示的缓冲区内容。</p>
+        <p className="text-[13px] text-ink3">
+          {t('The run did not complete — no buffer contents to show.', '运行未完成，没有可展示的缓冲区内容。')}
+        </p>
       </div>
     )
   }
@@ -43,7 +48,9 @@ export function BuffersView({
               <span className="font-mono text-[11px] tabular-nums text-ink3">len {data.length}</span>
               {init && (
                 <span className={`font-mono text-[11px] tabular-nums ${changed > 0 ? 'text-volt' : 'text-ink3'}`}>
-                  {changed > 0 ? `◆ ${changed} 个元素被改变` : '与初值一致'}
+                  {changed > 0
+                    ? t(`◆ ${changed} element${changed === 1 ? '' : 's'} changed`, `◆ ${changed} 个元素被改变`)
+                    : t('unchanged from init', '与初值一致')}
                 </span>
               )}
             </div>
@@ -53,7 +60,11 @@ export function BuffersView({
                 return (
                   <div
                     key={i}
-                    title={init && diff ? `${name}[${i}]：${fmtVal(init[i])} → ${fmtVal(v)}` : `${name}[${i}] = ${fmtVal(v)}`}
+                    title={
+                      init && diff
+                        ? `${name}[${i}]: ${fmtVal(init[i])} → ${fmtVal(v)}`
+                        : `${name}[${i}] = ${fmtVal(v)}`
+                    }
                     className={`px-1.5 py-1 text-center ${diff ? 'bg-volt/10' : 'bg-panel'}`}
                   >
                     <div className="font-mono text-[9px] leading-tight text-ink3/80">{i}</div>
@@ -69,7 +80,9 @@ export function BuffersView({
               })}
             </div>
             {data.length > SHOW_MAX && (
-              <div className="mt-1 font-mono text-[10.5px] text-ink3">… 仅显示前 {SHOW_MAX} / {data.length} 个元素</div>
+              <div className="mt-1 font-mono text-[10.5px] text-ink3">
+                {t(`… showing first ${SHOW_MAX} of ${data.length} elements`, `… 仅显示前 ${SHOW_MAX} / ${data.length} 个元素`)}
+              </div>
             )}
           </div>
         )

@@ -1,5 +1,8 @@
+import { useT } from '@/lib/i18n'
+
 /** SEC6 静态图：2D grid × 2D block 铺满一张「图像」，定位一个像素 */
 export function Grid2DFigure() {
+  const t = useT()
   // 12×8 的图像，4×4 的 block → grid(3, 2)
   const W = 12
   const H = 8
@@ -20,10 +23,18 @@ export function Grid2DFigure() {
   const infoX = 470
 
   return (
-    <svg viewBox="0 0 850 310" className="w-full" role="img" aria-label="2D grid 与 2D block 覆盖一张图像，row/col 索引计算">
+    <svg
+      viewBox="0 0 850 310"
+      className="w-full"
+      role="img"
+      aria-label={t(
+        'A 2D grid and 2D block covering an image, with row/col index computation',
+        '2D grid 与 2D block 覆盖一张图像，row/col 索引计算',
+      )}
+    >
       {/* 轴标签 */}
       <text x={x0 + (W * (cell + gap)) / 2} y={20} textAnchor="middle" fontSize={11} fontFamily="var(--font-mono)" fill="currentColor" className="text-ink3">
-        x（col）→ blockIdx.x / threadIdx.x
+        {t('x (col) → blockIdx.x / threadIdx.x', 'x（col）→ blockIdx.x / threadIdx.x')}
       </text>
       <text
         x={20}
@@ -35,7 +46,7 @@ export function Grid2DFigure() {
         className="text-ink3"
         transform={`rotate(-90 20 ${y0 + (H * (cell + gap)) / 2})`}
       >
-        y（row）↓
+        {t('y (row) ↓', 'y（row）↓')}
       </text>
 
       {/* 像素格 */}
@@ -141,7 +152,7 @@ export function Grid2DFigure() {
           {'    '}= 1×4 + 1 = <tspan className="text-volt">5</tspan>
         </text>
         <text x={infoX} y={284} fill="currentColor" className="text-volt">
-          → 像素 (row 5, col 6)
+          {t('→ pixel (row 5, col 6)', '→ 像素 (row 5, col 6)')}
         </text>
       </g>
     </svg>

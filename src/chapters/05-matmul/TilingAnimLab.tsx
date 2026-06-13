@@ -1,5 +1,6 @@
 import { useRef, useState, type CSSProperties } from 'react'
 import { PlayBar, Stat, Widget } from '@/components/ui'
+import { useT } from '@/lib/i18n'
 import { fmtInt } from '@/lib/format'
 import { useRafLoop, useReducedMotion } from '@/lib/hooks'
 
@@ -62,6 +63,7 @@ function derive(step: number): Phase {
 }
 
 export function TilingAnimLab() {
+  const t = useT()
   const [step, setStep] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [speed, setSpeed] = useState(1)
@@ -127,17 +129,25 @@ export function TilingAnimLab() {
   return (
     <Widget
       index={2}
-      title="Tiling 动画"
-      subtitle={`N=${N}、T=${T} 的小棋盘：看一个 block 如何复用 shared memory`}
+      title={t('Tiling Animation', 'Tiling 动画')}
+      subtitle={t(
+        `A small N=${N}, T=${T} board: watch one block reuse shared memory`,
+        `N=${N}、T=${T} 的小棋盘：看一个 block 如何复用 shared memory`,
+      )}
       wide
       onReset={onReset}
-      footer={
+      footer={t(
+        <>
+          Each segment loads only 2×T²=32 floats from global memory, yet the tile's 16 output cells do 4 multiply-adds each — for the same
+          work, naive would read 16×8=128 floats. The gap between the two counters converges to{' '}
+          <span className="font-mono text-volt">T = {T}×</span>: tiling's payoff is proportional to the tile edge length.
+        </>,
         <>
           每段装载只从全局内存读 2×T²=32 个 float，但瓦片内 16 个输出格各做 4 次乘加 ——
           同样的活，naive 要读 16×8=128 个 float。两个计数器的差距最终收敛到{' '}
           <span className="font-mono text-volt">T = {T}×</span>：tiling 的收益与瓦片边长成正比。
-        </>
-      }
+        </>,
+      )}
     >
       {!reduced && (
         <style>{`
@@ -150,10 +160,12 @@ export function TilingAnimLab() {
       )}
       <div className="flex flex-col gap-5 md:flex-row">
         <div className="min-w-0 flex-1">
-          <svg viewBox={`0 0 ${VB_W} ${VB_H}`} className="w-full" role="img" aria-label="矩阵乘法 tiling 动画棋盘">
+          <svg viewBox={`0 0 ${VB_W} ${VB_H}`} className="w-full" role="img" aria-label={t('Matrix-multiply tiling animation board', '矩阵乘法 tiling 动画棋盘')}>
             {/* ── 左上：状态与 shared memory ── */}
             <text x={AS_X} y={18} fontSize={10} fontFamily="var(--font-mono, monospace)" fill="var(--color-ink3)">
-              {p.done ? '全部 9 个瓦片完成' : `C 瓦片 (${p.bi},${p.bj}) · 第 ${p.k + 1}/${SEGS} 段`}
+              {p.done
+                ? t('all 9 tiles done', '全部 9 个瓦片完成')
+                : t(`C tile (${p.bi},${p.bj}) · segment ${p.k + 1}/${SEGS}`, `C 瓦片 (${p.bi},${p.bj}) · 第 ${p.k + 1}/${SEGS} 段`)}
             </text>
             <text
               x={AS_X}
@@ -162,7 +174,11 @@ export function TilingAnimLab() {
               fontFamily="var(--font-mono, monospace)"
               fill={p.done ? 'var(--color-volt)' : loading ? 'var(--color-cyan)' : 'var(--color-amber)'}
             >
-              {p.done ? 'DONE' : loading ? '装载：A、B 子块 → shared' : `累加：复用 shared（${p.within}/16 格）`}
+              {p.done
+                ? 'DONE'
+                : loading
+                  ? t('load: A, B sub-blocks → shared', '装载：A、B 子块 → shared')
+                  : t(`accumulate: reuse shared (${p.within}/16 cells)`, `累加：复用 shared（${p.within}/16 格）`)}
             </text>
             <text x={AS_X} y={SH_Y - 10} fontSize={9} fontFamily="var(--font-mono, monospace)" fill="var(--color-ink3)">
               SHARED MEMORY
@@ -354,11 +370,14 @@ export function TilingAnimLab() {
 
         {/* ── 右侧双计数器 ── */}
         <div className="flex w-full shrink-0 flex-row flex-wrap items-start gap-x-6 gap-y-4 md:w-52 md:flex-col">
-          <Stat label="naive 全局读取" value={fmtInt(naiveReads)} unit="floats" tone="rose" />
-          <Stat label="tiled 全局读取" value={fmtInt(tiledReads)} unit="floats" tone="volt" />
-          <Stat label="实时差距" value={`${ratio.toFixed(1)}×`} tone="cyan" />
+          <Stat label={t('naive global reads', 'naive 全局读取')} value={fmtInt(naiveReads)} unit="floats" tone="rose" />
+          <Stat label={t('tiled global reads', 'tiled 全局读取')} value={fmtInt(tiledReads)} unit="floats" tone="volt" />
+          <Stat label={t('live gap', '实时差距')} value={`${ratio.toFixed(1)}×`} tone="cyan" />
           <div className="text-[12px] leading-relaxed text-ink3">
-            同样的计算进度，两种 kernel 各自需要的 HBM 读取量。理论差距 = T = {T}×。
+            {t(
+              <>At the same compute progress, the HBM reads each kernel needs. Theoretical gap = T = {T}×.</>,
+              <>同样的计算进度，两种 kernel 各自需要的 HBM 读取量。理论差距 = T = {T}×。</>,
+            )}
           </div>
         </div>
       </div>

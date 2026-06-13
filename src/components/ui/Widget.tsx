@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useT } from '@/lib/i18n'
 
 /**
  * 交互实验容器（"LAB"）。统一的仪器风格外框：标题栏 + 四角括号 + 可选重置。
@@ -23,6 +24,8 @@ export function Widget({
   wide?: boolean
   children: ReactNode
 }) {
+  const t = useT()
+  const resetTitle = t('Reset', '重置')
   return (
     <div className={`group relative my-8 ${wide ? 'lg:-mx-16' : ''}`}>
       {/* 四角括号 */}
@@ -45,7 +48,7 @@ export function Widget({
             <button
               onClick={onReset}
               className="ml-auto font-mono text-[11px] tracking-wider text-ink3 transition-colors hover:text-volt"
-              title="重置"
+              title={resetTitle}
             >
               ↺ RESET
             </button>

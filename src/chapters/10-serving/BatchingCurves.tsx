@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Figure, Segmented } from '@/components/ui'
+import { useT } from '@/lib/i18n'
 import { fmtSI } from '@/lib/format'
 
 /** ── SEC2 交互插图：吞吐 vs batch、TPOT vs batch，切换硬件看拐点移动 ──
@@ -30,6 +31,7 @@ function stepMs(b: number, hw: { flops: number; bw: number }): number {
 }
 
 export function BatchingCurves() {
+  const t = useT()
   const [hwKey, setHwKey] = useState<HwKey>('H100')
   const hw = HW[hwKey]
 
@@ -82,28 +84,35 @@ export function BatchingCurves() {
 
   return (
     <Figure
-      caption={
+      caption={t(
+        <>
+          decode per-step latency ≈ max(weight read, compute). Small B → the weight read dominates, throughput
+          rises linearly with B and TPOT barely moves; B past the ridge (≈ compute/bandwidth ratio) → compute
+          becomes the bottleneck, throughput saturates and TPOT climbs steeply. Estimated for a 13B FP16 model.
+        </>,
         <>
           decode 单步时延 ≈ max(权重读取, 计算)。B 小→读权重独大，吞吐随 B 线性涨、TPOT 几乎不变；
           B 越过 ridge（≈算力/带宽比）→ 计算成瓶颈，吞吐饱和、TPOT 开始陡增。13B FP16 模型估算。
-        </>
-      }
+        </>,
+      )}
     >
       <div className="mb-3 flex flex-wrap items-center gap-3">
-        <span className="microlabel">硬件</span>
+        <span className="microlabel">{t('HARDWARE', '硬件')}</span>
         <Segmented
           options={(Object.keys(HW) as HwKey[]).map((k) => ({ value: k, label: HW[k].label }))}
           value={hwKey}
           onChange={setHwKey}
         />
         <span className="ml-auto font-mono text-[11px] text-ink3">
-          ridge B* ≈ <span className="text-volt">{Math.round(ridge)}</span>　吞吐上限 ≈ <span className="text-volt">{fmtSI(maxTput, 0)}</span> tok/s
+          ridge B* ≈ <span className="text-volt">{Math.round(ridge)}</span>
+          {' '}
+          {t('throughput ceiling', '吞吐上限')} ≈ <span className="text-volt">{fmtSI(maxTput, 0)}</span> tok/s
         </span>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         {/* 吞吐 vs B */}
-        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="吞吐随 batch 先线性后饱和">
-          <text x={L} y={10} className="fill-current font-mono text-ink2" fontSize={9}>吞吐 tok/s</text>
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={t('Throughput rises linearly with batch, then saturates', '吞吐随 batch 先线性后饱和')}>
+          <text x={L} y={10} className="fill-current font-mono text-ink2" fontSize={9}>{t('throughput tok/s', '吞吐 tok/s')}</text>
           {axis(yT, tputCeil, 3)}
           <line x1={ridgeX} y1={T} x2={ridgeX} y2={H - B0} className="stroke-volt/50" strokeWidth={1} strokeDasharray="4 3" />
           <text
@@ -116,11 +125,11 @@ export function BatchingCurves() {
             B*≈{Math.round(ridge)}
           </text>
           <path d={tputPath} fill="none" className="stroke-volt" strokeWidth={2} />
-          <text x={x(2)} y={yT(tputCeil * 0.52)} className="fill-current font-mono text-ink3" fontSize={8}>线性区：免费的吞吐</text>
-          <text x={x(80)} y={yT(maxTput) + (maxTput < tputCeil * 0.5 ? -8 : 14)} className="fill-current font-mono text-ink3" fontSize={8}>饱和区</text>
+          <text x={x(2)} y={yT(tputCeil * 0.52)} className="fill-current font-mono text-ink3" fontSize={8}>{t('linear region: free throughput', '线性区：免费的吞吐')}</text>
+          <text x={x(80)} y={yT(maxTput) + (maxTput < tputCeil * 0.5 ? -8 : 14)} className="fill-current font-mono text-ink3" fontSize={8}>{t('saturated', '饱和区')}</text>
         </svg>
         {/* TPOT vs B */}
-        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="TPOT 在拐点前平坦，之后陡增">
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={t('TPOT is flat before the knee, then climbs steeply', 'TPOT 在拐点前平坦，之后陡增')}>
           <text x={L} y={10} className="fill-current font-mono text-ink2" fontSize={9}>TPOT ms / token</text>
           {axis(yP, tpotCeil, 5)}
           <line x1={ridgeX} y1={T} x2={ridgeX} y2={H - B0} className="stroke-volt/50" strokeWidth={1} strokeDasharray="4 3" />
@@ -135,9 +144,9 @@ export function BatchingCurves() {
           </text>
           <path d={tpotPath} fill="none" className="stroke-amber" strokeWidth={2} />
           <text x={x(2.4)} y={yP(stepMs(1, hw)) - 7} className="fill-current font-mono text-ink3" fontSize={8}>
-            ≈ 权重读取时间 {stepMs(1, hw).toFixed(0)}ms
+            {t('≈ weight-read time', '≈ 权重读取时间')} {stepMs(1, hw).toFixed(0)}ms
           </text>
-          <text x={x(110)} y={yP(tpotCeil * 0.72)} className="fill-current font-mono text-amber" fontSize={8}>延迟开始变差</text>
+          <text x={x(110)} y={yP(tpotCeil * 0.72)} className="fill-current font-mono text-amber" fontSize={8}>{t('latency degrades', '延迟开始变差')}</text>
         </svg>
       </div>
     </Figure>

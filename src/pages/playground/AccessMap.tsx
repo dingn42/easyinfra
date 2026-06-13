@@ -1,13 +1,15 @@
 import { useMemo, useRef, useState } from 'react'
 import { Slider } from '@/components/ui'
+import { useT } from '@/lib/i18n'
+import { C } from '@/lib/palette'
 import type { AccessEvent, SimStats } from '../../lib/cudasim/types'
 
 const WARP_WINDOW = 2 // 一次最多显示 2 个 warp（64 条 lane），可用滑杆平移窗口
 const COLS_MAX = 64 // 步数多时按 step 聚合降采样
 
-const C_READ = '#59d8ea' // global read → cyan
-const C_WRITE = '#b8f53d' // global write → volt
-const C_SHARED = '#ffb454' // shared → amber
+const C_READ = C.cyan // global read → cyan
+const C_WRITE = C.volt // global write → volt
+const C_SHARED = C.amber // shared → amber
 
 interface Cell {
   gr: number
@@ -33,6 +35,7 @@ export function AccessMap({
   stats: SimStats | null
   truncated: boolean
 }) {
+  const t = useT()
   const [warpStart, setWarpStart] = useState(0)
   const wrapRef = useRef<HTMLDivElement>(null)
   const [tip, setTip] = useState<{ x: number; y: number; lines: string[] } | null>(null)
@@ -67,7 +70,9 @@ export function AccessMap({
     return (
       <div className="flex flex-col items-center gap-2 py-14 text-center">
         <span className="microlabel">NO TRACE</span>
-        <p className="text-[13px] text-ink3">这次运行没有产生内存访问事件。</p>
+        <p className="text-[13px] text-ink3">
+          {t('This run produced no memory-access events.', '这次运行没有产生内存访问事件。')}
+        </p>
       </div>
     )
   }
@@ -105,7 +110,13 @@ export function AccessMap({
               c.first.kind === 'read' ? 'read' : 'write'
             } @L${c.first.line}`,
           ]
-        : [head, `${c.gr} 读 / ${c.gw} 写 global · ${c.sh} shared（如 ${c.first.buffer}[${c.first.index}]@L${c.first.line}）`]
+        : [
+            head,
+            t(
+              `${c.gr} read / ${c.gw} write global · ${c.sh} shared (e.g. ${c.first.buffer}[${c.first.index}]@L${c.first.line})`,
+              `${c.gr} 读 / ${c.gw} 写 global · ${c.sh} shared（如 ${c.first.buffer}[${c.first.index}]@L${c.first.line}）`,
+            ),
+          ]
     const wrapRect = wrapRef.current?.getBoundingClientRect()
     setTip({
       x: e.clientX - (wrapRect?.left ?? rect.left) + 14,
@@ -127,13 +138,17 @@ export function AccessMap({
         <span className="flex items-center gap-1.5">
           <span className="inline-block size-2.5 rounded-[2px]" style={{ background: C_SHARED }} /> SHARED R/W
         </span>
-        {bucket > 1 && <span className="text-ink3">每格聚合 {bucket} 步</span>}
-        {truncated && <span className="text-amber">⚠ 轨迹被截断（事件过多）</span>}
+        {bucket > 1 && (
+          <span className="text-ink3">{t(`${bucket} steps per cell`, `每格聚合 ${bucket} 步`)}</span>
+        )}
+        {truncated && (
+          <span className="text-amber">{t('⚠ trace truncated (too many events)', '⚠ 轨迹被截断（事件过多）')}</span>
+        )}
       </div>
       {warpCount > WARP_WINDOW && (
         <div className="mb-3 max-w-[320px]">
           <Slider
-            label="WARP 窗口"
+            label={t('WARP WINDOW', 'WARP 窗口')}
             value={start}
             min={0}
             max={warpCount - shownWarps}
@@ -226,8 +241,10 @@ export function AccessMap({
       </div>
 
       <p className="mt-2 text-[11.5px] leading-relaxed text-ink3">
-        每行一条 lane（虚线分隔 warp），横轴是逻辑步。竖直成列的色块 = 同 warp 同拍访问 ——
-        合并访存与 lockstep 的直观形态；错开的色块 = 分支分化把线程拖出了同拍。
+        {t(
+          'Each row is one lane (dashed lines separate warps); the x-axis is logical steps. Cells stacked into a vertical column = same-warp, same-step accesses — the visual signature of coalesced access and lockstep. Staggered cells = branch divergence pulling threads out of step.',
+          '每行一条 lane（虚线分隔 warp），横轴是逻辑步。竖直成列的色块 = 同 warp 同拍访问 —— 合并访存与 lockstep 的直观形态；错开的色块 = 分支分化把线程拖出了同拍。',
+        )}
       </p>
     </div>
   )

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { PlayBar, Segmented, Slider, Stat, Widget } from '@/components/ui'
+import { useT } from '@/lib/i18n'
 import { useRafLoop, useReducedMotion } from '@/lib/hooks'
 import { fmtFlops, fmtInt } from '@/lib/format'
 
@@ -13,6 +14,7 @@ const D_HEAD = 128
  * 下方 FLOPs 曲线：每步（二次 vs 线性）/ 累计（三次 vs 二次）。
  */
 export default function CacheCompareLab() {
+  const tr = useT()
   const reduced = useReducedMotion()
   const [S, setS] = useState(32)
   const [t, setT] = useState(reduced ? 16 : 1) // 已生成 token 数（当前步）
@@ -126,32 +128,38 @@ export default function CacheCompareLab() {
   return (
     <Widget
       index={1}
-      title="有无 Cache 对比"
-      subtitle="同一段生成，两种算法的计算量"
+      title={tr('Cache vs. no cache', '有无 Cache 对比')}
+      subtitle={tr('Same generation, two algorithms’ compute', '同一段生成，两种算法的计算量')}
       onReset={reset}
-      footer={
+      footer={tr(
+        <>
+          On the left, every step relights the whole score triangle — the <span className="text-rose">rose</span> of the
+          old rows is compute burned for nothing; on the right, the old rows just sit there in{' '}
+          <span className="text-amber">amber</span>, waiting in memory to be read. Cost per step is O(t²·d) vs. O(t·d);
+          over the whole sequence the cumulative cost is O(S³·d) vs. O(S²·d).
+        </>,
         <>
           左侧每一步都把整个 score 三角重新点亮 —— 旧行的<span className="text-rose">玫红</span>就是白白烧掉的算力；
           右侧旧行只是<span className="text-amber">琥珀色</span>地躺在显存里等着被读。每步代价 O(t²·d) vs O(t·d)，
           整个序列生成下来累计就是 O(S³·d) vs O(S²·d)。
-        </>
-      }
+        </>,
+      )}
     >
       <div className="mb-4 flex flex-wrap items-end gap-x-6 gap-y-3">
         <PlayBar playing={playing} onToggle={() => {
           if (!playing && t >= S) setT(1)
           setPlaying(!playing)
         }} onStep={() => setT((p) => Math.min(S, p + 1))} onReset={reset} speed={speed} onSpeed={setSpeed} />
-        <Slider className="w-44" label="目标长度 S" value={S} min={8} max={48} step={4}
+        <Slider className="w-44" label={tr('Target length S', '目标长度 S')} value={S} min={8} max={48} step={4}
           onChange={(v) => { setS(v); setT((p) => Math.min(p, v)) }} unit="token" />
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <div className="mb-1.5 flex items-baseline justify-between">
-            <span className="microlabel text-rose">无 KV CACHE</span>
+            <span className="microlabel text-rose">{tr('NO KV CACHE', '无 KV CACHE')}</span>
             <span className="font-mono text-[11px] tabular-nums text-ink3">
-              本步重算 <span className="text-rose">{fmtInt(noCells)}</span> 单元
+              {tr('recompute', '本步重算')} <span className="text-rose">{fmtInt(noCells)}</span> {tr('cells', '单元')}
             </span>
           </div>
           <svg viewBox={`0 0 ${vb} ${vb}`} className="w-full rounded-md border border-line bg-bg2">
@@ -160,9 +168,9 @@ export default function CacheCompareLab() {
         </div>
         <div>
           <div className="mb-1.5 flex items-baseline justify-between">
-            <span className="microlabel text-volt">有 KV CACHE</span>
+            <span className="microlabel text-volt">{tr('WITH KV CACHE', '有 KV CACHE')}</span>
             <span className="font-mono text-[11px] tabular-nums text-ink3">
-              本步只算 <span className="text-volt">{fmtInt(cacheCells)}</span> 单元
+              {tr('compute', '本步只算')} <span className="text-volt">{fmtInt(cacheCells)}</span> {tr('cells', '单元')}
             </span>
           </div>
           <svg viewBox={`0 0 ${vb} ${vb}`} className="w-full rounded-md border border-line bg-bg2">
@@ -174,11 +182,11 @@ export default function CacheCompareLab() {
       <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[1fr_auto]">
         <div>
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <span className="microlabel">FLOPS 曲线（d_head = 128）</span>
+            <span className="microlabel">{tr('FLOPS CURVE (d_head = 128)', 'FLOPS 曲线（d_head = 128）')}</span>
             <Segmented
               options={[
-                { value: 'step', label: '每步' },
-                { value: 'cum', label: '累计' },
+                { value: 'step', label: tr('Per step', '每步') },
+                { value: 'cum', label: tr('Cumulative', '累计') },
               ]}
               value={mode}
               onChange={setMode}
@@ -196,20 +204,20 @@ export default function CacheCompareLab() {
             <text x={padL} y={H - 3} fontSize={8.5} className="font-mono" fill="var(--color-ink3)">t=1</text>
             <text x={W - 6} y={H - 3} fontSize={8.5} textAnchor="end" className="font-mono" fill="var(--color-ink3)">t={S}</text>
             <text x={W - 6} y={14} fontSize={8.5} textAnchor="end" className="font-mono" fill="var(--color-rose)">
-              {mode === 'step' ? '每步 ~t²（二次）' : '累计 ~S³'}
+              {mode === 'step' ? tr('per step ~t² (quadratic)', '每步 ~t²（二次）') : tr('cumulative ~S³', '累计 ~S³')}
             </text>
             <text x={W - 6} y={26} fontSize={8.5} textAnchor="end" className="font-mono" fill="var(--color-volt)">
-              {mode === 'step' ? '每步 ~t（线性）' : '累计 ~S²'}
+              {mode === 'step' ? tr('per step ~t (linear)', '每步 ~t（线性）') : tr('cumulative ~S²', '累计 ~S²')}
             </text>
           </svg>
         </div>
         <div className="grid grid-cols-2 content-start gap-x-8 gap-y-3 lg:grid-cols-1">
-          <Stat label={`当前步 t = ${t}`} value={t} unit={`/ ${S}`} size="sm" />
-          <Stat label="本步 FLOPS（无 / 有）" size="sm" tone="rose"
+          <Stat label={tr(`Current step t = ${t}`, `当前步 t = ${t}`)} value={t} unit={`/ ${S}`} size="sm" />
+          <Stat label={tr('FLOPS this step (no / yes)', '本步 FLOPS（无 / 有）')} size="sm" tone="rose"
             value={<>{fmtFlops(noNow)} <span className="text-ink3">/</span> <span className="text-volt">{fmtFlops(cacheNow)}</span></>} />
-          <Stat label="累计 FLOPS（无 / 有）" size="sm" tone="rose"
+          <Stat label={tr('Cumulative FLOPS (no / yes)', '累计 FLOPS（无 / 有）')} size="sm" tone="rose"
             value={<>{fmtFlops(noCumNow)} <span className="text-ink3">/</span> <span className="text-volt">{fmtFlops(cacheCumNow)}</span></>} />
-          <Stat label="累计节省" value={`${(noCumNow / cacheCumNow).toFixed(1)}×`} size="sm" tone="volt" />
+          <Stat label={tr('Cumulative savings', '累计节省')} value={`${(noCumNow / cacheCumNow).toFixed(1)}×`} size="sm" tone="volt" />
         </div>
       </div>
     </Widget>

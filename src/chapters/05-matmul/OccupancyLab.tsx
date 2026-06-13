@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Slider, Stat, Widget } from '@/components/ui'
+import { useT } from '@/lib/i18n'
 import { pct } from '@/lib/format'
 
 /** LAB 03 占用率计算器：A100 单个 SM 的四种资源约束分别允许多少个 block 驻留 */
@@ -12,6 +13,7 @@ const SM = {
 }
 
 export function OccupancyLab() {
+  const t = useT()
   const [regs, setRegs] = useState(64) // 每线程寄存器
   const [sharedKB, setSharedKB] = useState(8) // 每 block shared KB
   const [blockDim, setBlockDim] = useState(256) // 每 block 线程数
@@ -27,34 +29,43 @@ export function OccupancyLab() {
   const warps = (blocksPerSM * blockDim) / 32
 
   const rows: { label: string; value: number; detail: string }[] = [
-    { label: '寄存器', value: byRegs, detail: `${SM.regs.toLocaleString('en-US')} ÷ (${regs} × ${blockDim})` },
-    { label: 'Shared Mem', value: byShared, detail: sharedKB === 0 ? '不占用 shared' : `${SM.sharedKB} KB ÷ ${sharedKB} KB` },
-    { label: '线程上限', value: byThreads, detail: `${SM.threads} ÷ ${blockDim}` },
-    { label: 'Block 上限', value: byBlocks, detail: '硬件固定 32' },
+    { label: t('Registers', '寄存器'), value: byRegs, detail: `${SM.regs.toLocaleString('en-US')} ÷ (${regs} × ${blockDim})` },
+    {
+      label: 'Shared Mem',
+      value: byShared,
+      detail: sharedKB === 0 ? t('no shared used', '不占用 shared') : `${SM.sharedKB} KB ÷ ${sharedKB} KB`,
+    },
+    { label: t('Thread limit', '线程上限'), value: byThreads, detail: `${SM.threads} ÷ ${blockDim}` },
+    { label: t('Block limit', 'Block 上限'), value: byBlocks, detail: t('hardware-fixed 32', '硬件固定 32') },
   ]
 
   return (
     <Widget
       index={3}
-      title="占用率计算器"
-      subtitle="A100 单个 SM：四种资源，谁先卡住 block 数"
+      title={t('Occupancy Calculator', '占用率计算器')}
+      subtitle={t('One A100 SM: four resources — which caps the block count first?', 'A100 单个 SM：四种资源，谁先卡住 block 数')}
       onReset={() => {
         setRegs(64)
         setSharedKB(8)
         setBlockDim(256)
       }}
-      footer={
+      footer={t(
+        <>
+          Higher occupancy isn't better — it only needs to be "enough to hide latency." High-performance GEMM often pushes occupancy down
+          to 25%–50% on purpose, in exchange for 100+ registers per thread to hold the micro-tile's accumulators: each warp does more work,
+          so fewer warps are needed.
+        </>,
         <>
           occupancy 不是越高越好 —— 它只需要「够隐藏延迟」。高性能 GEMM 常常故意把 occupancy
           压到 25%~50%，换来每线程 100+ 个寄存器去放 micro-tile 的累加器：每个 warp 干的活多了，
           需要的 warp 自然就少了。
-        </>
-      }
+        </>,
+      )}
     >
       <div className="grid gap-4 sm:grid-cols-3">
-        <Slider label="每线程寄存器" value={regs} min={16} max={128} step={8} onChange={setRegs} />
-        <Slider label="每 block shared" value={sharedKB} min={0} max={48} step={2} onChange={setSharedKB} unit="KB" />
-        <Slider label="blockDim（线程/block）" value={blockDim} min={64} max={1024} step={32} onChange={setBlockDim} />
+        <Slider label={t('Registers / thread', '每线程寄存器')} value={regs} min={16} max={128} step={8} onChange={setRegs} />
+        <Slider label={t('Shared / block', '每 block shared')} value={sharedKB} min={0} max={48} step={2} onChange={setSharedKB} unit="KB" />
+        <Slider label={t('blockDim (threads/block)', 'blockDim（线程/block）')} value={blockDim} min={64} max={1024} step={32} onChange={setBlockDim} />
       </div>
 
       <div className="mt-5 grid grid-cols-3 gap-4">
@@ -64,19 +75,29 @@ export function OccupancyLab() {
           tone={cantLaunch ? 'rose' : occupancy >= 0.5 ? 'volt' : 'amber'}
           size="lg"
         />
-        <Stat label="驻留 BLOCK/SM" value={cantLaunch ? 0 : blocksPerSM} tone="cyan" />
-        <Stat label="活跃 WARP/SM" value={cantLaunch ? 0 : `${warps}/64`} tone="cyan" />
+        <Stat label={t('RESIDENT BLOCK/SM', '驻留 BLOCK/SM')} value={cantLaunch ? 0 : blocksPerSM} tone="cyan" />
+        <Stat label={t('ACTIVE WARP/SM', '活跃 WARP/SM')} value={cantLaunch ? 0 : `${warps}/64`} tone="cyan" />
       </div>
 
       {cantLaunch && (
         <div className="mt-3 rounded-md border border-rose/40 bg-rose/10 px-3.5 py-2 font-mono text-[12px] text-rose">
-          LAUNCH FAILURE：单个 block 需要 {regs} × {blockDim} ={' '}
-          {(regs * blockDim).toLocaleString('en-US')} 个寄存器，超过 SM 总量 65,536 —— kernel 根本启动不了。
+          {t(
+            <>
+              LAUNCH FAILURE: one block needs {regs} × {blockDim} ={' '}
+              {(regs * blockDim).toLocaleString('en-US')} registers, exceeding the SM total of 65,536 — the kernel can't launch at all.
+            </>,
+            <>
+              LAUNCH FAILURE：单个 block 需要 {regs} × {blockDim} ={' '}
+              {(regs * blockDim).toLocaleString('en-US')} 个寄存器，超过 SM 总量 65,536 —— kernel 根本启动不了。
+            </>,
+          )}
         </div>
       )}
 
       <div className="mt-5">
-        <div className="microlabel mb-2">各约束允许的驻留 block 数（rose = 当前瓶颈）</div>
+        <div className="microlabel mb-2">
+          {t('Resident blocks allowed by each constraint (rose = current bottleneck)', '各约束允许的驻留 block 数（rose = 当前瓶颈）')}
+        </div>
         <div className="space-y-1.5">
           {rows.map((r) => {
             const isBottleneck = !cantLaunch && r.value === blocksPerSM
@@ -99,7 +120,7 @@ export function OccupancyLab() {
                     isBottleneck ? 'text-rose' : 'text-ink2'
                   }`}
                 >
-                  {r.value === Infinity ? '不限' : `${r.value} blk`}
+                  {r.value === Infinity ? t('none', '不限') : `${r.value} blk`}
                 </span>
                 <span className="hidden w-44 shrink-0 truncate text-right font-mono text-[10px] text-ink3 sm:block">
                   {r.detail}
@@ -110,8 +131,10 @@ export function OccupancyLab() {
         </div>
       </div>
       <p className="mt-3 text-[12px] leading-relaxed text-ink3">
-        occupancy = 驻留线程 ÷ 2048。实际硬件按 256 个一组的粒度分配寄存器、warp 为单位调度，这里取理想化公式 ——
-        但「四个约束取最小值」这个结构是精确的，CUDA Occupancy Calculator 用的就是同一套算法。
+        {t(
+          'occupancy = resident threads ÷ 2048. Real hardware allocates registers at a granularity of 256 and schedules per warp, so this is an idealized formula — but the "minimum of four constraints" structure is exact; the CUDA Occupancy Calculator uses the very same algorithm.',
+          'occupancy = 驻留线程 ÷ 2048。实际硬件按 256 个一组的粒度分配寄存器、warp 为单位调度，这里取理想化公式 —— 但「四个约束取最小值」这个结构是精确的，CUDA Occupancy Calculator 用的就是同一套算法。',
+        )}
       </p>
     </Widget>
   )

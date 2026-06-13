@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { CHAPTERS, PARTS } from '@/lib/chapters'
 import { useReducedMotion } from '@/lib/hooks'
 import { useVisited } from '@/lib/progress'
+import { pick, useLocale, useT } from '@/lib/i18n'
+import { C, rgba } from '@/lib/palette'
 
 /** hero 背景：GPU die 网格，随机 SM 单元脉冲点亮 */
 function DieGrid() {
@@ -53,16 +55,15 @@ function DieGrid() {
       for (const cell of cells) {
         const px = cell.x * (CELL + GAP)
         const py = cell.y * (CELL + GAP)
-        // 底格
-        ctx.strokeStyle = 'rgba(150,170,210,0.055)'
+        // 底格（极淡）
+        ctx.strokeStyle = rgba('#2a3550', 0.05)
         ctx.strokeRect(px + 0.5, py + 0.5, CELL, CELL)
         if (cell.heat > 0.01) {
           const a = cell.heat
-          ctx.fillStyle =
-            cell.hue === 'volt' ? `rgba(184,245,61,${0.16 * a})` : `rgba(89,216,234,${0.16 * a})`
+          const col = cell.hue === 'volt' ? C.volt : C.cyan
+          ctx.fillStyle = rgba(col, 0.12 * a)
           ctx.fillRect(px, py, CELL, CELL)
-          ctx.strokeStyle =
-            cell.hue === 'volt' ? `rgba(184,245,61,${0.5 * a})` : `rgba(89,216,234,${0.5 * a})`
+          ctx.strokeStyle = rgba(col, 0.5 * a)
           ctx.strokeRect(px + 0.5, py + 0.5, CELL, CELL)
           cell.heat *= 0.962
         }
@@ -88,40 +89,85 @@ function DieGrid() {
 
 export default function Home() {
   const visited = useVisited()
+  const { lang } = useLocale()
+  const t = useT()
   const continueCh = CHAPTERS.find((c) => !visited.has(c.id)) ?? CHAPTERS[0]
+
+  useEffect(() => {
+    document.title =
+      lang === 'zh' ? 'EasyInfra · 从一个线程到一座 GPU 集群' : 'EasyInfra · From One Thread to a GPU Cluster'
+  }, [lang])
+
+  const methods = [
+    {
+      n: '01',
+      t: t('Visual first', '可视化优先'),
+      d: t(
+        'Every abstract idea comes with a diagram you can poke at. How warps get scheduled, how accesses coalesce, how a KV cache gets paged — see it, don’t memorize it.',
+        '每个抽象概念都有一张能拨弄的图。warp 怎么调度、访存怎么合并、KV Cache 怎么分页 —— 亲眼看见，而不是死记硬背。',
+      ),
+    },
+    {
+      n: '02',
+      t: t('“Run” CUDA in the browser', '在浏览器里"跑" CUDA'),
+      d: t(
+        'A built-in CUDA simulator: write a kernel, configure the grid/block, single-step it, and watch every memory access. Zero setup, and errors pinpoint the exact thread.',
+        '内置 CUDA 模拟器：写 kernel、配置 grid/block、单步执行、观察每一次内存访问。零环境配置，错误信息精确到线程坐标。',
+      ),
+    },
+    {
+      n: '03',
+      t: t('Straight to production systems', '直达生产系统'),
+      d: t(
+        'This course doesn’t end at toys: FlashAttention’s online softmax, vLLM’s PagedAttention, Megatron’s tensor parallelism — all ideas running in industry right now.',
+        '课程的终点不是玩具：FlashAttention 的 online softmax、vLLM 的 PagedAttention、Megatron 的张量并行 —— 都是工业界正在跑的思想。',
+      ),
+    },
+  ]
 
   return (
     <div>
       {/* ───────────── HERO ───────────── */}
       <section className="relative overflow-hidden border-b border-line">
         <DieGrid />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,var(--color-bg)_78%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,var(--color-bg)_82%)]" />
         <div className="relative mx-auto max-w-[980px] px-6 pb-20 pt-24 lg:px-8 lg:pt-32">
           <div className="microlabel mb-6 flex items-center gap-2">
             <span className="inline-block size-1.5 animate-pulse rounded-full bg-volt" />
             INTERACTIVE COURSE · GPU / CUDA / LLM INFRA
           </div>
-          <h1 className="font-display text-[40px] font-bold leading-[1.15] text-ink sm:text-[56px]">
-            从一个线程，
-            <br />
-            到一座 <span className="text-glow text-volt">GPU 集群</span>。
+          <h1 className="font-display text-[40px] font-bold leading-[1.12] text-ink sm:text-[56px]">
+            {t(
+              <>
+                From one thread,
+                <br />
+                to a <span className="text-volt">GPU cluster</span>.
+              </>,
+              <>
+                从一个线程，
+                <br />
+                到一座 <span className="text-volt">GPU 集群</span>。
+              </>,
+            )}
           </h1>
-          <p className="mt-6 max-w-[560px] text-[16px] leading-[1.9] text-ink2">
-            在浏览器里拆开 GPU、写 CUDA、搭推理系统。12 章内容、30+
-            个可交互实验、一个能跑代码的模拟器 —— 不装任何环境，把现代大模型基础设施的底层逻辑一次讲透。
+          <p className="mt-6 max-w-[600px] text-[16px] leading-[1.85] text-ink2">
+            {t(
+              'Take a GPU apart, write CUDA, and build an inference system — all in your browser. 12 chapters, 30+ interactive labs, and a simulator that actually runs code, so you can grasp the inner logic of modern large-model infrastructure without installing a thing.',
+              '在浏览器里拆开 GPU、写 CUDA、搭推理系统。12 章内容、30+ 个可交互实验、一个能跑代码的模拟器 —— 不装任何环境，把现代大模型基础设施的底层逻辑一次讲透。',
+            )}
           </p>
           <div className="mt-9 flex flex-wrap items-center gap-3">
             <Link
               to={`/learn/${continueCh.id}`}
-              className="rounded-md border border-volt/50 bg-volt/15 px-6 py-3 font-mono text-sm font-medium tracking-wide text-volt transition-all hover:bg-volt/25 hover:shadow-[0_0_28px_rgba(184,245,61,0.3)]"
+              className="rounded-md border border-volt/45 bg-volt/10 px-6 py-3 font-mono text-sm font-medium tracking-wide text-volt transition-all hover:bg-volt/18 hover:glow-volt"
             >
-              {visited.size > 0 ? '继续学习' : '开始第一章'} →
+              {visited.size > 0 ? t('Continue learning', '继续学习') : t('Start chapter one', '开始第一章')} →
             </Link>
             <Link
               to="/playground"
-              className="rounded-md border border-line2 px-6 py-3 font-mono text-sm tracking-wide text-ink2 transition-colors hover:border-ink3 hover:text-ink"
+              className="rounded-md border border-line2 bg-panel px-6 py-3 font-mono text-sm tracking-wide text-ink2 transition-colors hover:border-ink3 hover:text-ink"
             >
-              ▶ 打开 CUDA 模拟器
+              ▶ {t('Open the CUDA simulator', '打开 CUDA 模拟器')}
             </Link>
           </div>
           <div className="mt-14 flex flex-wrap gap-x-10 gap-y-3 font-mono text-xs tracking-wider text-ink3">
@@ -136,10 +182,12 @@ export default function Home() {
       {/* ───────────── 课程地图 ───────────── */}
       <section className="mx-auto max-w-[980px] px-6 py-16 lg:px-8">
         <div className="microlabel mb-2">CURRICULUM</div>
-        <h2 className="font-display text-2xl font-semibold text-ink">课程地图</h2>
-        <p className="mt-2 max-w-[620px] text-[14.5px] leading-relaxed text-ink2">
-          三个部分层层递进：先建立对硬件的直觉，再亲手写 CUDA，最后抵达生产级大模型推理系统。
-          每章都配有可以动手拨弄的实验。
+        <h2 className="font-display text-2xl font-semibold text-ink">{t('Course map', '课程地图')}</h2>
+        <p className="mt-2 max-w-[640px] text-[14.5px] leading-relaxed text-ink2">
+          {t(
+            'Three parts that build on each other: first develop intuition for the hardware, then write CUDA by hand, and finally arrive at production-grade LLM inference systems. Every chapter ships with hands-on experiments.',
+            '三个部分层层递进：先建立对硬件的直觉，再亲手写 CUDA，最后抵达生产级大模型推理系统。每章都配有可以动手拨弄的实验。',
+          )}
         </p>
 
         <div className="mt-10 space-y-10">
@@ -150,11 +198,11 @@ export default function Home() {
                   {String(part.num).padStart(2, '0')}
                 </span>
                 <div>
-                  <div className="font-display text-lg font-semibold text-ink">{part.title}</div>
+                  <div className="font-display text-lg font-semibold text-ink">{pick(part.title, lang)}</div>
                   <div className="microlabel mt-0.5">{part.titleEn}</div>
                 </div>
                 <p className="w-full text-[13.5px] text-ink3 sm:ml-auto sm:w-auto sm:max-w-[340px] sm:text-right">
-                  {part.blurb}
+                  {pick(part.blurb, lang)}
                 </p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -162,28 +210,28 @@ export default function Home() {
                   <Link
                     key={c.id}
                     to={`/learn/${c.id}`}
-                    className="panel group relative overflow-hidden px-5 py-4 transition-all hover:border-volt/40 hover:shadow-[0_0_28px_rgba(184,245,61,0.07)]"
+                    className="panel group relative overflow-hidden px-5 py-4 transition-all hover:border-volt/40 hover:glow-volt"
                   >
                     <div className="flex items-baseline justify-between gap-3">
                       <span className="font-mono text-[11px] tracking-wider text-ink3">
                         CH {String(c.num).padStart(2, '0')}
                         {visited.has(c.id) && <span className="ml-2 text-volt">✓</span>}
                       </span>
-                      <span className="font-mono text-[10px] uppercase tracking-widest text-ink3/70">
+                      <span className="font-mono text-[10px] uppercase tracking-widest text-ink3/80">
                         {c.minutes} min · {c.labs.length} labs
                       </span>
                     </div>
                     <div className="mt-2 text-[15.5px] font-medium text-ink transition-colors group-hover:text-volt">
-                      {c.title}
+                      {pick(c.title, lang)}
                     </div>
-                    <div className="mt-1 text-[13px] leading-relaxed text-ink2">{c.tagline}</div>
+                    <div className="mt-1 text-[13px] leading-relaxed text-ink2">{pick(c.tagline, lang)}</div>
                     <div className="mt-3 flex flex-wrap gap-1.5">
                       {c.labs.map((w) => (
                         <span
-                          key={w}
+                          key={w.en}
                           className="rounded border border-line bg-bg2 px-1.5 py-0.5 font-mono text-[10.5px] text-ink3"
                         >
-                          ⌬ {w}
+                          ⌬ {pick(w, lang)}
                         </span>
                       ))}
                     </div>
@@ -196,32 +244,18 @@ export default function Home() {
       </section>
 
       {/* ───────────── 学习方式 ───────────── */}
-      <section className="border-t border-line bg-bg2/40">
+      <section className="border-t border-line bg-bg2/50">
         <div className="mx-auto max-w-[980px] px-6 py-16 lg:px-8">
           <div className="microlabel mb-2">METHOD</div>
-          <h2 className="font-display text-2xl font-semibold text-ink">这门课怎么学</h2>
+          <h2 className="font-display text-2xl font-semibold text-ink">
+            {t('How this course works', '这门课怎么学')}
+          </h2>
           <div className="mt-8 grid gap-4 md:grid-cols-3">
-            {[
-              {
-                n: '01',
-                t: '可视化优先',
-                d: '每个抽象概念都有一张能拨弄的图。warp 怎么调度、访存怎么合并、KV Cache 怎么分页 —— 亲眼看见，而不是死记硬背。',
-              },
-              {
-                n: '02',
-                t: '在浏览器里"跑" CUDA',
-                d: '内置 CUDA 模拟器：写 kernel、配置 grid/block、单步执行、观察每一次内存访问。零环境配置，错误信息精确到线程坐标。',
-              },
-              {
-                n: '03',
-                t: '直达生产系统',
-                d: '课程的终点不是玩具：FlashAttention 的 online softmax、vLLM 的 PagedAttention、Megatron 的张量并行 —— 都是工业界正在跑的思想。',
-              },
-            ].map((x) => (
+            {methods.map((x) => (
               <div key={x.n} className="panel px-5 py-5">
-                <div className="font-display text-2xl font-bold text-volt/80">{x.n}</div>
+                <div className="font-display text-2xl font-bold text-volt">{x.n}</div>
                 <div className="mt-2 text-[15px] font-medium text-ink">{x.t}</div>
-                <p className="mt-2 text-[13.5px] leading-[1.9] text-ink2">{x.d}</p>
+                <p className="mt-2 text-[13.5px] leading-[1.85] text-ink2">{x.d}</p>
               </div>
             ))}
           </div>
@@ -236,8 +270,11 @@ export default function Home() {
               <div className="font-display text-base font-bold text-ink">
                 EASY<span className="text-volt">INFRA</span>
               </div>
-              <p className="mt-2 max-w-[420px] text-[12.5px] leading-relaxed text-ink3">
-                全部内容在浏览器中运行。课程深受以下经典资料启发，强烈推荐延伸阅读。
+              <p className="mt-2 max-w-[440px] text-[12.5px] leading-relaxed text-ink3">
+                {t(
+                  'Everything runs in your browser. This course draws on the classic references below — all highly recommended for going deeper.',
+                  '全部内容在浏览器中运行。课程深受以下经典资料启发，强烈推荐延伸阅读。',
+                )}
               </p>
             </div>
             <div className="font-mono text-[12px] leading-[2.2] text-ink3">

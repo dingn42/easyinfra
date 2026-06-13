@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Segmented, Slider, Stat, Widget } from '@/components/ui'
+import { useT } from '@/lib/i18n'
 
 /** LAB 01 合并访存实验台：warp 访问模式 → 32B 段事务 */
 
@@ -34,6 +35,7 @@ const DEFAULT_MODE: Mode = 'seq'
 const DEFAULT_STRIDE = 2
 
 export function CoalescingLab() {
+  const t = useT()
   const [mode, setMode] = useState<Mode>(DEFAULT_MODE)
   const [stride, setStride] = useState(DEFAULT_STRIDE)
 
@@ -63,23 +65,32 @@ export function CoalescingLab() {
   return (
     <Widget
       index={1}
-      title="合并访存实验台"
-      subtitle="warp 访问模式如何决定 32B 事务数"
+      title={t('Coalescing lab', '合并访存实验台')}
+      subtitle={t('How a warp access pattern decides the 32B transaction count', 'warp 访问模式如何决定 32B 事务数')}
       wide
       onReset={reset}
       footer={
         <>
-          连续 → 4 txn / 100%；stride=2 → 8 txn / 50%；stride≥8 → 32 txn / 12.5% 见底（每个 32B
-          段里只有 4B 有人要）。下一节的 AoS 取字段就是真实世界的 stride 案例：stride = struct 大小。
+          {t(
+            <>
+              Sequential -&gt; 4 txn / 100%; stride=2 -&gt; 8 txn / 50%; stride&ge;8 -&gt; 32 txn / 12.5%, the
+              floor (each 32B sector has only 4B anyone wants). The next section's AoS field access is a
+              real-world stride case: stride = struct size.
+            </>,
+            <>
+              连续 → 4 txn / 100%；stride=2 → 8 txn / 50%；stride≥8 → 32 txn / 12.5% 见底（每个 32B
+              段里只有 4B 有人要）。下一节的 AoS 取字段就是真实世界的 stride 案例：stride = struct 大小。
+            </>,
+          )}
         </>
       }
     >
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
         <Segmented<Mode>
           options={[
-            { value: 'seq', label: '连续' },
-            { value: 'stride', label: '跨步' },
-            { value: 'random', label: '随机' },
+            { value: 'seq', label: t('Sequential', '连续') },
+            { value: 'stride', label: t('Strided', '跨步') },
+            { value: 'random', label: t('Random', '随机') },
           ]}
           value={mode}
           onChange={setMode}
@@ -92,22 +103,26 @@ export function CoalescingLab() {
           max={32}
           onChange={setStride}
           disabled={mode !== 'stride'}
-          unit="元素"
+          unit={t('elems', '元素')}
         />
         <span className="font-mono text-[11px] text-ink3">
-          {mode === 'seq' && 'a[tid] —— 教科书式合并'}
-          {mode === 'stride' && `a[tid * ${stride}] —— 每隔 ${stride} 个 float 取一个`}
-          {mode === 'random' && 'a[idx[tid]] —— 固定种子的乱序 gather'}
+          {mode === 'seq' && t('a[tid] — textbook coalescing', 'a[tid] —— 教科书式合并')}
+          {mode === 'stride' &&
+            t(`a[tid * ${stride}] — one float every ${stride}`, `a[tid * ${stride}] —— 每隔 ${stride} 个 float 取一个`)}
+          {mode === 'random' && t('a[idx[tid]] — fixed-seed scattered gather', 'a[idx[tid]] —— 固定种子的乱序 gather')}
         </span>
       </div>
 
       <svg viewBox={`0 0 ${W} ${VH}`} className="mt-4 w-full font-mono">
         <g className="text-ink3" fontSize={10} fill="currentColor">
           <text x={0} y={12}>
-            WARP：32 LANE，每个请求 4 B（float）
+            {t('WARP: 32 LANES, 4 B (float) per request', 'WARP：32 LANE，每个请求 4 B（float）')}
           </text>
           <text x={0} y={STRIP_Y - 10}>
-            GLOBAL MEMORY（每格 = 一个 32 B 段；amber = 被触发的事务）
+            {t(
+              'GLOBAL MEMORY (each cell = one 32 B sector; amber = transaction fired)',
+              'GLOBAL MEMORY（每格 = 一个 32 B 段；amber = 被触发的事务）',
+            )}
           </text>
           <text x={0} y={STRIP_Y + STRIP_H + 16}>
             0 B
@@ -201,10 +216,10 @@ export function CoalescingLab() {
       </svg>
 
       <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <Stat label="请求字节" value={128} unit="B" tone="cyan" />
-        <Stat label="事务数" value={txn} unit="txn" tone={tone} size="lg" />
-        <Stat label="实际搬运" value={txn * 32} unit="B" tone="amber" />
-        <Stat label="带宽利用率" value={`${Math.round(util * 100)}%`} tone={tone} size="lg" />
+        <Stat label={t('Bytes requested', '请求字节')} value={128} unit="B" tone="cyan" />
+        <Stat label={t('Transactions', '事务数')} value={txn} unit="txn" tone={tone} size="lg" />
+        <Stat label={t('Bytes moved', '实际搬运')} value={txn * 32} unit="B" tone="amber" />
+        <Stat label={t('Bandwidth utilization', '带宽利用率')} value={`${Math.round(util * 100)}%`} tone={tone} size="lg" />
       </div>
     </Widget>
   )

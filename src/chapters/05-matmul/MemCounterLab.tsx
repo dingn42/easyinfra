@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Segmented, Slider, Stat, Widget } from '@/components/ui'
+import { useT } from '@/lib/i18n'
 import { fmtBytes } from '@/lib/format'
 
 /** LAB 01 访存计数器：不同 tiling 策略下，C=A×B 要从 HBM 搬多少数据 */
@@ -8,13 +9,6 @@ type Strategy = 'naive' | 't16' | 't32' | 'ideal'
 
 const HBM_BW = 1.9e12 // A100 HBM2e ~1.9 TB/s
 const PEAK_FLOPS = 312e12 // A100 BF16 Tensor Core 312 TFLOPS
-
-const STRATEGIES: { value: Strategy; label: string }[] = [
-  { value: 'naive', label: 'naive' },
-  { value: 't16', label: 'tiled T=16' },
-  { value: 't32', label: 'tiled T=32' },
-  { value: 'ideal', label: '理论下限' },
-]
 
 /** 全局读取的 float 数 */
 function globalReadFloats(N: number, s: Strategy): number {
@@ -38,8 +32,16 @@ function fmtMs(sec: number): string {
 }
 
 export function MemCounterLab() {
+  const t = useT()
   const [exp, setExp] = useState(12) // N = 2^exp, 默认 4096
   const [strategy, setStrategy] = useState<Strategy>('naive')
+
+  const STRATEGIES: { value: Strategy; label: string }[] = [
+    { value: 'naive', label: 'naive' },
+    { value: 't16', label: 'tiled T=16' },
+    { value: 't32', label: 'tiled T=32' },
+    { value: 'ideal', label: t('floor', '理论下限') },
+  ]
 
   const N = 2 ** exp
   const traffic = trafficBytes(N, strategy)
@@ -56,23 +58,28 @@ export function MemCounterLab() {
   return (
     <Widget
       index={1}
-      title="访存计数器"
-      subtitle="同一个 C=A×B，不同策略要从 HBM 搬多少数据"
+      title={t('Memory Traffic Counter', '访存计数器')}
+      subtitle={t('Same C=A×B — how much each strategy moves out of HBM', '同一个 C=A×B，不同策略要从 HBM 搬多少数据')}
       onReset={() => {
         setExp(12)
         setStrategy('naive')
       }}
-      footer={
+      footer={t(
+        <>
+          Two things to note: (1) at N=4096 naive moves about 512 GB, while A, B, and C together are only 192 MB — the same data gets
+          pulled from HBM thousands of times over; (2) even at T=32, memory time still far exceeds compute time, so shared-memory tiling
+          alone can't reach compute-bound — which is exactly why register tiling shows up later.
+        </>,
         <>
           注意两件事：① N=4096 时 naive 要搬约 512 GB，而 A、B、C 本身加起来只有 192 MB ——
           同一份数据被反复从 HBM 拉了上千次；② 即使 T=32，访存时间仍远大于计算时间，
           光靠 shared memory tiling 到不了 compute-bound，这就是后面寄存器 tiling 的出场理由。
-        </>
-      }
+        </>,
+      )}
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <Slider
-          label="矩阵规模 N（对数滑杆）"
+          label={t('Matrix size N (log slider)', '矩阵规模 N（对数滑杆）')}
           value={exp}
           min={8}
           max={13}
@@ -86,14 +93,14 @@ export function MemCounterLab() {
       </div>
 
       <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <Stat label="全局访存量" value={fmtBytes(traffic)} tone="amber" />
-        <Stat label="复用倍数" value={`${reuse >= 100 ? reuse.toFixed(0) : reuse.toFixed(1)}×`} tone="volt" />
-        <Stat label="访存时间(估)" value={fmtMs(memTime)} unit="ms" tone={memBound ? 'amber' : 'ink'} />
-        <Stat label="计算时间(估)" value={fmtMs(computeTime)} unit="ms" tone={memBound ? 'ink' : 'cyan'} />
+        <Stat label={t('Global traffic', '全局访存量')} value={fmtBytes(traffic)} tone="amber" />
+        <Stat label={t('Reuse factor', '复用倍数')} value={`${reuse >= 100 ? reuse.toFixed(0) : reuse.toFixed(1)}×`} tone="volt" />
+        <Stat label={t('Memory time (est.)', '访存时间(估)')} value={fmtMs(memTime)} unit="ms" tone={memBound ? 'amber' : 'ink'} />
+        <Stat label={t('Compute time (est.)', '计算时间(估)')} value={fmtMs(computeTime)} unit="ms" tone={memBound ? 'ink' : 'cyan'} />
       </div>
 
       <div className="mt-4 flex items-center gap-2">
-        <span className="microlabel">瓶颈判定</span>
+        <span className="microlabel">{t('Verdict', '瓶颈判定')}</span>
         <span
           className={`rounded border px-2 py-0.5 font-mono text-[11px] tracking-wider ${
             memBound ? 'border-amber/50 bg-amber/10 text-amber' : 'border-volt/50 bg-volt/10 text-volt'
@@ -102,12 +109,16 @@ export function MemCounterLab() {
           {memBound ? 'MEMORY-BOUND' : 'COMPUTE-BOUND'}
         </span>
         <span className="text-[12px] text-ink3">
-          {memBound ? '搬数据的时间盖过了算的时间' : '访存已喂得上计算，算力成为瓶颈'}
+          {memBound
+            ? t('Data movement outweighs the math', '搬数据的时间盖过了算的时间')
+            : t('Memory keeps compute fed; the math units are the bottleneck', '访存已喂得上计算，算力成为瓶颈')}
         </span>
       </div>
 
       <div className="mt-5">
-        <div className="microlabel mb-2">四种策略的全局访存量（对数刻度，点击切换）</div>
+        <div className="microlabel mb-2">
+          {t('Global traffic across four strategies (log scale, click to switch)', '四种策略的全局访存量（对数刻度，点击切换）')}
+        </div>
         <div className="space-y-1.5">
           {STRATEGIES.map((s, i) => {
             const active = s.value === strategy

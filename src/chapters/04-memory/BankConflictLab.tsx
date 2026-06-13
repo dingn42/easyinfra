@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Slider, Stat, Widget } from '@/components/ui'
+import { useT } from '@/lib/i18n'
 
 /**
  * LAB 03 Bank Conflict 检查器：lane i 访问 s[(i*stride) % 1024]，看 32 个 bank 怎么排队。
@@ -22,6 +23,7 @@ const VH = GRID_Y + GRID_H + 26
 const DEFAULT_STRIDE = 2
 
 export function BankConflictLab() {
+  const t = useT()
   const [stride, setStride] = useState(DEFAULT_STRIDE)
 
   const { words, bankWords, ways, conflicted, hasBroadcast } = useMemo(() => {
@@ -55,15 +57,25 @@ export function BankConflictLab() {
   return (
     <Widget
       index={3}
-      title="Bank Conflict 检查器"
-      subtitle="lane i 访问 s[(i × stride) mod 1024]"
+      title={t('Bank conflict inspector', 'Bank Conflict 检查器')}
+      subtitle={t('lane i accesses s[(i x stride) mod 1024]', 'lane i 访问 s[(i × stride) mod 1024]')}
       wide
       onReset={() => setStride(DEFAULT_STRIDE)}
       footer={
         <>
-          拖一遍滑杆：stride=1 完美并行；2 → 2 路冲突；32 → 全 warp 挤进 bank 0，32 倍串行；33 →
-          又完美。tile[32][33] 那个神秘的 +1 列，本质就是把列访问的 stride 从 32 变成 33。另：多个
-          lane 读<em>同一个</em>地址不算冲突，硬件会广播（broadcast）。
+          {t(
+            <>
+              Sweep the slider: stride=1 is perfectly parallel; 2 -&gt; 2-way conflict; 32 -&gt; the whole warp
+              jams into bank 0, 32x serialization; 33 -&gt; perfect again. That mysterious +1 column in
+              tile[32][33] is, in essence, turning the column-access stride from 32 into 33. Also: several lanes
+              reading the <em>same</em> address is not a conflict — the hardware broadcasts.
+            </>,
+            <>
+              拖一遍滑杆：stride=1 完美并行；2 → 2 路冲突；32 → 全 warp 挤进 bank 0，32 倍串行；33 →
+              又完美。tile[32][33] 那个神秘的 +1 列，本质就是把列访问的 stride 从 32 变成 33。另：多个
+              lane 读<em>同一个</em>地址不算冲突，硬件会广播（broadcast）。
+            </>,
+          )}
         </>
       }
     >
@@ -79,10 +91,14 @@ export function BankConflictLab() {
         />
         <div className="font-mono text-sm">
           {ways === 1 ? (
-            <span className="text-volt">无冲突 → 32 个访问 1 拍完成{hasBroadcast && '（含同址广播）'}</span>
+            <span className="text-volt">
+              {t('No conflict -> 32 accesses in 1 cycle', '无冲突 → 32 个访问 1 拍完成')}
+              {hasBroadcast && t(' (incl. same-address broadcast)', '（含同址广播）')}
+            </span>
           ) : (
             <span className="text-rose">
-              {ways} 路冲突 → {ways} 倍串行化{hasBroadcast && '（部分 lane 同址广播）'}
+              {t(`${ways}-way conflict -> ${ways}x serialization`, `${ways} 路冲突 → ${ways} 倍串行化`)}
+              {hasBroadcast && t(' (some lanes broadcast same address)', '（部分 lane 同址广播）')}
             </span>
           )}
         </div>
@@ -90,7 +106,10 @@ export function BankConflictLab() {
 
       <svg viewBox={`0 0 ${W} ${VH}`} className="mt-4 w-full font-mono">
         <text x={0} y={10} fontSize={10} fill="currentColor" className="text-ink3">
-          WARP 32 LANE → __shared__ float s[1024]（下方网格：32 个 BANK 列 × 32 行 word）
+          {t(
+            'WARP 32 LANES -> __shared__ float s[1024] (grid below: 32 BANK columns x 32 word rows)',
+            'WARP 32 LANE → __shared__ float s[1024]（下方网格：32 个 BANK 列 × 32 行 word）',
+          )}
         </text>
 
         {/* 冲突 bank 列的 rose 底色 */}
@@ -184,9 +203,14 @@ export function BankConflictLab() {
       </svg>
 
       <div className="mt-4 grid grid-cols-3 gap-4">
-        <Stat label="最大冲突路数" value={`${ways} 路`} tone={tone} size="lg" />
-        <Stat label="串行化代价" value={`${ways}×`} tone={tone} size="lg" />
-        <Stat label="触及 BANK" value={`${bankWords.size}/32`} unit="" tone="cyan" />
+        <Stat
+          label={t('Max conflict ways', '最大冲突路数')}
+          value={t(`${ways}-way`, `${ways} 路`)}
+          tone={tone}
+          size="lg"
+        />
+        <Stat label={t('Serialization cost', '串行化代价')} value={`${ways}×`} tone={tone} size="lg" />
+        <Stat label={t('Banks touched', '触及 BANK')} value={`${bankWords.size}/32`} unit="" tone="cyan" />
       </div>
     </Widget>
   )

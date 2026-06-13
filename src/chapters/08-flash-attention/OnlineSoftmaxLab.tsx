@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { Btn, PlayBar, Slider, Stat, Widget } from '@/components/ui'
 import { useRafLoop } from '@/lib/hooks'
+import { useT } from '@/lib/i18n'
 
 /** ── LAB 01: Online Softmax 实验 ──
  * 左面板 = 两遍法（pass1 扫 max → pass2 累加 exp），右面板 = 单遍 online。
@@ -50,6 +51,7 @@ function onlineTrace(xs: number[]): TraceStep[] {
 const fmtM = (v: number) => (v === -Infinity ? '−∞' : v.toFixed(2))
 
 export function OnlineSoftmaxLab() {
+  const t = useT()
   const [xs, setXs] = useState<number[]>(DEFAULT_X)
   const [step, setStep] = useState(0) // 已完成的微步数 0..16
   const [playing, setPlaying] = useState(false)
@@ -132,15 +134,21 @@ export function OnlineSoftmaxLab() {
   return (
     <Widget
       index={1}
-      title="Online Softmax 实验"
-      subtitle="两遍法 vs 单遍在线合并 · 同一组输入"
+      title={t('Online Softmax Lab', 'Online Softmax 实验')}
+      subtitle={t('Two-pass vs single-pass online merge · same inputs', '两遍法 vs 单遍在线合并 · 同一组输入')}
       onReset={resetAll}
-      footer={
+      footer={t(
+        <>
+          Try dragging X[6] to its max: the new max appears only near the end of the scan, and the right side
+          shows a cascade of amber flashes — the entire accumulated l is multiplied by α=e<sup>m−m′</sup> to
+          retroactively change basis. Compare the two methods digit by digit; the max error always sits at the
+          floating-point ulp level.
+        </>,
         <>
           试着把 X[6] 拉到最大：扫描快结束时才出现新 max，右侧会看到一连串 amber 闪烁 ——
           已累计的 l 全部乘 α=e<sup>m−m′</sup> 追溯换底。两法结果逐位对比，最大误差始终在浮点 ulp 量级。
-        </>
-      }
+        </>,
+      )}
     >
       {/* 控件行 */}
       <div className="mb-4 grid grid-cols-2 items-end gap-x-4 gap-y-3 sm:grid-cols-4">
@@ -156,8 +164,8 @@ export function OnlineSoftmaxLab() {
             fmt={(v) => v.toFixed(1)}
           />
         ))}
-        <Btn variant="ghost" onClick={randomize} title="固定种子，可复现">
-          ⚄ 随机一组
+        <Btn variant="ghost" onClick={randomize} title={t('Fixed seed, reproducible', '固定种子，可复现')}>
+          {t('⚄ Randomize', '⚄ 随机一组')}
         </Btn>
       </div>
 
@@ -186,8 +194,8 @@ export function OnlineSoftmaxLab() {
         {/* ── 左：两遍法 ── */}
         <div className="rounded-md border border-line bg-bg2/50 p-3">
           <div className="mb-2 flex items-baseline justify-between">
-            <span className="microlabel text-cyan">两遍法 TWO-PASS</span>
-            <span className="font-mono text-[11px] text-ink3">2 次完整扫描</span>
+            <span className="microlabel text-cyan">{t('TWO-PASS', '两遍法 TWO-PASS')}</span>
+            <span className="font-mono text-[11px] text-ink3">{t('2 full scans', '2 次完整扫描')}</span>
           </div>
           <div className="grid grid-cols-8 gap-1">
             {xs.map((x, i) => {
@@ -216,11 +224,12 @@ export function OnlineSoftmaxLab() {
             {step < N && (
               <>
                 <div>
-                  <span className="text-volt">PASS 1</span> 扫描整行找 max
+                  <span className="text-volt">PASS 1</span> {t('scan the row for max', '扫描整行找 max')}
                 </div>
                 <div>
-                  当前 m = <span className="text-cyan">{p1n > 0 ? runMax.toFixed(2) : '−∞'}</span>
-                  {runMaxIdx >= 0 && <span className="text-ink3">（来自 X[{runMaxIdx}]）</span>}
+                  {t('current m = ', '当前 m = ')}
+                  <span className="text-cyan">{p1n > 0 ? runMax.toFixed(2) : '−∞'}</span>
+                  {runMaxIdx >= 0 && <span className="text-ink3">{t(` (from X[${runMaxIdx}])`, `（来自 X[${runMaxIdx}]）`)}</span>}
                 </div>
               </>
             )}
@@ -230,15 +239,15 @@ export function OnlineSoftmaxLab() {
                   <span className="text-ink3">PASS 1 ✓ m = {fullMax.toFixed(2)}</span>
                 </div>
                 <div>
-                  <span className="text-volt">PASS 2</span> 累加 Σ e<sup>x−m</sup> ={' '}
+                  <span className="text-volt">PASS 2</span> {t('accumulate', '累加')} Σ e<sup>x−m</sup> ={' '}
                   <span className="text-cyan">{runSum.toFixed(3)}</span>
                 </div>
               </>
             )}
             {step >= TOTAL && (
               <div>
-                <span className="text-volt">✓ 完成</span>：m = {fullMax.toFixed(2)}，Σ = {runSum.toFixed(3)}
-                <span className="text-ink3">（扫了 2 遍 = 16 步）</span>
+                <span className="text-volt">{t('✓ done', '✓ 完成')}</span>: m = {fullMax.toFixed(2)}, Σ = {runSum.toFixed(3)}
+                <span className="text-ink3">{t(' (2 passes = 16 steps)', '（扫了 2 遍 = 16 步）')}</span>
               </div>
             )}
           </div>
@@ -247,8 +256,8 @@ export function OnlineSoftmaxLab() {
         {/* ── 右：online 单遍 ── */}
         <div className="rounded-md border border-line bg-bg2/50 p-3">
           <div className="mb-2 flex items-baseline justify-between">
-            <span className="microlabel text-volt">ONLINE 单遍</span>
-            <span className="font-mono text-[11px] text-ink3">边走边修 (m, l)</span>
+            <span className="microlabel text-volt">{t('ONLINE single-pass', 'ONLINE 单遍')}</span>
+            <span className="font-mono text-[11px] text-ink3">{t('fix (m, l) as you go', '边走边修 (m, l)')}</span>
           </div>
           <div className="grid grid-cols-8 gap-1">
             {xs.map((x, i) => {
@@ -273,7 +282,7 @@ export function OnlineSoftmaxLab() {
           <div className="mt-3 space-y-1 font-mono text-[11px] leading-relaxed text-ink2">
             {cur == null && (
               <div>
-                初始化：m = <span className="text-cyan">−∞</span>，l = <span className="text-cyan">0</span>
+                {t('init: m = ', '初始化：m = ')}<span className="text-cyan">−∞</span>, l = <span className="text-cyan">0</span>
               </div>
             )}
             {cur != null && (
@@ -285,7 +294,7 @@ export function OnlineSoftmaxLab() {
                 <div>
                   α = e<sup>m−m′</sup> ={' '}
                   {cur.mPrev === -Infinity ? (
-                    <span className="text-ink3">—（首个元素）</span>
+                    <span className="text-ink3">{t('— (first element)', '—（首个元素）')}</span>
                   ) : (
                     <span className={cur.alpha < 1 ? 'text-amber' : 'text-ink2'}>
                       e<sup>{(cur.mPrev - cur.m).toFixed(2)}</sup> = {cur.alpha.toFixed(3)}
@@ -301,8 +310,8 @@ export function OnlineSoftmaxLab() {
             )}
             {on >= N && (
               <div>
-                <span className="text-volt">✓ 完成：只扫 1 遍（8 步）</span>
-                {step < TOTAL && <span className="text-ink3">…左边还在第二遍</span>}
+                <span className="text-volt">{t('✓ done: just 1 pass (8 steps)', '✓ 完成：只扫 1 遍（8 步）')}</span>
+                {step < TOTAL && <span className="text-ink3">{t('…left still on pass 2', '…左边还在第二遍')}</span>}
               </div>
             )}
           </div>
@@ -323,7 +332,7 @@ export function OnlineSoftmaxLab() {
                 ))}
               </tr>
               <tr className="text-cyan">
-                <td className="pr-2 text-left text-ink3">两遍</td>
+                <td className="pr-2 text-left text-ink3">{t('two-pass', '两遍')}</td>
                 {twoPass.map((p, i) => (
                   <td key={i} className="px-1 text-center">
                     {p.toFixed(3)}
@@ -343,7 +352,7 @@ export function OnlineSoftmaxLab() {
         </div>
         <div className="flex items-end gap-2">
           <Stat
-            label="最大误差"
+            label={t('max error', '最大误差')}
             value={maxErr === 0 ? '0' : maxErr.toExponential(1)}
             tone={exact ? 'volt' : 'amber'}
             size="md"

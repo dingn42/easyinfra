@@ -1,22 +1,24 @@
 @import "tailwindcss";
 
 @theme {
-  /* ====== EasyInfra "INSTRUMENT" palette ====== */
-  --color-bg: #0a0d13;
-  --color-bg2: #0d1119;
-  --color-panel: #10141d;
-  --color-panel2: #161b27;
-  --color-line: #1f2735;
-  --color-line2: #2c3850;
-  --color-ink: #e9edf6;
-  --color-text: #b9c3d9;
-  --color-ink2: #8a96b0;
-  --color-ink3: #5d6985;
-  --color-volt: #b8f53d;
-  --color-cyan: #59d8ea;
-  --color-amber: #ffb454;
-  --color-rose: #ff5c7a;
-  --color-violet: #a18aff;
+  /* ====== EasyInfra "BLUEPRINT PAPER" light palette ======
+     Clean, calm, technical. Deep saturated accents on warm paper. */
+  --color-bg: #f7f8f5;
+  --color-bg2: #eef0ea;
+  --color-panel: #ffffff;
+  --color-panel2: #f3f5f0;
+  --color-line: #e4e6df;
+  --color-line2: #ccd0c5;
+  --color-ink: #15181c;
+  --color-text: #3a4048;
+  --color-ink2: #59616c;
+  --color-ink3: #8a929c;
+  --color-volt: #1c8a3f;
+  --color-volt-bright: #3aa856;
+  --color-cyan: #0e78a8;
+  --color-amber: #b06d09;
+  --color-rose: #c92a4d;
+  --color-violet: #6a3bd0;
 
   --font-display: "Chakra Petch", "Noto Sans SC", system-ui, sans-serif;
   --font-sans: "Noto Sans SC", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
@@ -36,8 +38,11 @@
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
+  :lang(en) body {
+    font-family: var(--font-sans);
+  }
   ::selection {
-    background: color-mix(in srgb, var(--color-volt) 24%, transparent);
+    background: color-mix(in srgb, var(--color-volt) 20%, transparent);
     color: var(--color-ink);
   }
   * {
@@ -55,17 +60,6 @@
   *::-webkit-scrollbar-track {
     background: transparent;
   }
-  /* film grain overlay */
-  body::after {
-    content: "";
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
-    pointer-events: none;
-    opacity: 0.05;
-    mix-blend-mode: overlay;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  }
 }
 
 @layer components {
@@ -73,7 +67,7 @@
   .microlabel {
     font-family: var(--font-mono);
     font-size: 11px;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
     color: var(--color-ink3);
   }
@@ -81,20 +75,26 @@
   .panel {
     background: var(--color-panel);
     border: 1px solid var(--color-line);
-    border-radius: 8px;
+    border-radius: 10px;
   }
 
   /* dotted engineering-grid background */
   .bg-dots {
-    background-image: radial-gradient(circle, rgba(160, 180, 220, 0.08) 1px, transparent 1px);
+    background-image: radial-gradient(circle, rgba(30, 45, 70, 0.05) 1px, transparent 1px);
     background-size: 26px 26px;
   }
 
   .glow-volt {
-    box-shadow: 0 0 24px rgba(184, 245, 61, 0.12);
+    box-shadow: 0 1px 2px rgba(20, 30, 25, 0.04), 0 8px 24px rgba(28, 138, 63, 0.08);
   }
+  /* on light, "glow" reads as a crisp accent, not a halo */
   .text-glow {
-    text-shadow: 0 0 32px rgba(184, 245, 61, 0.4);
+    text-shadow: none;
+  }
+
+  /* card shadow helper for the light theme — soft, low, neutral */
+  .lift {
+    box-shadow: 0 1px 2px rgba(20, 28, 24, 0.04), 0 2px 8px rgba(20, 28, 24, 0.04);
   }
 
   /* scroll reveal */
@@ -121,7 +121,10 @@
   /* ── rich-text styles for chapter prose: wrap content in .doc ── */
   .doc {
     font-size: 15.5px;
-    line-height: 2;
+    line-height: 1.95;
+  }
+  :lang(en) .doc {
+    line-height: 1.78;
   }
   .doc p {
     margin: 0 0 1.15em;
@@ -153,7 +156,7 @@
   .doc code {
     font-family: var(--font-mono);
     font-size: 13px;
-    color: var(--color-cyan);
+    color: color-mix(in srgb, var(--color-cyan) 88%, black);
     background: var(--color-panel2);
     border: 1px solid var(--color-line);
     border-radius: 4px;
@@ -222,10 +225,10 @@
     margin-top: -5.5px;
     width: 14px;
     height: 14px;
-    background: var(--color-bg);
+    background: var(--color-panel);
     border: 1.5px solid var(--color-volt);
     border-radius: 3px;
-    box-shadow: 0 0 8px rgba(184, 245, 61, 0.45);
+    box-shadow: 0 1px 3px rgba(28, 138, 63, 0.3);
     transition: transform 0.15s ease;
   }
   input[type="range"].ei-range::-webkit-slider-thumb:hover {
@@ -239,24 +242,24 @@
   input[type="range"].ei-range::-moz-range-thumb {
     width: 13px;
     height: 13px;
-    background: var(--color-bg);
+    background: var(--color-panel);
     border: 1.5px solid var(--color-volt);
     border-radius: 3px;
-    box-shadow: 0 0 8px rgba(184, 245, 61, 0.45);
+    box-shadow: 0 1px 3px rgba(28, 138, 63, 0.3);
   }
   input[type="range"].ei-range:disabled {
     opacity: 0.4;
     cursor: not-allowed;
   }
 
-  /* ── syntax highlight token palette ── */
-  .tok-kw { color: #c792ea; }
-  .tok-type { color: #59d8ea; }
-  .tok-str { color: #ecc48d; }
-  .tok-num { color: #f78c6c; }
-  .tok-com { color: #5d6985; font-style: italic; }
-  .tok-cuda { color: #b8f53d; }
-  .tok-fn { color: #82aaff; }
-  .tok-pre { color: #ff869a; }
-  .tok-punc { color: #8a96b0; }
+  /* ── syntax highlight token palette (light, One-Light inspired) ── */
+  .tok-kw { color: #a626a4; }
+  .tok-type { color: #0184bc; }
+  .tok-str { color: #3f8a2e; }
+  .tok-num { color: #b06d09; }
+  .tok-com { color: #9aa1ab; font-style: italic; }
+  .tok-cuda { color: #1c8a3f; font-weight: 600; }
+  .tok-fn { color: #4969e0; }
+  .tok-pre { color: #c0207a; }
+  .tok-punc { color: #6a737d; }
 }

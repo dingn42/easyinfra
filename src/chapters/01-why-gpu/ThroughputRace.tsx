@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { PlayBar, Slider, Stat, Widget } from '@/components/ui'
 import { useRafLoop, useReducedMotion } from '@/lib/hooks'
 import { fmtSI } from '@/lib/format'
+import { useT } from '@/lib/i18n'
 
 /**
  * LAB 01「吞吐量赛道」：
@@ -29,6 +30,7 @@ function fmtN(n: number): string {
 }
 
 export function ThroughputRace({ index }: { index: number }) {
+  const tx = useT()
   const [exp, setExp] = useState(DEF_EXP)
   const [slow, setSlow] = useState(DEF_SLOW)
   const [t, setT] = useState(0) // 模拟时钟（µs）
@@ -95,14 +97,20 @@ export function ThroughputRace({ index }: { index: number }) {
   const tracks = [
     {
       name: 'CPU',
-      sub: `${CPU_CORES} 个强核 · 每任务 ${TASK_US} µs`,
+      sub: tx(
+        `${CPU_CORES} strong cores · ${TASK_US} µs / task`,
+        `${CPU_CORES} 个强核 · 每任务 ${TASK_US} µs`,
+      ),
       color: 'var(--color-cyan)',
       done: cpuDone,
       time: cpuTime,
     },
     {
       name: 'GPU',
-      sub: `${fmtN(GPU_CORES)} 个弱核 · 每任务 ${slow} µs · 启动 ${LAUNCH_US} µs`,
+      sub: tx(
+        `${fmtN(GPU_CORES)} weak cores · ${slow} µs / task · ${LAUNCH_US} µs launch`,
+        `${fmtN(GPU_CORES)} 个弱核 · 每任务 ${slow} µs · 启动 ${LAUNCH_US} µs`,
+      ),
       color: 'var(--color-volt)',
       done: gpuDone,
       time: gpuTime,
@@ -112,30 +120,37 @@ export function ThroughputRace({ index }: { index: number }) {
   return (
     <Widget
       index={index}
-      title="吞吐量赛道"
-      subtitle="8 个快核 vs 2048 个慢核"
+      title={tx('Throughput Race', '吞吐量赛道')}
+      subtitle={tx('8 fast cores vs. 2048 slow cores', '8 个快核 vs 2048 个慢核')}
       onReset={resetAll}
       wide
-      footer={
+      footer={tx(
+        <>
+          As long as the tasks are independent, more cores always win. But if the program has a serial part, the
+          speedup hits a ceiling — that&apos;s{' '}
+          <span className="text-ink">Amdahl&apos;s Law</span>: with a serial fraction s, no matter how many cores
+          you pile on, the speedup stays ≤ 1/s. The GPU&apos;s 20 µs launch overhead is the other half of why CPU
+          wins when there are too few tasks.
+        </>,
         <>
           只要任务彼此独立，核多就是正义；但若程序有串行部分，加速比就有天花板 —— 这就是{' '}
           <span className="text-ink">Amdahl 定律</span>：串行占比 s 时，无论堆多少核，加速比 ≤ 1/s。GPU 的 20 µs
           启动开销正是「任务太少时 CPU 反而赢」的另一半原因。
-        </>
-      }
+        </>,
+      )}
     >
       <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
         <Slider
-          label="任务数 N（log 步进）"
+          label={tx('Task count N (log steps)', '任务数 N（log 步进）')}
           value={exp}
           min={6}
           max={20}
           onChange={changeExp}
           fmt={(e) => fmtN(2 ** e)}
-          unit="个"
+          unit={tx('', '个')}
         />
         <Slider
-          label="GPU 单核慢倍数"
+          label={tx('GPU per-core slowdown', 'GPU 单核慢倍数')}
           value={slow}
           min={4}
           max={32}
@@ -194,17 +209,18 @@ export function ThroughputRace({ index }: { index: number }) {
       </div>
 
       <div className="mt-5 flex flex-wrap items-end gap-x-8 gap-y-4 border-t border-line pt-4">
-        <Stat label="CPU 完成时间" value={fmtTime(cpuTime)} tone="cyan" />
-        <Stat label="GPU 完成时间" value={fmtTime(gpuTime)} tone="volt" />
+        <Stat label={tx('CPU finish time', 'CPU 完成时间')} value={fmtTime(cpuTime)} tone="cyan" />
+        <Stat label={tx('GPU finish time', 'GPU 完成时间')} value={fmtTime(gpuTime)} tone="volt" />
         <Stat
-          label="GPU 加速比"
+          label={tx('GPU speedup', 'GPU 加速比')}
           value={`${speedup >= 10 ? speedup.toFixed(0) : speedup.toFixed(speedup >= 1 ? 1 : 2)}×`}
           tone={gpuWins ? 'volt' : 'rose'}
         />
-        <Stat label="模拟时钟" value={fmtTime(tt)} size="sm" />
+        <Stat label={tx('Sim clock', '模拟时钟')} value={fmtTime(tt)} size="sm" />
         <div className="microlabel" style={{ color: gpuWins ? 'var(--color-volt)' : 'var(--color-cyan)' }}>
-          预测胜者：{gpuWins ? 'GPU' : 'CPU'}
-          {!gpuWins && speedup > 0.99 && speedup < 1.01 ? '（几乎平手）' : ''}
+          {tx('Predicted winner: ', '预测胜者：')}
+          {gpuWins ? 'GPU' : 'CPU'}
+          {!gpuWins && speedup > 0.99 && speedup < 1.01 ? tx(' (near tie)', '（几乎平手）') : ''}
         </div>
       </div>
     </Widget>

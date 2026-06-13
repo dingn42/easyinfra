@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { MathTex, PlayBar, Slider, Stat, Widget } from '@/components/ui'
 import { useRafLoop, useReducedMotion } from '@/lib/hooks'
+import { useT } from '@/lib/i18n'
 
 /**
  * LAB: Ring AllReduce 步进动画。
@@ -8,6 +9,7 @@ import { useRafLoop, useReducedMotion } from '@/lib/hooks'
  * all-gather N-1 步（成品块回流）。展示「每卡通信量 2(N-1)/N·D 与 N 无关地有界」。
  */
 export function RingAllReduceLab() {
+  const tr = useT()
   const [n, setN] = useState(4)
   const [step, setStep] = useState(0) // 已完成的步数，0..2(n-1)
   const [playing, setPlaying] = useState(false)
@@ -86,7 +88,13 @@ export function RingAllReduceLab() {
   }
 
   const phaseLabel =
-    step === 0 ? '初始' : step <= n - 1 ? `reduce-scatter ${step}/${n - 1}` : step < total ? `all-gather ${step - (n - 1)}/${n - 1}` : '完成 ✓'
+    step === 0
+      ? tr('Initial', '初始')
+      : step <= n - 1
+        ? `reduce-scatter ${step}/${n - 1}`
+        : step < total
+          ? `all-gather ${step - (n - 1)}/${n - 1}`
+          : tr('Done ✓', '完成 ✓')
   const phaseTone = step === 0 ? 'ink' : step <= n - 1 ? 'amber' : step < total ? 'cyan' : 'volt'
   const coeff = (2 * (n - 1)) / n
 
@@ -97,18 +105,22 @@ export function RingAllReduceLab() {
   return (
     <Widget
       index={1}
-      title="Ring AllReduce 动画"
-      subtitle="N-1 步 reduce-scatter + N-1 步 all-gather"
+      title={tr('Ring AllReduce Animation', 'Ring AllReduce 动画')}
+      subtitle={tr('N-1 reduce-scatter steps + N-1 all-gather steps', 'N-1 步 reduce-scatter + N-1 步 all-gather')}
       onReset={reset}
-      footer={
+      footer={tr(
+        <>
+          Each GPU splits its gradient into N chunks. <span className="text-amber">Amber</span> is the partial sum being accumulated around the ring (reduce-scatter);
+          <span className="text-volt"> green</span> is the finished chunk — fully summed and now flowing back to be broadcast (all-gather). Note: at every instant all N edges transmit simultaneously — bandwidth is fully saturated, and each edge moves only D/N per step.
+        </>,
         <>
           每张卡把自己的梯度切成 N 块。<span className="text-amber">琥珀色</span>是正在沿环累加的部分和（reduce-scatter），
           <span className="text-volt"> 荧光绿</span>是已完成全量求和、正在回流广播的成品块（all-gather）。注意：任意时刻所有 N 条边都在同时传输 —— 带宽被完全用满，且每条边每步只传 D/N。
-        </>
-      }
+        </>,
+      )}
     >
       <div className="mb-4 grid gap-4 sm:grid-cols-[1fr_auto]">
-        <Slider label="GPU 数 N" value={n} min={2} max={8} onChange={changeN} unit="卡" />
+        <Slider label={tr('GPU count N', 'GPU 数 N')} value={n} min={2} max={8} onChange={changeN} unit={tr('GPUs', '卡')} />
         <div className="flex items-end">
           <PlayBar
             playing={playing}
@@ -125,7 +137,7 @@ export function RingAllReduceLab() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_180px]">
-        <svg viewBox={`0 0 ${W} ${H}`} className="w-full select-none" role="img" aria-label="Ring AllReduce 环形拓扑动画">
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full select-none" role="img" aria-label={tr('Ring AllReduce ring-topology animation', 'Ring AllReduce 环形拓扑动画')}>
           {/* 环上的边（弧线 + 方向箭头 + 飞行块） */}
           {Array.from({ length: n }, (_, i) => {
             const a = pos(i)
@@ -234,28 +246,28 @@ export function RingAllReduceLab() {
             )
           })}
 
-          {/* 图例 */}
-          <g transform={`translate(14, ${H - 18})`} fontSize={10.5} fontFamily="var(--font-mono, monospace)">
+          {/* 图例：英文标签更宽，位置/字号随语言调整以免重叠 */}
+          <g transform={`translate(14, ${H - 18})`} fontSize={tr(9.5, 10.5)} fontFamily="var(--font-mono, monospace)">
             <rect width={10} height={10} y={-9} rx={2} fill="var(--color-cyan)" opacity={0.18} stroke="var(--color-line2)" strokeWidth={0.75} />
             <text x={15} fill="var(--color-ink3)">
-              本地块(计数1)
+              {tr('local chunk (1)', '本地块(计数1)')}
             </text>
-            <rect width={10} height={10} x={118} y={-9} rx={2} fill="var(--color-amber)" opacity={0.8} />
-            <text x={133} fill="var(--color-ink3)">
-              部分和(累加中)
+            <rect width={10} height={10} x={tr(125, 118)} y={-9} rx={2} fill="var(--color-amber)" opacity={0.8} />
+            <text x={tr(140, 133)} fill="var(--color-ink3)">
+              {tr('partial sum', '部分和(累加中)')}
             </text>
-            <rect width={10} height={10} x={238} y={-9} rx={2} fill="var(--color-volt)" opacity={0.85} />
-            <text x={253} fill="var(--color-ink3)">
-              完整和(N 份已齐)
+            <rect width={10} height={10} x={tr(255, 238)} y={-9} rx={2} fill="var(--color-volt)" opacity={0.85} />
+            <text x={tr(270, 253)} fill="var(--color-ink3)">
+              {tr('full sum (N ready)', '完整和(N 份已齐)')}
             </text>
           </g>
         </svg>
 
         <div className="flex flex-row flex-wrap gap-5 lg:flex-col">
-          <Stat label="阶段" value={phaseLabel} tone={phaseTone as 'ink' | 'amber' | 'cyan' | 'volt'} size="sm" />
-          <Stat label="步数" value={`${step} / ${total}`} tone="ink" />
-          <Stat label="总步数 2(N-1)" value={total} unit="步" tone="cyan" />
-          <Stat label="每卡通信量" value={coeff.toFixed(2)} unit="× D" tone="volt" />
+          <Stat label={tr('Phase', '阶段')} value={phaseLabel} tone={phaseTone as 'ink' | 'amber' | 'cyan' | 'volt'} size="sm" />
+          <Stat label={tr('Step', '步数')} value={`${step} / ${total}`} tone="ink" />
+          <Stat label={tr('Total steps 2(N-1)', '总步数 2(N-1)')} value={total} unit={tr('steps', '步')} tone="cyan" />
+          <Stat label={tr('Per-GPU traffic', '每卡通信量')} value={coeff.toFixed(2)} unit="× D" tone="volt" />
           <div className="text-[12px] leading-relaxed text-ink3">
             <MathTex tex={`2\\cdot\\tfrac{${n}-1}{${n}}D = ${coeff.toFixed(2)}D`} />
           </div>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { PlayBar, Slider, Stat, Widget } from '@/components/ui'
 import { useRafLoop, useReducedMotion } from '@/lib/hooks'
 import { pct } from '@/lib/format'
+import { useT } from '@/lib/i18n'
 
 /* ───────────────────── LAB 02 Warp 延迟隐藏 ─────────────────────
  * 模拟一个 SM 分区的 warp 调度器：每周期从就绪 warp 里挑一个发射。
@@ -77,6 +78,7 @@ const ROW_H = 13
 const ROW_GAP = 4
 
 export function WarpLatencyLab() {
+  const t = useT()
   const reduced = useReducedMotion()
   const [numWarps, setNumWarps] = useState(4)
   const [latency, setLatency] = useState(200)
@@ -141,36 +143,41 @@ export function WarpLatencyLab() {
   return (
     <Widget
       index={2}
-      title="Warp 延迟隐藏"
-      subtitle="一个 SM 分区 · 1 调度器 · 每周期发射 1 条 warp 指令"
+      title={t('Warp latency hiding', 'Warp 延迟隐藏')}
+      subtitle={t('One SM partition · 1 scheduler · 1 warp instruction issued per cycle', '一个 SM 分区 · 1 调度器 · 每周期发射 1 条 warp 指令')}
       onReset={onReset}
-      footer={
+      footer={t(
+        <>
+          Drop warps to 1: the whole pipeline stalls during memory latency (long blank stretches).
+          Crank it to 16 warps with high compute density and the ALU barely catches its breath — this is
+          exactly why <strong className="text-ink">occupancy</strong> matters, covered in detail in chapter 5.
+        </>,
         <>
           把 warp 数拉到 1：访存延迟期间整条流水线空转（大段空白）。拉满 16 个 warp、提高计算密度，
           ALU 几乎没有喘息 —— 这就是 <strong className="text-ink">occupancy（占用率）</strong>重要的原因，第 5 章会细讲。
-        </>
-      }
+        </>,
+      )}
     >
       <div className="mb-4 grid gap-x-6 gap-y-3 sm:grid-cols-3">
-        <Slider label="驻留 warp 数" value={numWarps} min={1} max={16} onChange={setNumWarps} unit="个" />
-        <Slider label="访存延迟" value={latency} min={100} max={400} step={10} onChange={setLatency} unit="周期" />
+        <Slider label={t('Resident warps', '驻留 warp 数')} value={numWarps} min={1} max={16} onChange={setNumWarps} unit="" />
+        <Slider label={t('Memory latency', '访存延迟')} value={latency} min={100} max={400} step={10} onChange={setLatency} unit={t('cyc', '周期')} />
         <Slider
-          label="每条访存之间的计算指令"
+          label={t('Compute instr. between memory ops', '每条访存之间的计算指令')}
           value={computePerMem}
           min={1}
           max={8}
           onChange={setComputePerMem}
-          unit="条"
+          unit=""
         />
       </div>
 
       <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
         <PlayBar playing={playing} onToggle={onToggle} onStep={onStep} onReset={onReset} speed={speed} onSpeed={setSpeed} />
         <div className="flex items-end gap-6">
-          <Stat label="ALU 利用率" value={pct(util, 1)} tone={util > 0.8 ? 'volt' : util > 0.3 ? 'cyan' : 'amber'} size="lg" />
-          <Stat label="稳态理论值" value={pct(theory, 1)} tone="ink" size="sm" />
-          <Stat label="已模拟周期" value={sim.cycle.toLocaleString('en-US')} tone="ink" size="sm" />
-          <Stat label="当前就绪" value={readyNow} unit="warp" tone="cyan" size="sm" />
+          <Stat label={t('ALU utilization', 'ALU 利用率')} value={pct(util, 1)} tone={util > 0.8 ? 'volt' : util > 0.3 ? 'cyan' : 'amber'} size="lg" />
+          <Stat label={t('Steady-state theory', '稳态理论值')} value={pct(theory, 1)} tone="ink" size="sm" />
+          <Stat label={t('Cycles simulated', '已模拟周期')} value={sim.cycle.toLocaleString('en-US')} tone="ink" size="sm" />
+          <Stat label={t('Ready now', '当前就绪')} value={readyNow} unit="warp" tone="cyan" size="sm" />
         </div>
       </div>
 
@@ -179,10 +186,10 @@ export function WarpLatencyLab() {
           viewBox={`0 0 720 ${svgH}`}
           className="w-full min-w-[540px] select-none"
           role="img"
-          aria-label="warp 执行时间轴"
+          aria-label={t('Warp execution timeline', 'warp 执行时间轴')}
         >
           <text x={CHART_X0} y={11} fontSize={9} className="fill-ink3 font-mono">
-            时间 →（最近 {Math.min(sim.cycle, WINDOW)} 个周期）
+            {t(`time → (last ${Math.min(sim.cycle, WINDOW)} cycles)`, `时间 →（最近 ${Math.min(sim.cycle, WINDOW)} 个周期）`)}
           </text>
           {sim.hist.map((row, wi) => {
             const y = 20 + wi * (ROW_H + ROW_GAP)
@@ -217,9 +224,9 @@ export function WarpLatencyLab() {
       </div>
 
       <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 font-mono text-[10.5px] text-ink2">
-        <span><span className="mr-1.5 inline-block size-2.5 rounded-[2px] bg-volt align-[-1px]" />执行（被调度器发射）</span>
-        <span><span className="mr-1.5 inline-block size-2.5 rounded-[2px] bg-amber/60 align-[-1px]" />等待访存返回</span>
-        <span><span className="mr-1.5 inline-block size-2.5 rounded-[2px] bg-cyan/50 align-[-1px]" />就绪、排队待发射</span>
+        <span><span className="mr-1.5 inline-block size-2.5 rounded-[2px] bg-volt align-[-1px]" />{t('executing (issued by scheduler)', '执行（被调度器发射）')}</span>
+        <span><span className="mr-1.5 inline-block size-2.5 rounded-[2px] bg-amber/60 align-[-1px]" />{t('waiting on memory', '等待访存返回')}</span>
+        <span><span className="mr-1.5 inline-block size-2.5 rounded-[2px] bg-cyan/50 align-[-1px]" />{t('ready, queued to issue', '就绪、排队待发射')}</span>
       </div>
     </Widget>
   )

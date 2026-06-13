@@ -1,5 +1,6 @@
 import { memo, useMemo, useState, type MouseEvent } from 'react'
 import { MathTex, Slider, Stat, Widget } from '@/components/ui'
+import { useT } from '@/lib/i18n'
 import { fmtInt, pct } from '@/lib/format'
 
 /** LAB 01 —— Grid/Block 配置器：拖 N 和 blockDim，看 grid 怎么铺、哪些线程被浪费 */
@@ -90,6 +91,7 @@ function computeLayout(grid: number, B: number): Layout {
 
 /** 线程格层：与选中态无关，memo 掉避免点选时重渲染几千个 rect */
 const CellsLayer = memo(function CellsLayer({ N, B, lay }: { N: number; B: number; lay: Layout }) {
+  const t = useT()
   return (
     <>
       {lay.slots.map((slot) =>
@@ -114,7 +116,7 @@ const CellsLayer = memo(function CellsLayer({ N, B, lay }: { N: number; B: numbe
               fill="currentColor"
               className="text-ink3"
             >
-              ⋯ 省略 {lay.hidden} 个相同的 block ⋯
+              {t(`⋯ ${lay.hidden} more identical blocks omitted ⋯`, `⋯ 省略 ${lay.hidden} 个相同的 block ⋯`)}
             </text>
           </g>
         ) : (
@@ -169,6 +171,7 @@ const CellsLayer = memo(function CellsLayer({ N, B, lay }: { N: number; B: numbe
 })
 
 export function GridConfigurator() {
+  const t = useT()
   const [nIdx, setNIdx] = useState(DEFAULT_N_IDX)
   const [blockDim, setBlockDim] = useState(DEFAULT_B)
   const [selected, setSelected] = useState(1023) // 默认选最后一个线程：刚好演示越界
@@ -211,23 +214,30 @@ export function GridConfigurator() {
   return (
     <Widget
       index={1}
-      title="Grid/Block 配置器"
-      subtitle="拖动 N 与 blockDim，看 grid 怎么铺满数据"
+      title={t('Grid/Block configurator', 'Grid/Block 配置器')}
+      subtitle={t('Drag N and blockDim, watch how the grid tiles the data', '拖动 N 与 blockDim，看 grid 怎么铺满数据')}
       wide
       onReset={reset}
-      footer={
+      footer={t(
+        <>
+          Try this: pull N up to <span className="font-mono text-ink">1000</span> with blockDim set to{' '}
+          <span className="font-mono text-ink">256</span> — the last block has 24 threads with "nothing to do" (rose
+          cells). Then set N to <span className="font-mono text-ink">16</span> and max out blockDim at{' '}
+          <span className="font-mono text-ink">1024</span> to see just how brutal the waste rate gets. Click any
+          thread cell to see its index derivation.
+        </>,
         <>
           试试：把 N 拉到 <span className="font-mono text-ink">1000</span>、blockDim 设为{' '}
           <span className="font-mono text-ink">256</span> —— 最后一个 block 有 24 个线程「无活可干」（rose 色）。再把 N 调到{' '}
           <span className="font-mono text-ink">16</span>、blockDim 拉满 <span className="font-mono text-ink">1024</span>，看看浪费率有多惨烈。
           点击任意线程格可查看它的索引推导。
-        </>
-      }
+        </>,
+      )}
     >
       {/* 控件 */}
       <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
         <Slider
-          label="N · 数组元素数（log 刻度）"
+          label={t('N · array element count (log scale)', 'N · 数组元素数（log 刻度）')}
           value={nIdx}
           min={0}
           max={N_CHOICES.length - 1}
@@ -236,7 +246,7 @@ export function GridConfigurator() {
           fmt={(v) => fmtInt(N_CHOICES[Math.round(v)])}
         />
         <Slider
-          label="blockDim.x · 每 block 线程数"
+          label={t('blockDim.x · threads per block', 'blockDim.x · 每 block 线程数')}
           value={blockDim}
           min={32}
           max={1024}
@@ -254,11 +264,11 @@ export function GridConfigurator() {
 
       {/* 读数 */}
       <div className="mb-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <Stat label="GRIDDIM（block 数）" value={fmtInt(grid)} tone="volt" />
-        <Stat label="总启动线程" value={fmtInt(total)} tone="cyan" />
-        <Stat label="干活线程" value={fmtInt(N)} />
+        <Stat label={t('GRIDDIM (blocks)', 'GRIDDIM（block 数）')} value={fmtInt(grid)} tone="volt" />
+        <Stat label={t('Threads launched', '总启动线程')} value={fmtInt(total)} tone="cyan" />
+        <Stat label={t('Working threads', '干活线程')} value={fmtInt(N)} />
         <Stat
-          label="浪费线程"
+          label={t('Wasted threads', '浪费线程')}
           value={
             <>
               {fmtInt(waste)}
@@ -292,16 +302,17 @@ export function GridConfigurator() {
           {/* 图例 */}
           <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 px-1 font-mono text-[10.5px] text-ink3">
             <span className="inline-flex items-center gap-1.5">
-              <span className="inline-block size-2.5 rounded-[2px] bg-cyan/25 ring-1 ring-line" /> 偶数 warp
+              <span className="inline-block size-2.5 rounded-[2px] bg-cyan/25 ring-1 ring-line" /> {t('even warp', '偶数 warp')}
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="inline-block size-2.5 rounded-[2px] bg-cyan/10 ring-1 ring-line" /> 奇数 warp
+              <span className="inline-block size-2.5 rounded-[2px] bg-cyan/10 ring-1 ring-line" /> {t('odd warp', '奇数 warp')}
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="inline-block size-2.5 rounded-[2px] bg-rose/40 ring-1 ring-rose/50" /> 越界线程（i ≥ N）
+              <span className="inline-block size-2.5 rounded-[2px] bg-rose/40 ring-1 ring-rose/50" />{' '}
+              {t('out-of-bounds thread (i ≥ N)', '越界线程（i ≥ N）')}
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="inline-block size-2.5 rounded-[2px] bg-volt/50 ring-1 ring-volt" /> 选中
+              <span className="inline-block size-2.5 rounded-[2px] bg-volt/50 ring-1 ring-volt" /> {t('selected', '选中')}
             </span>
           </div>
         </div>
@@ -328,13 +339,18 @@ export function GridConfigurator() {
               {selOob ? <span className="text-rose">false</span> : <span className="text-volt">true</span>}
             </div>
             {selOob ? (
-              <div className="text-rose">✗ 直接返回，这个线程空转</div>
+              <div className="text-rose">{t('✗ returns early, this thread spins idle', '✗ 直接返回，这个线程空转')}</div>
             ) : (
-              <div className="text-volt">✓ 执行 C[i] = A[i] + B[i]</div>
+              <div className="text-volt">{t('✓ runs C[i] = A[i] + B[i]', '✓ 执行 C[i] = A[i] + B[i]')}</div>
             )}
           </div>
           {!selPos && (
-            <div className="mt-2 text-[11px] leading-relaxed text-ink3">（该线程所在 block 被折叠未显示，但计算照常）</div>
+            <div className="mt-2 text-[11px] leading-relaxed text-ink3">
+              {t(
+                '(this thread’s block is folded and not shown, but the math is unchanged)',
+                '（该线程所在 block 被折叠未显示，但计算照常）',
+              )}
+            </div>
           )}
         </div>
       </div>

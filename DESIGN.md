@@ -1,7 +1,16 @@
 # EasyInfra 设计系统与贡献规范
 
-> **所有章节构建者必读。** 本站是交互式 CUDA / LLM Infra 课程，美学方向是「精密仪器 / GPU 蓝图」：
-> 深蓝黑底、荧光 volt 绿点缀、等宽微标签、克制而精确。一切组件都应该像实验台上的仪器。
+> **所有章节构建者必读。** 本站是交互式 CUDA / LLM Infra 课程，美学方向是「蓝图纸 / 精密仪器」：
+> **浅色暖白底（blueprint paper）**、白色卡片、深饱和强调色、等宽微标签、克制而精确。一切组件都应该像实验台上的仪器。
+> 全站**双语**：英文默认、中文可选（见下「i18n 契约」）。
+
+## 双语 i18n 契约（必读）
+
+- `import { useT } from '@/lib/i18n'`；组件内 `const t = useT()`；`{t('English', '中文')}` —— 返回二选一，string / ReactNode 均可。
+- 数据用 `Loc<T> = { en, zh }`，`import { pick, useLocale } from '@/lib/i18n'`，`pick(field, lang)` 解析。
+- 英文是默认且必须地道流畅（母语 GPU 工程师笔触，非直译）；中文作为第二参数。
+- 代码注释可保留中文；CodeBlock 的 `code` 若含中文注释，用 `code={t(enCode, zhCode)}` 双语化。
+- **任何用户可见的中文都不能裸露在 JSX**，必须是 `t()` 的第二参数或 `Loc.zh`。
 
 ## 技术栈
 
@@ -17,18 +26,20 @@
 |---|---|
 | `bg-bg` `bg-bg2` `bg-panel` `bg-panel2` | 页面底 / 略亮底 / 卡片 / 卡片高亮区 |
 | `border-line` `border-line2` | 1px 边框（暗 / 亮） |
-| `text-ink` `text-text` `text-ink2` `text-ink3` | 标题白 / 正文 / 次要 / 微弱 |
-| `text-volt` (#b8f53d) | **主强调色**：活跃、正确、关键数据。少量使用才有力量 |
-| `text-cyan` | 数据流、链接、次强调 |
-| `text-amber` | 内存 / 警示 / 热 |
-| `text-rose` | 错误、冲突、分化 |
-| `text-violet` | 深入内容、特殊标记 |
+| `text-ink` `text-text` `text-ink2` `text-ink3` | 近黑标题 / 正文 / 次要 / 微弱（**浅色主题**：都是深灰，在白底上可读） |
+| `text-volt` (#1c8a3f 深绿) | **主强调色**：活跃、正确、关键数据。少量使用才有力量 |
+| `text-cyan` (#0e78a8) | 数据流、链接、次强调 / 读 |
+| `text-amber` (#b06d09) | 内存 / 警示 / 热 / 写 |
+| `text-rose` (#c92a4d) | 错误、冲突、分化 |
+| `text-violet` (#6a3bd0) | 深入内容、特殊标记 |
 | `font-display` | Chakra Petch，标题用 |
 | `font-mono` | JetBrains Mono，代码 / 数字 / 微标签 |
-| 工具类 | `.microlabel`（等宽小标签）`.panel`（卡片）`.bg-dots`（点网格底）`.ei-range`（已由 Slider 封装） |
+| 工具类 | `.microlabel`（等宽小标签）`.panel`（白卡片）`.bg-dots`（点网格底）`.lift`/`.glow-volt`（柔和浅色阴影）`.ei-range`（Slider 封装） |
 
-**视觉铁律**：volt 绿是稀缺资源，每屏少量点缀；数字一律 `font-mono` + `tabular-nums`；
-边框 1px、圆角 6-8px；禁止紫色渐变大色块、禁止花哨阴影；SVG 可视化里文字用 `fill="currentColor"` 配合 Tailwind 文本色类。
+**浅色主题色值**：底 `#f7f8f5` 暖白、卡片 `#ffffff`、线 `#e4e6df`。canvas / 内联 JS 颜色用 `import { C, rgba } from '@/lib/palette'`（与 @theme 同步）。
+
+**视觉铁律**：volt 绿是稀缺资源，每屏少量点缀；数字一律 `font-mono` + `tabular-nums`；边框 1px、圆角 8-10px；
+浅色下用**柔和低阴影**（`.lift`/`.glow-volt`），禁止深色大色块与花哨阴影；SVG 文字用 `fill="currentColor"` 配合 Tailwind 文本色类，**绝不硬编码深色字面量**（在白底会刺眼/看不清）。
 
 ## 共享组件（从 `@/components/ui` 导入）
 

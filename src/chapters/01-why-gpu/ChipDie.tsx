@@ -1,3 +1,5 @@
+import { useT } from '@/lib/i18n'
+
 /**
  * 芯片 die 面积示意图（SEC1 静态图与 LAB02 共用的渲染器）。
  * 把 die 自上而下分成三个色带：控制逻辑（violet）/ 缓存（cyan）/ ALU 阵列（volt 小格）。
@@ -99,13 +101,19 @@ export function ChipDie({
   cols?: number
   className?: string
 }) {
+  const t = useT()
   const L = layoutDie(ctrl, cache, alu, cols)
   const violet = 'var(--color-violet)'
   const cyan = 'var(--color-cyan)'
   const volt = 'var(--color-volt)'
 
   return (
-    <svg viewBox={`0 0 ${L.W} ${L.H}`} className={`w-full ${className}`} role="img" aria-label="芯片 die 面积分配示意图">
+    <svg
+      viewBox={`0 0 ${L.W} ${L.H}`}
+      className={`w-full ${className}`}
+      role="img"
+      aria-label={t('Schematic of how die area is split across the chip', '芯片 die 面积分配示意图')}
+    >
       {/* die 基板 */}
       <rect x="3" y="3" width={L.W - 6} height={L.H - 6} rx="10" fill="var(--color-bg2)" stroke="var(--color-line2)" />
 
@@ -190,9 +198,10 @@ export function ChipDie({
 
 /** 色块图例（SVG 下方的说明行） */
 export function DieLegend({ ctrl, cache, alu }: { ctrl: number; cache: number; alu: number }) {
+  const t = useT()
   const items = [
-    { color: 'var(--color-violet)', label: `控制逻辑 ${Math.round(ctrl)}%` },
-    { color: 'var(--color-cyan)', label: `缓存 ${Math.round(cache)}%` },
+    { color: 'var(--color-violet)', label: `${t('Control', '控制逻辑')} ${Math.round(ctrl)}%` },
+    { color: 'var(--color-cyan)', label: `${t('Cache', '缓存')} ${Math.round(cache)}%` },
     { color: 'var(--color-volt)', label: `ALU ${Math.round(alu)}%` },
   ]
   return (

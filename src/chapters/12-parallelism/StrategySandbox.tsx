@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Btn, Segmented, Slider, Stat, Widget } from '@/components/ui'
+import { useT, type Loc } from '@/lib/i18n'
 
 type ModelKey = '7B' | '70B' | '405B' | '1T'
 type Mode = 'train' | 'infer'
@@ -27,7 +28,7 @@ const STAGE_COLORS = ['var(--color-cyan)', 'var(--color-amber)', 'var(--color-vi
 const gb = (bytes: number) => bytes / 1e9
 
 interface Preset {
-  label: string
+  label: Loc
   model: ModelKey
   mem: number
   gpus: number
@@ -38,13 +39,14 @@ interface Preset {
 }
 
 const PRESETS: Preset[] = [
-  { label: 'LLaMA-70B 训练 · 64×A100', model: '70B', mem: 80, gpus: 64, mode: 'train', tp: 8, pp: 2, zero: 1 },
-  { label: '405B 训练 · 1024×H100', model: '405B', mem: 80, gpus: 1024, mode: 'train', tp: 8, pp: 16, zero: 1 },
-  { label: '70B 推理 · TP8', model: '70B', mem: 80, gpus: 8, mode: 'infer', tp: 8, pp: 1, zero: 0 },
+  { label: { en: 'LLaMA-70B training · 64×A100', zh: 'LLaMA-70B 训练 · 64×A100' }, model: '70B', mem: 80, gpus: 64, mode: 'train', tp: 8, pp: 2, zero: 1 },
+  { label: { en: '405B training · 1024×H100', zh: '405B 训练 · 1024×H100' }, model: '405B', mem: 80, gpus: 1024, mode: 'train', tp: 8, pp: 16, zero: 1 },
+  { label: { en: '70B inference · TP8', zh: '70B 推理 · TP8' }, model: '70B', mem: 80, gpus: 8, mode: 'infer', tp: 8, pp: 1, zero: 0 },
 ]
 
 /** LAB: 并行策略沙盘 —— TP×PP×DP×ZeRO 组合下的每卡显存账与通信画像 */
 export function StrategySandboxLab() {
+  const t = useT()
   const [model, setModel] = useState<ModelKey>('70B')
   const [mem, setMem] = useState(80)
   const [gpus, setGpus] = useState(64)
@@ -84,23 +86,24 @@ export function StrategySandboxLab() {
       const optim = gb(12 * spec.params) / shard / zO
       const act = spec.actGB / tp
       const segs = [
-        { name: '权重 (BF16)', v: weights, color: 'var(--color-cyan)' },
-        { name: '梯度 (BF16)', v: grads, color: 'var(--color-amber)' },
-        { name: '优化器态 (FP32×3)', v: optim, color: 'var(--color-violet)' },
-        { name: '激活 (4K序列)', v: act, color: 'var(--color-volt)' },
-        { name: '框架开销', v: OVERHEAD_GB, color: 'var(--color-line2)' },
+        { name: t('Weights (BF16)', '权重 (BF16)'), v: weights, color: 'var(--color-cyan)' },
+        { name: t('Gradients (BF16)', '梯度 (BF16)'), v: grads, color: 'var(--color-amber)' },
+        { name: t('Optimizer state (FP32×3)', '优化器态 (FP32×3)'), v: optim, color: 'var(--color-violet)' },
+        { name: t('Activations (4K seq)', '激活 (4K序列)'), v: act, color: 'var(--color-volt)' },
+        { name: t('Framework overhead', '框架开销'), v: OVERHEAD_GB, color: 'var(--color-line2)' },
       ]
       return { segs, total: segs.reduce((a, s) => a + s.v, 0) }
     }
     const weights = gb(2 * spec.params) / shard
     const kv = spec.kvGB / shard
     const segs = [
-      { name: '权重 (BF16)', v: weights, color: 'var(--color-cyan)' },
-      { name: 'KV cache (32并发×4K)', v: kv, color: 'var(--color-volt)' },
-      { name: '框架开销', v: OVERHEAD_GB, color: 'var(--color-line2)' },
+      { name: t('Weights (BF16)', '权重 (BF16)'), v: weights, color: 'var(--color-cyan)' },
+      { name: t('KV cache (32 concurrent × 4K)', 'KV cache (32并发×4K)'), v: kv, color: 'var(--color-volt)' },
+      { name: t('Framework overhead', '框架开销'), v: OVERHEAD_GB, color: 'var(--color-line2)' },
     ]
     return { segs, total: segs.reduce((a, s) => a + s.v, 0) }
-  }, [valid, tp, pp, dp, zero, mode, spec])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [valid, tp, pp, dp, zero, mode, spec, t])
 
   const fits = memo != null && memo.total <= mem
 
@@ -123,21 +126,25 @@ export function StrategySandboxLab() {
   return (
     <Widget
       index={3}
-      title="并行策略沙盘"
-      subtitle="给定模型和集群，亲手切出一个能装下的并行方案"
+      title={t('Parallel-Strategy Sandbox', '并行策略沙盘')}
+      subtitle={t('Given a model and a cluster, carve out a parallel plan that fits', '给定模型和集群，亲手切出一个能装下的并行方案')}
       onReset={reset}
       wide
-      footer={
+      footer={t(
+        <>
+          Estimation basis: training = BF16 weights 2B + gradients 2B + FP32 master/m/v 12B per parameter; activations approximated at 4K sequence, micro-batch=1, flash-attention, 1F1B residency (only thinned by TP);
+          inference = BF16 weights + 32-concurrent × 4K-context KV (GQA). ZeRO acts only on the DP dimension — with DP=1, tuning ZeRO does nothing. Real systems also vary with fragmentation, recomputation, and more, so treat these as approximate.
+        </>,
         <>
           估算口径：训练 = BF16 权重 2B + 梯度 2B + FP32 master/m/v 12B 每参数，激活按 4K 序列、micro-batch=1、flash-attention、1F1B 驻留近似（只被 TP 摊薄）；
           推理 = BF16 权重 + 32 并发 × 4K 上下文 KV（GQA）。ZeRO 只作用于 DP 维 —— DP=1 时调 ZeRO 没有任何效果。真实系统还有碎片与重计算等变量，此处取「约」。
-        </>
-      }
+        </>,
+      )}
     >
       {/* ── 输入区 ── */}
       <div className="mb-4 flex flex-wrap items-center gap-x-6 gap-y-3">
         <div>
-          <div className="microlabel mb-1">模型</div>
+          <div className="microlabel mb-1">{t('Model', '模型')}</div>
           <Segmented<ModelKey>
             options={(['7B', '70B', '405B', '1T'] as ModelKey[]).map((k) => ({ value: k, label: k }))}
             value={model}
@@ -145,7 +152,7 @@ export function StrategySandboxLab() {
           />
         </div>
         <div>
-          <div className="microlabel mb-1">单卡显存</div>
+          <div className="microlabel mb-1">{t('Per-GPU memory', '单卡显存')}</div>
           <Segmented<number>
             options={[
               { value: 24, label: '24G' },
@@ -157,7 +164,7 @@ export function StrategySandboxLab() {
           />
         </div>
         <div>
-          <div className="microlabel mb-1">GPU 数</div>
+          <div className="microlabel mb-1">{t('GPU count', 'GPU 数')}</div>
           <Segmented<number>
             options={[8, 64, 512, 1024].map((v) => ({ value: v, label: String(v) }))}
             value={gpus}
@@ -165,11 +172,11 @@ export function StrategySandboxLab() {
           />
         </div>
         <div>
-          <div className="microlabel mb-1">模式</div>
+          <div className="microlabel mb-1">{t('Mode', '模式')}</div>
           <Segmented<Mode>
             options={[
-              { value: 'train', label: '训练' },
-              { value: 'infer', label: '推理' },
+              { value: 'train', label: t('Training', '训练') },
+              { value: 'infer', label: t('Inference', '推理') },
             ]}
             value={mode}
             onChange={(v) => {
@@ -181,13 +188,13 @@ export function StrategySandboxLab() {
       </div>
 
       <div className="mb-4 grid gap-4 sm:grid-cols-3">
-        <Slider label="张量并行 TP" value={tp} min={1} max={8} onChange={setTp} unit="路" />
-        <Slider label="流水并行 PP" value={pp} min={1} max={16} onChange={setPp} unit="段" />
+        <Slider label={t('Tensor parallel TP', '张量并行 TP')} value={tp} min={1} max={8} onChange={setTp} unit={t('way', '路')} />
+        <Slider label={t('Pipeline parallel PP', '流水并行 PP')} value={pp} min={1} max={16} onChange={setPp} unit={t('stage', '段')} />
         <div>
           <div className="mb-1 flex items-baseline justify-between">
-            <span className="font-mono text-[11px] uppercase tracking-wider text-ink2">数据并行 DP（自动）</span>
+            <span className="font-mono text-[11px] uppercase tracking-wider text-ink2">{t('Data parallel DP (auto)', '数据并行 DP（自动）')}</span>
             <span className={`font-mono text-xs ${valid ? 'text-volt' : 'text-rose'}`}>
-              {dpInt ? `${dpRaw} 路` : '非整数'}
+              {dpInt ? t(`${dpRaw} way`, `${dpRaw} 路`) : t('non-integer', '非整数')}
             </span>
           </div>
           <div className="rounded-md border border-line bg-bg2 px-3 py-1.5 font-mono text-xs text-ink2">
@@ -198,25 +205,27 @@ export function StrategySandboxLab() {
 
       <div className="mb-5 flex flex-wrap items-center gap-x-6 gap-y-3">
         <div>
-          <div className="microlabel mb-1">ZeRO STAGE（作用于 DP 维）</div>
+          <div className="microlabel mb-1">{t('ZeRO STAGE (acts on DP dim)', 'ZeRO STAGE（作用于 DP 维）')}</div>
           <Segmented<number>
             options={[
               { value: 0, label: 'off' },
-              { value: 1, label: 'Z1 优化器' },
-              { value: 2, label: 'Z2 +梯度' },
-              { value: 3, label: 'Z3 +权重' },
+              { value: 1, label: t('Z1 optimizer', 'Z1 优化器') },
+              { value: 2, label: t('Z2 +gradients', 'Z2 +梯度') },
+              { value: 3, label: t('Z3 +weights', 'Z3 +权重') },
             ]}
             value={zeroDisabled ? 0 : zero}
             onChange={(v) => {
               if (!zeroDisabled) setZero(v)
             }}
           />
-          {zeroDisabled && <div className="mt-1 text-[11px] text-ink3">推理没有梯度和优化器态，ZeRO 不适用</div>}
+          {zeroDisabled && (
+            <div className="mt-1 text-[11px] text-ink3">{t('Inference has no gradients or optimizer state; ZeRO doesn’t apply', '推理没有梯度和优化器态，ZeRO 不适用')}</div>
+          )}
         </div>
         <div className="ml-auto flex flex-wrap gap-2">
           {PRESETS.map((pr) => (
-            <Btn key={pr.label} variant="ghost" size="sm" onClick={() => applyPreset(pr)}>
-              {pr.label}
+            <Btn key={pr.label.en} variant="ghost" size="sm" onClick={() => applyPreset(pr)}>
+              {t(pr.label.en, pr.label.zh)}
             </Btn>
           ))}
         </div>
@@ -225,17 +234,26 @@ export function StrategySandboxLab() {
       {/* ── 非法组合提示 ── */}
       {!valid && (
         <div className="my-6 rounded-md border border-rose/50 bg-rose/[0.07] px-4 py-3 text-[13.5px] leading-relaxed text-ink">
-          <span className="microlabel mr-2 text-rose">✗ 非法组合</span>
-          {!dpInt && (
-            <>
-              {gpus} 张卡不能被 TP×PP = {tp * pp} 整除（得 {dpRaw.toFixed(2)}），DP 副本无法成形。调整 TP/PP 使乘积整除 GPU 数。
-            </>
-          )}
-          {dpInt && !ppOk && (
-            <>
-              PP = {pp} 段超过了 {model} 的 {spec.layers} 层 —— 没法给每段都分到层。
-            </>
-          )}
+          <span className="microlabel mr-2 text-rose">{t('✗ Invalid combination', '✗ 非法组合')}</span>
+          {!dpInt &&
+            t(
+              <>
+                {gpus} GPUs aren’t divisible by TP×PP = {tp * pp} (gives {dpRaw.toFixed(2)}), so DP replicas can’t form. Adjust TP/PP so their product divides the GPU count.
+              </>,
+              <>
+                {gpus} 张卡不能被 TP×PP = {tp * pp} 整除（得 {dpRaw.toFixed(2)}），DP 副本无法成形。调整 TP/PP 使乘积整除 GPU 数。
+              </>,
+            )}
+          {dpInt &&
+            !ppOk &&
+            t(
+              <>
+                PP = {pp} stages exceeds {model}’s {spec.layers} layers — there aren’t enough layers to give each stage some.
+              </>,
+              <>
+                PP = {pp} 段超过了 {model} 的 {spec.layers} 层 —— 没法给每段都分到层。
+              </>,
+            )}
         </div>
       )}
 
@@ -244,9 +262,9 @@ export function StrategySandboxLab() {
           {/* ── GPU 网格 ── */}
           <div>
             <div className="microlabel mb-2">
-              集群拓扑 · {gpus} GPU = TP{tp} × PP{pp} × DP{dp}
+              {t('Cluster topology', '集群拓扑')} · {gpus} GPU = TP{tp} × PP{pp} × DP{dp}
             </div>
-            <svg viewBox={`0 0 ${grid.W} ${grid.H}`} className="w-full select-none" role="img" aria-label="GPU 并行拓扑网格">
+            <svg viewBox={`0 0 ${grid.W} ${grid.H}`} className="w-full select-none" role="img" aria-label={t('GPU parallel-topology grid', 'GPU 并行拓扑网格')}>
               {Array.from({ length: dp }, (_, r) => {
                 const rx = (r % grid.repPerRow) * (grid.repW + grid.gap) + 2
                 const ry = Math.floor(r / grid.repPerRow) * (grid.repH + grid.gap) + 2
@@ -285,7 +303,7 @@ export function StrategySandboxLab() {
                     ))}
                     {dp <= 8 && (
                       <text x={grid.repW / 2} y={grid.repH + 11} textAnchor="middle" fontSize={9.5} fontFamily="var(--font-mono, monospace)" fill="var(--color-ink3)">
-                        副本 {r}
+                        {t('replica', '副本')} {r}
                       </text>
                     )}
                   </g>
@@ -293,26 +311,32 @@ export function StrategySandboxLab() {
               })}
             </svg>
             <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-[11.5px] text-ink3">
-              <span>■ 同色横排 = 一个 TP 组（NVLink 域内）</span>
-              <span>行 = PP stage（颜色区分）</span>
-              <span>外框 = 一个 DP 副本（完整模型）</span>
+              <span>{t('■ same-color row = one TP group (inside NVLink domain)', '■ 同色横排 = 一个 TP 组（NVLink 域内）')}</span>
+              <span>{t('row = PP stage (by color)', '行 = PP stage（颜色区分）')}</span>
+              <span>{t('outer box = one DP replica (full model)', '外框 = 一个 DP 副本（完整模型）')}</span>
             </div>
 
             {/* ── 通信强度 ── */}
             <div className="mt-5 space-y-2.5">
-              <div className="microlabel">通信画像</div>
+              <div className="microlabel">{t('Communication profile', '通信画像')}</div>
               {[
                 {
                   name: 'TP',
                   on: tp > 1,
                   w: 0.95,
-                  desc: tp > 1 ? '每层前向+反向共 4 次 AllReduce，在关键路径上 —— 必须 NVLink 域内' : '关闭（TP=1）',
+                  desc:
+                    tp > 1
+                      ? t('4 AllReduces per layer (forward+backward), on the critical path — must stay in the NVLink domain', '每层前向+反向共 4 次 AllReduce，在关键路径上 —— 必须 NVLink 域内')
+                      : t('off (TP=1)', '关闭（TP=1）'),
                 },
                 {
                   name: 'PP',
                   on: pp > 1,
                   w: 0.45,
-                  desc: pp > 1 ? '每个 micro-batch 边界一次 P2P 激活传输，量小、可与计算重叠' : '关闭（PP=1）',
+                  desc:
+                    pp > 1
+                      ? t('one P2P activation transfer per micro-batch boundary — small, overlaps with compute', '每个 micro-batch 边界一次 P2P 激活传输，量小、可与计算重叠')
+                      : t('off (PP=1)', '关闭（PP=1）'),
                 },
                 {
                   name: 'DP',
@@ -321,11 +345,11 @@ export function StrategySandboxLab() {
                   desc:
                     dp > 1
                       ? mode === 'infer'
-                        ? '推理副本间零通信，只在负载均衡器层面分流'
+                        ? t('zero communication between inference replicas — only the load balancer splits traffic', '推理副本间零通信，只在负载均衡器层面分流')
                         : zero >= 3
-                          ? '每层 AllGather 权重 + 每 step ReduceScatter 梯度（ZeRO-3 通信 ×1.5）'
-                          : '每 step 一次梯度 AllReduce，可与反向重叠'
-                      : '关闭（DP=1）',
+                          ? t('AllGather weights per layer + ReduceScatter gradients per step (ZeRO-3 comm ×1.5)', '每层 AllGather 权重 + 每 step ReduceScatter 梯度（ZeRO-3 通信 ×1.5）')
+                          : t('one gradient AllReduce per step, overlaps with the backward pass', '每 step 一次梯度 AllReduce，可与反向重叠')
+                      : t('off (DP=1)', '关闭（DP=1）'),
                 },
               ].map((c) => (
                 <div key={c.name} className="flex items-center gap-3">
@@ -344,14 +368,14 @@ export function StrategySandboxLab() {
 
           {/* ── 每卡显存账 ── */}
           <div>
-            <div className="microlabel mb-2">每卡显存估算</div>
+            <div className="microlabel mb-2">{t('Per-GPU memory estimate', '每卡显存估算')}</div>
             <div className="mb-3 flex items-baseline gap-3">
               <span className={`font-mono text-2xl tabular-nums ${fits ? 'text-volt' : 'text-rose'}`}>{memo.total.toFixed(1)}</span>
               <span className="text-xs text-ink3">/ {mem} GB</span>
-              <span className={`ml-auto font-mono text-sm ${fits ? 'text-volt' : 'text-rose'}`}>{fits ? '✓ 装下了' : '✗ OOM'}</span>
+              <span className={`ml-auto font-mono text-sm ${fits ? 'text-volt' : 'text-rose'}`}>{fits ? t('✓ Fits', '✓ 装下了') : '✗ OOM'}</span>
             </div>
             {/* 堆叠条 + 红线 */}
-            <svg viewBox="0 0 300 46" className="w-full select-none" role="img" aria-label="每卡显存堆叠条">
+            <svg viewBox="0 0 300 46" className="w-full select-none" role="img" aria-label={t('Per-GPU memory stacked bar', '每卡显存堆叠条')}>
               {(() => {
                 const scale = 292 / Math.max(memo.total, mem * 1.08)
                 let x = 4
@@ -367,7 +391,7 @@ export function StrategySandboxLab() {
                     {parts}
                     <line x1={4 + mem * scale} y1={2} x2={4 + mem * scale} y2={40} stroke="var(--color-rose)" strokeWidth={1.5} strokeDasharray="4 3" />
                     <text x={Math.min(288, 4 + mem * scale)} y={45} textAnchor="end" fontSize={9} fontFamily="var(--font-mono, monospace)" fill="var(--color-rose)">
-                      {mem}G 红线
+                      {t(`${mem}G limit`, `${mem}G 红线`)}
                     </text>
                   </>
                 )
@@ -383,13 +407,13 @@ export function StrategySandboxLab() {
               ))}
             </div>
             <div className="mt-4 flex gap-6">
-              <Stat label="DP 副本" value={dp} unit="路" tone="cyan" size="sm" />
-              <Stat label="每副本卡数" value={tp * pp} unit="卡" tone="ink" size="sm" />
+              <Stat label={t('DP replicas', 'DP 副本')} value={dp} unit={t('way', '路')} tone="cyan" size="sm" />
+              <Stat label={t('GPUs per replica', '每副本卡数')} value={tp * pp} unit={t('GPUs', '卡')} tone="ink" size="sm" />
               <Stat label="ZeRO" value={zeroDisabled || zero === 0 ? 'off' : `Z${zero}`} tone={zero > 0 && !zeroDisabled ? 'volt' : 'ink'} size="sm" />
             </div>
             {dp === 1 && zero > 0 && !zeroDisabled && (
               <div className="mt-3 rounded-md border border-amber/40 bg-amber/[0.06] px-3 py-2 text-[12px] leading-relaxed text-ink2">
-                DP=1 时 ZeRO 没有可切分的副本维度，等同于 off。
+                {t('With DP=1 there’s no replica dimension for ZeRO to shard, so it’s equivalent to off.', 'DP=1 时 ZeRO 没有可切分的副本维度，等同于 off。')}
               </div>
             )}
           </div>

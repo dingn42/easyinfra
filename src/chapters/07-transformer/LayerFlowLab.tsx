@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Widget, Toggle } from '@/components/ui'
 import { useRafLoop, useReducedMotion } from '@/lib/hooks'
+import { pick, useLocale, useT, type Loc } from '@/lib/i18n'
 
 /* ── LAB 01：一层的数据流 ─────────────────────────────────────────
    LLaMA-7B 单层 decoder 的 SVG 流程图。hover/点击节点弹出信息卡
@@ -10,13 +11,13 @@ type Kind = 'gemm' | 'attn' | 'norm' | 'elem' | 'io'
 
 interface FlowNode {
   id: string
-  label: string
-  tag: string
+  label: Loc
+  tag: Loc
   kind: Kind
-  shape: string
-  params: string
-  flops: string
-  desc: string
+  shape: Loc
+  params: Loc
+  flops: Loc
+  desc: Loc
 }
 
 const KIND_COLOR: Record<Kind, string> = {
@@ -27,96 +28,135 @@ const KIND_COLOR: Record<Kind, string> = {
   io: 'var(--color-line2)',
 }
 
-const KIND_LABEL: Record<Kind, string> = {
-  gemm: 'GEMM 投影',
-  attn: 'attention 核心',
-  norm: '归一化',
-  elem: '逐元素',
-  io: '残差流',
+const KIND_LABEL: Record<Kind, Loc> = {
+  gemm: { en: 'GEMM projection', zh: 'GEMM 投影' },
+  attn: { en: 'attention core', zh: 'attention 核心' },
+  norm: { en: 'normalization', zh: '归一化' },
+  elem: { en: 'elementwise', zh: '逐元素' },
+  io: { en: 'residual stream', zh: '残差流' },
 }
 
 /* 信息卡数据：以 decode 单 token、上下文 S=2048 计 */
 const ROW1_NODES: FlowNode[] = [
   {
-    id: 'input', label: '输入 x', tag: 'residual', kind: 'io',
-    shape: 'x: [1, 4096]',
-    params: '—', flops: '—',
-    desc: '残差流（residual stream）上的一个 token 向量。整层的全部工作，就是算出一个增量加回这个向量。',
+    id: 'input', label: { en: 'input x', zh: '输入 x' }, tag: { en: 'residual', zh: 'residual' }, kind: 'io',
+    shape: { en: 'x: [1, 4096]', zh: 'x: [1, 4096]' },
+    params: { en: '—', zh: '—' }, flops: { en: '—', zh: '—' },
+    desc: {
+      en: 'A token vector on the residual stream. The entire job of this layer is to compute a delta and add it back to this vector.',
+      zh: '残差流（residual stream）上的一个 token 向量。整层的全部工作，就是算出一个增量加回这个向量。',
+    },
   },
   {
-    id: 'norm1', label: 'RMSNorm₁', tag: 'pre-norm', kind: 'norm',
-    shape: '[1, 4096] → [1, 4096]',
-    params: '4,096（γ）', flops: '≈ 16 K',
-    desc: '均方根归一化（RMSNorm）：除以向量的 RMS 再乘可学习缩放 γ。计算量只与 d 成正比，在账本上可以忽略。',
+    id: 'norm1', label: { en: 'RMSNorm₁', zh: 'RMSNorm₁' }, tag: { en: 'pre-norm', zh: 'pre-norm' }, kind: 'norm',
+    shape: { en: '[1, 4096] → [1, 4096]', zh: '[1, 4096] → [1, 4096]' },
+    params: { en: '4,096 (γ)', zh: '4,096（γ）' }, flops: { en: '≈ 16 K', zh: '≈ 16 K' },
+    desc: {
+      en: 'RMSNorm: divide by the vector\'s RMS, then scale by a learnable γ. Its cost is proportional only to d, so it\'s negligible on the ledger.',
+      zh: '均方根归一化（RMSNorm）：除以向量的 RMS 再乘可学习缩放 γ。计算量只与 d 成正比，在账本上可以忽略。',
+    },
   },
   {
-    id: 'qkv', label: 'QKV 投影', tag: '3 × GEMV', kind: 'gemm',
-    shape: '[1,4096] × 三个 [4096,4096] → Q/K/V 各 [32 head, 128]',
-    params: '50.3 M（3·d²）', flops: '100.7 M（2·3·d²）',
-    desc: '三个 d×d 矩阵把 x 投影成 Q、K、V，再各自重排成 32 个 head × 128 维。这是 attention 部分参数最多的一笔。',
+    id: 'qkv', label: { en: 'QKV projection', zh: 'QKV 投影' }, tag: { en: '3 × GEMV', zh: '3 × GEMV' }, kind: 'gemm',
+    shape: {
+      en: '[1,4096] × three [4096,4096] → Q/K/V each [32 heads, 128]',
+      zh: '[1,4096] × 三个 [4096,4096] → Q/K/V 各 [32 head, 128]',
+    },
+    params: { en: '50.3 M (3·d²)', zh: '50.3 M（3·d²）' }, flops: { en: '100.7 M (2·3·d²)', zh: '100.7 M（2·3·d²）' },
+    desc: {
+      en: 'Three d×d matrices project x into Q, K, V, each then reshaped into 32 heads × 128 dims. This is the most parameter-heavy step in attention.',
+      zh: '三个 d×d 矩阵把 x 投影成 Q、K、V，再各自重排成 32 个 head × 128 维。这是 attention 部分参数最多的一笔。',
+    },
   },
   {
-    id: 'rope', label: 'RoPE', tag: 'rotary', kind: 'elem',
-    shape: 'Q、K: [32, 128] 原位旋转',
-    params: '0', flops: '≈ 33 K',
-    desc: '旋转位置编码（Rotary Position Embedding）：把位置编码成二维平面上的旋转角，作用在 Q、K 上。零参数、近乎零开销。',
+    id: 'rope', label: { en: 'RoPE', zh: 'RoPE' }, tag: { en: 'rotary', zh: 'rotary' }, kind: 'elem',
+    shape: { en: 'Q, K: [32, 128] rotated in place', zh: 'Q、K: [32, 128] 原位旋转' },
+    params: { en: '0', zh: '0' }, flops: { en: '≈ 33 K', zh: '≈ 33 K' },
+    desc: {
+      en: 'Rotary Position Embedding: encode position as a rotation angle on a 2D plane, applied to Q and K. Zero parameters, near-zero cost.',
+      zh: '旋转位置编码（Rotary Position Embedding）：把位置编码成二维平面上的旋转角，作用在 Q、K 上。零参数、近乎零开销。',
+    },
   },
   {
-    id: 'attn', label: 'Attention', tag: 'QKᵀ → softmax → AV', kind: 'attn',
-    shape: 'score: [32, S=2048]，输出 [32, 128] → [1, 4096]',
-    params: '0', flops: '≈ 33.6 M（4·S·d）',
-    desc: '每个 head 用自己的 Q 对缓存里 2048 个 K 做点积、softmax、再加权求和 V。整层唯一随上下文长度 S 增长的环节。',
+    id: 'attn', label: { en: 'Attention', zh: 'Attention' }, tag: { en: 'QKᵀ → softmax → AV', zh: 'QKᵀ → softmax → AV' }, kind: 'attn',
+    shape: { en: 'score: [32, S=2048], output [32, 128] → [1, 4096]', zh: 'score: [32, S=2048]，输出 [32, 128] → [1, 4096]' },
+    params: { en: '0', zh: '0' }, flops: { en: '≈ 33.6 M (4·S·d)', zh: '≈ 33.6 M（4·S·d）' },
+    desc: {
+      en: 'Each head uses its own Q to dot against 2048 cached K vectors, softmax, then weighted-sum the V. The only step in the layer that grows with context length S.',
+      zh: '每个 head 用自己的 Q 对缓存里 2048 个 K 做点积、softmax、再加权求和 V。整层唯一随上下文长度 S 增长的环节。',
+    },
   },
   {
-    id: 'oproj', label: 'O 投影', tag: 'GEMV', kind: 'gemm',
-    shape: '[1, 4096] × [4096, 4096]',
-    params: '16.8 M（d²）', flops: '33.6 M（2·d²）',
-    desc: '把 32 个 head 拼回的向量再混合一次。attention 子层写回残差流之前的最后一个矩阵。',
+    id: 'oproj', label: { en: 'O projection', zh: 'O 投影' }, tag: { en: 'GEMV', zh: 'GEMV' }, kind: 'gemm',
+    shape: { en: '[1, 4096] × [4096, 4096]', zh: '[1, 4096] × [4096, 4096]' },
+    params: { en: '16.8 M (d²)', zh: '16.8 M（d²）' }, flops: { en: '33.6 M (2·d²)', zh: '33.6 M（2·d²）' },
+    desc: {
+      en: 'Mix the concatenated 32-head vector one more time. The last matrix before the attention sublayer writes back to the residual stream.',
+      zh: '把 32 个 head 拼回的向量再混合一次。attention 子层写回残差流之前的最后一个矩阵。',
+    },
   },
   {
-    id: 'add1', label: '⊕ 残差', tag: 'add', kind: 'elem',
-    shape: '[1, 4096] + [1, 4096]',
-    params: '0', flops: '4 K',
-    desc: 'attention 的输出加回输入。残差连接（residual connection）让 32 层网络的梯度有路可走。',
+    id: 'add1', label: { en: '⊕ residual', zh: '⊕ 残差' }, tag: { en: 'add', zh: 'add' }, kind: 'elem',
+    shape: { en: '[1, 4096] + [1, 4096]', zh: '[1, 4096] + [1, 4096]' },
+    params: { en: '0', zh: '0' }, flops: { en: '4 K', zh: '4 K' },
+    desc: {
+      en: 'Add the attention output back to the input. The residual connection gives gradients a path through a 32-layer network.',
+      zh: 'attention 的输出加回输入。残差连接（residual connection）让 32 层网络的梯度有路可走。',
+    },
   },
 ]
 
 const ROW2_NODES: FlowNode[] = [
   {
-    id: 'norm2', label: 'RMSNorm₂', tag: 'pre-norm', kind: 'norm',
-    shape: '[1, 4096] → [1, 4096]',
-    params: '4,096（γ）', flops: '≈ 16 K',
-    desc: '进 MLP 前再归一化一次。每层两个 RMSNorm，合计 8192 个参数——在 2 亿的层参数里四舍五入等于零。',
+    id: 'norm2', label: { en: 'RMSNorm₂', zh: 'RMSNorm₂' }, tag: { en: 'pre-norm', zh: 'pre-norm' }, kind: 'norm',
+    shape: { en: '[1, 4096] → [1, 4096]', zh: '[1, 4096] → [1, 4096]' },
+    params: { en: '4,096 (γ)', zh: '4,096（γ）' }, flops: { en: '≈ 16 K', zh: '≈ 16 K' },
+    desc: {
+      en: 'Normalize once more before the MLP. Each layer has two RMSNorms — 8192 parameters total, which rounds to zero against the layer\'s 200 million.',
+      zh: '进 MLP 前再归一化一次。每层两个 RMSNorm，合计 8192 个参数——在 2 亿的层参数里四舍五入等于零。',
+    },
   },
   {
-    id: 'gateup', label: 'gate / up 投影', tag: '2 × GEMV', kind: 'gemm',
-    shape: '[1,4096] × 两个 [4096,11008] → 两路 [1, 11008]',
-    params: '90.2 M（2·d·d_ff）', flops: '180.4 M',
-    desc: 'SwiGLU 的两路升维投影，单层里参数和 FLOPs 都最大的一笔——比整个 attention 子层加起来还多。',
+    id: 'gateup', label: { en: 'gate / up projection', zh: 'gate / up 投影' }, tag: { en: '2 × GEMV', zh: '2 × GEMV' }, kind: 'gemm',
+    shape: { en: '[1,4096] × two [4096,11008] → two paths [1, 11008]', zh: '[1,4096] × 两个 [4096,11008] → 两路 [1, 11008]' },
+    params: { en: '90.2 M (2·d·d_ff)', zh: '90.2 M（2·d·d_ff）' }, flops: { en: '180.4 M', zh: '180.4 M' },
+    desc: {
+      en: 'SwiGLU\'s two up-projection paths — the single largest step in the layer for both parameters and FLOPs, more than the entire attention sublayer combined.',
+      zh: 'SwiGLU 的两路升维投影，单层里参数和 FLOPs 都最大的一笔——比整个 attention 子层加起来还多。',
+    },
   },
   {
-    id: 'act', label: 'SiLU · ⊙', tag: 'gating', kind: 'elem',
-    shape: '[1, 11008] 逐元素',
-    params: '0', flops: '≈ 55 K',
-    desc: 'SiLU(gate) ⊙ up：逐元素门控。开销与 d_ff 成正比，和旁边两个 GEMM 比可以忽略。',
+    id: 'act', label: { en: 'SiLU · ⊙', zh: 'SiLU · ⊙' }, tag: { en: 'gating', zh: 'gating' }, kind: 'elem',
+    shape: { en: '[1, 11008] elementwise', zh: '[1, 11008] 逐元素' },
+    params: { en: '0', zh: '0' }, flops: { en: '≈ 55 K', zh: '≈ 55 K' },
+    desc: {
+      en: 'SiLU(gate) ⊙ up: elementwise gating. Its cost is proportional to d_ff and negligible against the two GEMMs beside it.',
+      zh: 'SiLU(gate) ⊙ up：逐元素门控。开销与 d_ff 成正比，和旁边两个 GEMM 比可以忽略。',
+    },
   },
   {
-    id: 'down', label: 'down 投影', tag: 'GEMV', kind: 'gemm',
-    shape: '[1, 11008] × [11008, 4096]',
-    params: '45.1 M（d·d_ff）', flops: '90.2 M',
-    desc: '降维回 d=4096。至此 MLP 三个矩阵合计 3·d·d_ff ≈ 1.35 亿参数。',
+    id: 'down', label: { en: 'down projection', zh: 'down 投影' }, tag: { en: 'GEMV', zh: 'GEMV' }, kind: 'gemm',
+    shape: { en: '[1, 11008] × [11008, 4096]', zh: '[1, 11008] × [11008, 4096]' },
+    params: { en: '45.1 M (d·d_ff)', zh: '45.1 M（d·d_ff）' }, flops: { en: '90.2 M', zh: '90.2 M' },
+    desc: {
+      en: 'Project back down to d=4096. With this, the MLP\'s three matrices total 3·d·d_ff ≈ 135 million parameters.',
+      zh: '降维回 d=4096。至此 MLP 三个矩阵合计 3·d·d_ff ≈ 1.35 亿参数。',
+    },
   },
   {
-    id: 'add2', label: '⊕ 残差', tag: 'add', kind: 'elem',
-    shape: '[1, 4096] + [1, 4096]',
-    params: '0', flops: '4 K',
-    desc: 'MLP 的输出加回残差流。一层结束。',
+    id: 'add2', label: { en: '⊕ residual', zh: '⊕ 残差' }, tag: { en: 'add', zh: 'add' }, kind: 'elem',
+    shape: { en: '[1, 4096] + [1, 4096]', zh: '[1, 4096] + [1, 4096]' },
+    params: { en: '0', zh: '0' }, flops: { en: '4 K', zh: '4 K' },
+    desc: { en: 'Add the MLP output back to the residual stream. The layer is done.', zh: 'MLP 的输出加回残差流。一层结束。' },
   },
   {
-    id: 'out', label: '输出', tag: '→ 下一层', kind: 'io',
-    shape: '[1, 4096]',
-    params: '—', flops: '—',
-    desc: '同样的结构重复 32 次，最后过一个 RMSNorm 和 [4096, 32000] 的词表投影，得到下一个 token 的 logits。',
+    id: 'out', label: { en: 'output', zh: '输出' }, tag: { en: '→ next layer', zh: '→ 下一层' }, kind: 'io',
+    shape: { en: '[1, 4096]', zh: '[1, 4096]' },
+    params: { en: '—', zh: '—' }, flops: { en: '—', zh: '—' },
+    desc: {
+      en: 'The same structure repeats 32 times, then a final RMSNorm and a [4096, 32000] vocabulary projection produce the logits for the next token.',
+      zh: '同样的结构重复 32 次，最后过一个 RMSNorm 和 [4096, 32000] 的词表投影，得到下一个 token 的 logits。',
+    },
   },
 ]
 
@@ -200,6 +240,7 @@ function NodeBox({
   onSelect: () => void
   onHover: (id: string | null) => void
 }) {
+  const { lang } = useLocale()
   const color = KIND_COLOR[node.kind]
   return (
     <g
@@ -229,7 +270,7 @@ function NodeBox({
         fill="currentColor"
         className={active ? 'text-ink' : 'text-text'}
       >
-        {node.label}
+        {pick(node.label, lang)}
       </text>
       <text
         x={rect.cx}
@@ -239,21 +280,23 @@ function NodeBox({
         fill="currentColor"
         className="font-mono text-ink3"
       >
-        {node.tag}
+        {pick(node.tag, lang)}
       </text>
     </g>
   )
 }
 
 export function LayerFlowLab() {
+  const t = useT()
+  const { lang } = useLocale()
   const reduced = useReducedMotion()
   const [anim, setAnim] = useState(true)
   const [sel, setSel] = useState('qkv')
   const [hover, setHover] = useState<string | null>(null)
-  const [t, setT] = useState(0)
+  const [tick, setTick] = useState(0)
 
   const playing = anim && !reduced
-  useRafLoop((dt) => setT((p) => (p + dt * 0.18) % PATH_LEN), playing)
+  useRafLoop((dt) => setTick((p) => (p + dt * 0.18) % PATH_LEN), playing)
 
   const activeId = hover ?? sel
   const active = ALL_NODES.find((n) => n.id === activeId) ?? ALL_NODES[2]
@@ -261,38 +304,48 @@ export function LayerFlowLab() {
   const reset = () => {
     setSel('qkv')
     setHover(null)
-    setT(0)
+    setTick(0)
     setAnim(true)
   }
 
   return (
     <Widget
       index={1}
-      title="一层的数据流"
-      subtitle="LLaMA-7B · d=4096 · 32 heads × 128 · d_ff=11008 · 共 32 层"
+      title={t('The data flow of one layer', '一层的数据流')}
+      subtitle={t('LLaMA-7B · d=4096 · 32 heads × 128 · d_ff=11008 · 32 layers', 'LLaMA-7B · d=4096 · 32 heads × 128 · d_ff=11008 · 共 32 层')}
       wide
       onReset={reset}
-      footer={
+      footer={t(
+        <>
+          Hover / click a node to see its tensor shape, parameter count, and single-token FLOPs (computed for decode,
+          context S=2048). The top color bar marks the node category — notice that almost all of the layer&apos;s
+          parameters and FLOPs land on <span className="text-volt">GEMM projections</span>, while the{' '}
+          <span className="text-amber">attention core</span> is the only step that grows with S.
+        </>,
         <>
           hover / 点击节点查看张量形状、参数量与单 token FLOPs（按 decode、上下文 S=2048 计）。
           顶部色条标记节点类别——注意整层的参数和 FLOPs 几乎全部落在 <span className="text-volt">GEMM 投影</span> 上，
           <span className="text-amber"> attention 核心</span>是唯一随 S 增长的环节。
-        </>
-      }
+        </>,
+      )}
     >
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
           {(Object.keys(KIND_COLOR) as Kind[]).map((k) => (
             <span key={k} className="inline-flex items-center gap-1.5 font-mono text-[11px] text-ink2">
               <span className="inline-block size-2 rounded-[2px]" style={{ background: KIND_COLOR[k] }} />
-              {KIND_LABEL[k]}
+              {pick(KIND_LABEL[k], lang)}
             </span>
           ))}
         </div>
-        <Toggle label={reduced ? '动画（已按系统偏好关闭）' : '动画'} checked={playing} onChange={(v) => setAnim(v && !reduced)} />
+        <Toggle
+          label={reduced ? t('Animation (off per system preference)', '动画（已按系统偏好关闭）') : t('Animation', '动画')}
+          checked={playing}
+          onChange={(v) => setAnim(v && !reduced)}
+        />
       </div>
 
-      <svg viewBox={`0 0 ${VB_W} ${VB_H}`} className="w-full" role="img" aria-label="LLaMA 一层 decoder 的数据流图">
+      <svg viewBox={`0 0 ${VB_W} ${VB_H}`} className="w-full" role="img" aria-label={t('Data flow of one LLaMA decoder layer', 'LLaMA 一层 decoder 的数据流图')}>
         <defs>
           <marker id="ch7-arrow" viewBox="0 0 8 8" refX={7} refY={4} markerWidth={7} markerHeight={7} orient="auto-start-reverse">
             <path d="M0,0.5 L7.5,4 L0,7.5 Z" fill="var(--color-line2)" />
@@ -353,7 +406,7 @@ export function LayerFlowLab() {
         {/* 流动的小方块 */}
         {playing &&
           Array.from({ length: DOT_COUNT }, (_, k) => {
-            const [x, y] = pointAt(t + (k * PATH_LEN) / DOT_COUNT)
+            const [x, y] = pointAt(tick + (k * PATH_LEN) / DOT_COUNT)
             return (
               <g key={k} transform={`translate(${x}, ${y})`} pointerEvents="none">
                 <rect x={-5} y={-5} width={10} height={10} rx={2} fill="var(--color-volt)" opacity={0.9} />
@@ -368,36 +421,39 @@ export function LayerFlowLab() {
         <div className="mb-2.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <span className="inline-flex items-center gap-2 text-[15px] font-medium text-ink">
             <span className="inline-block size-2 rounded-[2px]" style={{ background: KIND_COLOR[active.kind] }} />
-            {active.label}
+            {pick(active.label, lang)}
           </span>
-          <span className="font-mono text-[11px] text-ink3">{active.tag}</span>
+          <span className="font-mono text-[11px] text-ink3">{pick(active.tag, lang)}</span>
         </div>
         <div className="grid gap-x-6 gap-y-3 sm:grid-cols-3">
           <div>
-            <div className="microlabel mb-1">张量形状</div>
-            <div className="font-mono text-[12.5px] leading-relaxed text-cyan">{active.shape}</div>
+            <div className="microlabel mb-1">{t('tensor shape', '张量形状')}</div>
+            <div className="font-mono text-[12.5px] leading-relaxed text-cyan">{pick(active.shape, lang)}</div>
           </div>
           <div>
-            <div className="microlabel mb-1">参数量</div>
-            <div className="font-mono text-[15px] tabular-nums text-volt">{active.params}</div>
+            <div className="microlabel mb-1">{t('parameters', '参数量')}</div>
+            <div className="font-mono text-[15px] tabular-nums text-volt">{pick(active.params, lang)}</div>
           </div>
           <div>
-            <div className="microlabel mb-1">单 token FLOPs</div>
-            <div className="font-mono text-[15px] tabular-nums text-amber">{active.flops}</div>
+            <div className="microlabel mb-1">{t('FLOPs / token', '单 token FLOPs')}</div>
+            <div className="font-mono text-[15px] tabular-nums text-amber">{pick(active.flops, lang)}</div>
           </div>
         </div>
-        <p className="mt-3 text-[13.5px] leading-[1.9] text-text">{active.desc}</p>
+        <p className="mt-3 text-[13.5px] leading-[1.9] text-text">{pick(active.desc, lang)}</p>
       </div>
 
       {/* 单层合计 */}
       <div className="mt-3 flex flex-wrap items-baseline gap-x-8 gap-y-2 rounded-md border border-line bg-panel2/40 px-4 py-2.5 font-mono text-[12.5px] text-ink2">
         <span>
-          本层合计 <span className="tabular-nums text-volt">202.4 M</span> 参数
+          {t('layer total ', '本层合计 ')}
+          <span className="tabular-nums text-volt">202.4 M</span>
+          {t(' params', ' 参数')}
         </span>
         <span>
-          ≈ <span className="tabular-nums text-amber">438.4 M</span> FLOPs / token（S=2048）
+          ≈ <span className="tabular-nums text-amber">438.4 M</span>
+          {t(' FLOPs / token (S=2048)', ' FLOPs / token（S=2048）')}
         </span>
-        <span className="text-ink3">× 32 层 + embedding ⇒ 6.74 B 参数</span>
+        <span className="text-ink3">{t('× 32 layers + embedding ⇒ 6.74 B params', '× 32 层 + embedding ⇒ 6.74 B 参数')}</span>
       </div>
     </Widget>
   )

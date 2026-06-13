@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Segmented, Stat, Widget } from '@/components/ui'
+import { useT } from '@/lib/i18n'
 
 /** LAB 02 AoS vs SoA：同一个「只读 .x」的 kernel，两种内存布局的事务数对比 */
 
@@ -28,6 +29,7 @@ function txnOf(layout: Layout) {
 }
 
 export function AosSoaLab() {
+  const t = useT()
   const [layout, setLayout] = useState<Layout>('aos')
 
   const { segSet, txnAos, txnSoa } = useMemo(
@@ -46,38 +48,58 @@ export function AosSoaLab() {
     <Widget
       index={2}
       title="AoS vs SoA"
-      subtitle="kernel 只读 .x 时，两种布局的带宽差 3 倍"
+      subtitle={t(
+        'When a kernel reads only .x, the two layouts differ 3x in bandwidth',
+        'kernel 只读 .x 时，两种布局的带宽差 3 倍',
+      )}
       onReset={() => setLayout('aos')}
       footer={
         <>
-          AoS 不是「错」：如果 kernel 同时要 x/y/z 三个字段，一个事务里顺便全带回来反而划算。只读
-          部分字段时 SoA 才是王道——深度学习框架里的 tensor 本质上全是 SoA。
+          {t(
+            <>
+              AoS isn't "wrong": if the kernel needs all of x/y/z, hauling them back together in one transaction
+              is actually the better deal. SoA only wins when you read just some fields — and the tensors in deep
+              learning frameworks are essentially all SoA.
+            </>,
+            <>
+              AoS 不是「错」：如果 kernel 同时要 x/y/z 三个字段，一个事务里顺便全带回来反而划算。只读
+              部分字段时 SoA 才是王道——深度学习框架里的 tensor 本质上全是 SoA。
+            </>,
+          )}
         </>
       }
     >
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
         <Segmented<Layout>
           options={[
-            { value: 'aos', label: 'AoS 数组的结构体' },
-            { value: 'soa', label: 'SoA 结构体的数组' },
+            { value: 'aos', label: t('AoS array of structs', 'AoS 数组的结构体') },
+            { value: 'soa', label: t('SoA struct of arrays', 'SoA 结构体的数组') },
           ]}
           value={layout}
           onChange={setLayout}
         />
         <span className="font-mono text-[11px] text-ink3">
-          {layout === 'aos' ? 'p[i].x —— 相邻线程地址差 12 B' : 'p.x[i] —— 相邻线程地址差 4 B'}
+          {layout === 'aos'
+            ? t('p[i].x — neighboring threads 12 B apart', 'p[i].x —— 相邻线程地址差 12 B')
+            : t('p.x[i] — neighboring threads 4 B apart', 'p.x[i] —— 相邻线程地址差 4 B')}
         </span>
       </div>
 
       <svg viewBox={`0 0 ${W} ${VH}`} className="mt-4 w-full font-mono">
         <g className="text-ink3" fontSize={10} fill="currentColor">
           <text x={0} y={12}>
-            WARP：32 LANE，每个读自己粒子的 .x（4 B）
+            {t('WARP: 32 LANES, each reads its own particle .x (4 B)', 'WARP：32 LANE，每个读自己粒子的 .x（4 B）')}
           </text>
           <text x={0} y={STRIP_Y - 10}>
             {layout === 'aos'
-              ? '内存布局：x y z x y z …（32 个 Particle 结构体，共 384 B）'
-              : '内存布局：x×32 ｜ y×32 ｜ z×32（三条独立数组，共 384 B）'}
+              ? t(
+                  'Layout: x y z x y z ... (32 Particle structs, 384 B total)',
+                  '内存布局：x y z x y z …（32 个 Particle 结构体，共 384 B）',
+                )
+              : t(
+                  'Layout: x*32 | y*32 | z*32 (three independent arrays, 384 B total)',
+                  '内存布局：x×32 ｜ y×32 ｜ z×32（三条独立数组，共 384 B）',
+                )}
           </text>
           <text x={0} y={STRIP_Y + STRIP_H + 16}>
             0 B
@@ -181,48 +203,48 @@ export function AosSoaLab() {
       <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 font-mono text-[11px] text-ink3">
         <span className="inline-flex items-center gap-1.5">
           <i className="inline-block size-2.5 rounded-[2px]" style={{ background: 'var(--color-cyan)' }} />
-          x（kernel 要读的）
+          {t('x (what the kernel reads)', 'x（kernel 要读的）')}
         </span>
         <span className="inline-flex items-center gap-1.5">
           <i
             className="inline-block size-2.5 rounded-[2px] opacity-60"
             style={{ background: 'var(--color-violet)' }}
           />
-          y（没人要）
+          {t('y (nobody wants)', 'y（没人要）')}
         </span>
         <span className="inline-flex items-center gap-1.5">
           <i
             className="inline-block size-2.5 rounded-[2px] opacity-50"
             style={{ background: 'var(--color-ink3)' }}
           />
-          z（没人要）
+          {t('z (nobody wants)', 'z（没人要）')}
         </span>
         <span className="inline-flex items-center gap-1.5">
           <i
             className="inline-block size-2.5 rounded-[2px]"
             style={{ background: 'color-mix(in srgb, var(--color-amber) 35%, transparent)' }}
           />
-          被触发的 32B 事务段
+          {t('32B transaction sector fired', '被触发的 32B 事务段')}
         </span>
       </div>
 
       <div className="mt-4 grid grid-cols-3 gap-4">
         <Stat
-          label="AoS 事务数"
+          label={t('AoS transactions', 'AoS 事务数')}
           value={txnAos}
           unit="txn"
           tone={layout === 'aos' ? 'amber' : 'ink'}
           size={layout === 'aos' ? 'lg' : 'md'}
         />
         <Stat
-          label="SoA 事务数"
+          label={t('SoA transactions', 'SoA 事务数')}
           value={txnSoa}
           unit="txn"
           tone={layout === 'soa' ? 'volt' : 'ink'}
           size={layout === 'soa' ? 'lg' : 'md'}
         />
         <Stat
-          label="当前带宽利用率"
+          label={t('Current bandwidth utilization', '当前带宽利用率')}
           value={`${Math.round(util * 100)}%`}
           tone={txn <= 4 ? 'volt' : 'rose'}
           size="lg"
