@@ -40,11 +40,11 @@ const KERNELS: KernelPt[] = [
   {
     id: 'vecadd',
     name: { en: 'vecAdd', zh: 'vecAdd' },
-    ai: 0.25,
+    ai: 0.1,
     frac: 0.85,
     blurb: {
-      en: 'Elementwise op: every byte moved earns only a fraction of a FLOP. No block-size tweak helps — it stays glued to the bandwidth slope, the textbook pure-bandwidth business.',
-      zh: '逐元素操作：每搬一个字节只摊到零点几个 FLOP。不管怎么调 block size，它都贴死在带宽斜线上——典型的纯带宽生意。',
+      en: 'Elementwise op: 1 FLOP per element against 6–12 bytes of traffic, so AI ≈ 0.08–0.17 — call it ~0.1. No block-size tweak helps; it stays glued to the bandwidth slope, the textbook pure-bandwidth business.',
+      zh: '逐元素操作：每个元素 1 个 FLOP 对 6–12 字节访存，AI ≈ 0.08–0.17，约 0.1。不管怎么调 block size，它都贴死在带宽斜线上——典型的纯带宽生意。',
     },
   },
   {

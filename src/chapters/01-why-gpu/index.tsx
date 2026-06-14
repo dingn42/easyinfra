@@ -523,18 +523,18 @@ export default function Chapter() {
                 <td className="py-2 text-ink2">{t('the baseline unit', '基准单位')}</td>
               </tr>
               <tr className="border-b border-line">
-                <td className="py-2 pr-4">{t('L1 cache hit', 'L1 缓存命中')}</td>
-                <td className="py-2 pr-4 font-mono tabular-nums text-cyan">~4</td>
-                <td className="py-2 text-ink2">{t('reaching for something on your desk', '伸手拿桌上的东西')}</td>
+                <td className="py-2 pr-4">{t('Shared memory / L1 hit', 'Shared memory / L1 命中')}</td>
+                <td className="py-2 pr-4 font-mono tabular-nums text-cyan">~30</td>
+                <td className="py-2 text-ink2">{t('getting up to grab something a few steps away', '起身走几步去拿个东西')}</td>
               </tr>
               <tr className="border-b border-line">
                 <td className="py-2 pr-4">{t('L2 cache hit', 'L2 缓存命中')}</td>
-                <td className="py-2 pr-4 font-mono tabular-nums text-cyan">~40</td>
+                <td className="py-2 pr-4 font-mono tabular-nums text-cyan">~200</td>
                 <td className="py-2 text-ink2">{t('walking to the next room to fetch it', '走去隔壁房间取一趟')}</td>
               </tr>
               <tr>
                 <td className="py-2 pr-4">{t('DRAM / HBM access', 'DRAM / HBM 访问')}</td>
-                <td className="py-2 pr-4 font-mono tabular-nums text-amber">~200+</td>
+                <td className="py-2 pr-4 font-mono tabular-nums text-amber">~400–600</td>
                 <td className="py-2 text-ink2">
                   {t(
                     'going downstairs to the parcel locker — one trip is long enough to do hundreds of multiply-adds',

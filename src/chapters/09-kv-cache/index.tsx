@@ -322,14 +322,16 @@ export default function Chapter() {
           {t(
             <>
               Run three experiments with the calculator: (1) pick 7B, 4K context, and push batch from 8 to 64 — see when
-              the KV bar hits the red line; (2) flip the GQA switch and the KV bar instantly shrinks to a quarter, the
-              max concurrency quadruples — one line of architecture change worth half a card; (3) switch to 70B — the
+              the KV bar hits the red line; (2) flip the GQA switch and the KV bar instantly shrinks to a quarter (this 7B
+              goes 32→8 KV heads, a 4× cut; the factor is n_heads/n_kv, so 70B's 64→8 is 8×), the max concurrency
+              quadruples — one line of architecture change worth half a card; (3) switch to 70B — the
               weights alone cross the 80 GB red line, which is why 70B-class models are off the table on a single card
               and have to wait for Chapter 12's tensor parallelism to be split apart.
             </>,
             <>
               用计算器做三个实验：① 选 7B、4K 上下文，把 batch 从 8 拉到 64 —— 看 KV
-              什么时候撞上红线；② 打开 GQA 开关，KV 条瞬间缩成四分之一，最大并发翻四倍 ——
+              什么时候撞上红线；② 打开 GQA 开关，KV 条瞬间缩成四分之一（这个 7B 是 32→8 个 KV 头，缩 4×；
+              缩减倍数 = n_heads/n_kv，所以 70B 的 64→8 是 8×），最大并发翻四倍 ——
               一行架构改动顶得上半张卡；③ 切到 70B —— 权重一项就越过 80GB
               红线，这就是为什么 70B 级别的模型单卡免谈，必须等到第十二章的张量并行来拆。
             </>,

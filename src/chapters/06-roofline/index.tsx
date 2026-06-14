@@ -44,14 +44,15 @@ export default function Chapter() {
             <>
               The last two chapters kept circling one fact: a modern GPU is a machine with <strong>compute to
               spare and bandwidth in short supply</strong>. Put numbers on it with the A100: BF16 Tensor Core peak is
-              about 312 TFLOPS, HBM bandwidth about 1.9 TB/s. In other words it can do 312 trillion floating-point ops a
+              about 312 TFLOPS, HBM bandwidth about 1.9 TB/s (the 80 GB SXM tops out near 2 TB/s; we use 1.9 as our
+              reference figure throughout). In other words it can do 312 trillion floating-point ops a
               second, but pull only 1.9 trillion bytes a second out of DRAM. Divide the two — for every byte you bring
               in, the machine throws in roughly 164 free ops worth of opportunity. Whatever free ops your program can't
               spend, the compute units just watch idle.
             </>,
             <>
               前两章反复出现过一个事实：现代 GPU 是一台<strong>算力过剩、带宽稀缺</strong>的机器。拿 A100 的数字说话：BF16
-              Tensor Core 峰值约 312 TFLOPS，HBM 带宽约 1.9 TB/s。也就是说，它每秒能做 312 万亿次浮点运算，却每秒只能从显存搬
+              Tensor Core 峰值约 312 TFLOPS，HBM 带宽约 1.9 TB/s（80GB SXM 实际接近 2 TB/s，本课统一以 1.9 为基准）。也就是说，它每秒能做 312 万亿次浮点运算，却每秒只能从显存搬
               1.9 万亿个字节。两个数相除——每搬进 1 个字节，机器「免费附送」大约 164 次运算的机会。
               你的程序用不掉这些免费额度，算力就在围观。
             </>,
