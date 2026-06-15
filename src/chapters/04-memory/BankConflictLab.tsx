@@ -67,12 +67,12 @@ export function BankConflictLab() {
             <>
               Sweep the slider: stride=1 is perfectly parallel; 2 -&gt; 2-way conflict; 32 -&gt; the whole warp
               jams into bank 0, 32x serialization; 33 -&gt; perfect again. That mysterious +1 column in
-              tile[32][33] is, in essence, turning the column-access stride from 32 into 33. Also: several lanes
-              reading the <em>same</em> address is not a conflict — the hardware broadcasts.
+              tile[32][33] does nothing but turn the column-access stride from 32 into 33. And several lanes
+              reading the <em>same</em> address is not a conflict; the hardware broadcasts.
             </>,
             <>
               拖一遍滑杆：stride=1 完美并行；2 → 2 路冲突；32 → 全 warp 挤进 bank 0，32 倍串行；33 →
-              又完美。tile[32][33] 那个神秘的 +1 列，本质就是把列访问的 stride 从 32 变成 33。另：多个
+              又完美。tile[32][33] 那个神秘的 +1 列，做的不过是把列访问的 stride 从 32 变成 33。另外，多个
               lane 读<em>同一个</em>地址不算冲突，硬件会广播（broadcast）。
             </>,
           )}

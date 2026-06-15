@@ -51,13 +51,13 @@ export function OccupancyLab() {
       }}
       footer={t(
         <>
-          Higher occupancy isn't better — it only needs to be "enough to hide latency." High-performance GEMM often pushes occupancy down
-          to 25%–50% on purpose, in exchange for 100+ registers per thread to hold the micro-tile's accumulators: each warp does more work,
+          Higher occupancy isn't better; it only needs to be enough to hide latency. High-performance GEMM often pushes occupancy down
+          to 25%–50% on purpose, in exchange for 100+ registers per thread to hold the micro-tile's accumulators. Each warp does more work,
           so fewer warps are needed.
         </>,
         <>
-          occupancy 不是越高越好 —— 它只需要「够隐藏延迟」。高性能 GEMM 常常故意把 occupancy
-          压到 25%~50%，换来每线程 100+ 个寄存器去放 micro-tile 的累加器：每个 warp 干的活多了，
+          occupancy 不是越高越好，够隐藏延迟就行。高性能 GEMM 常常故意把 occupancy
+          压到 25%~50%，换来每线程 100+ 个寄存器去放 micro-tile 的累加器。每个 warp 干的活多了，
           需要的 warp 自然就少了。
         </>,
       )}
@@ -84,11 +84,11 @@ export function OccupancyLab() {
           {t(
             <>
               LAUNCH FAILURE: one block needs {regs} × {blockDim} ={' '}
-              {(regs * blockDim).toLocaleString('en-US')} registers, exceeding the SM total of 65,536 — the kernel can't launch at all.
+              {(regs * blockDim).toLocaleString('en-US')} registers, past the SM total of 65,536, so the kernel can't launch at all.
             </>,
             <>
               LAUNCH FAILURE：单个 block 需要 {regs} × {blockDim} ={' '}
-              {(regs * blockDim).toLocaleString('en-US')} 个寄存器，超过 SM 总量 65,536 —— kernel 根本启动不了。
+              {(regs * blockDim).toLocaleString('en-US')} 个寄存器，超过 SM 总量 65,536，kernel 根本启动不了。
             </>,
           )}
         </div>
@@ -132,8 +132,8 @@ export function OccupancyLab() {
       </div>
       <p className="mt-3 text-[12px] leading-relaxed text-ink3">
         {t(
-          'occupancy = resident threads ÷ 2048. Real hardware allocates registers at a granularity of 256 and schedules per warp, so this is an idealized formula — but the "minimum of four constraints" structure is exact; the CUDA Occupancy Calculator uses the very same algorithm.',
-          'occupancy = 驻留线程 ÷ 2048。实际硬件按 256 个一组的粒度分配寄存器、warp 为单位调度，这里取理想化公式 —— 但「四个约束取最小值」这个结构是精确的，CUDA Occupancy Calculator 用的就是同一套算法。',
+          'occupancy = resident threads ÷ 2048. Real hardware allocates registers at a granularity of 256 and schedules per warp, so this formula is idealized. The "minimum of four constraints" structure, though, is exact: the CUDA Occupancy Calculator runs the very same algorithm.',
+          'occupancy = 驻留线程 ÷ 2048。实际硬件按 256 个一组的粒度分配寄存器、以 warp 为单位调度，所以这条公式是理想化的。不过「四个约束取最小值」这个结构是精确的，CUDA Occupancy Calculator 用的就是同一套算法。',
         )}
       </p>
     </Widget>

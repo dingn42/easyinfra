@@ -90,13 +90,13 @@ export function FlopsExplorer() {
       onReset={reset}
       footer={t(
         <>
-          Try pulling SEQ LEN from 2K to 32K: the linear layers&apos; FLOPs don&apos;t move, but the{' '}
-          <span className="text-amber">score·AV</span> segment grows ever wider — attention is the only term that
-          gets pricier with context length. Then switch to the GPT-3 preset and feel the force of d².
+          Pull SEQ LEN from 2K to 32K: the linear layers&apos; FLOPs don&apos;t move, while the{' '}
+          <span className="text-amber">score·AV</span> segment keeps widening. Attention is the only term that gets
+          pricier with context length. Then switch to the GPT-3 preset and watch d² do its work.
         </>,
         <>
-          试着把 SEQ LEN 从 2K 拉到 32K：线性层的 FLOPs 一动不动，<span className="text-amber">score·AV</span> 那一段
-          却越来越宽——attention 是唯一随上下文长度涨价的项。再换到 GPT-3 预设，感受 d² 的威力。
+          把 SEQ LEN 从 2K 拉到 32K：线性层的 FLOPs 一动不动，<span className="text-amber">score·AV</span> 那一段
+          却越来越宽。attention 是唯一随上下文长度涨价的项。再换到 GPT-3 预设，看 d² 怎么发力。
         </>,
       )}
     >

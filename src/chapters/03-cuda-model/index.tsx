@@ -143,24 +143,23 @@ export default function Chapter() {
       <p>
         {t(
           <>
-            If you have written CPU code for a decade, the most disorienting thing about reading your first CUDA
-            program isn't some new keyword — it's that <strong>something is missing: the loop</strong>. To add two
-            arrays of a million elements, a CPU programmer's instinct is to write{' '}
-            <code>for (i = 0; i &lt; n; i++)</code> and let one core grind through a million iterations. The first
-            lesson of CUDA is to delete that for loop — the loop body stays, the loop itself vanishes, and in its
-            place <strong>a million threads each run the body exactly once</strong>. "The i-th iteration" becomes
-            "thread number i," and the loop variable <code>i</code> is no longer produced by <code>i++</code> but
-            by each thread asking the hardware: "who am I?" This chapter makes that model crisp: how threads are
-            numbered, why they're organized in layers, and the full round trip a CUDA program takes from CPU to GPU
-            and back.
+            If you have written CPU code for a decade, the most disorienting thing about your first CUDA program
+            isn't some new keyword. It's that <strong>something is missing: the loop</strong>. To add two arrays of
+            a million elements, a CPU programmer reaches for <code>for (i = 0; i &lt; n; i++)</code> and lets one
+            core grind through a million iterations. CUDA's first lesson is to delete that loop. The body stays, the
+            loop itself vanishes, and in its place <strong>a million threads each run the body exactly once</strong>.
+            "The i-th iteration" becomes "thread number i," and the loop variable <code>i</code> no longer comes from{' '}
+            <code>i++</code>. Each thread asks the hardware instead: who am I? This chapter makes that model concrete
+            — how threads are numbered, why they sit in layers, and the full round trip a program takes from CPU to
+            GPU and back.
           </>,
           <>
-            如果你写了十年 CPU 代码，第一次读 CUDA 程序时最不适应的不是哪个新关键字，而是<strong>有个东西不见了：循环</strong>。
-            给两个一百万元素的数组做加法，CPU 程序员的本能是写 <code>for (i = 0; i &lt; n; i++)</code>，
-            让一个核心吭哧吭哧跑一百万圈。CUDA 的第一课是把这个 for 循环删掉——循环体留下，循环本身消失，
+            写了十年 CPU 代码的人，第一次读 CUDA 程序时最不适应的往往不是哪个新关键字，而是<strong>有个东西不见了：循环</strong>。
+            给两个一百万元素的数组做加法，CPU 程序员顺手就写 <code>for (i = 0; i &lt; n; i++)</code>，
+            让一个核心吭哧吭哧跑一百万圈。CUDA 的第一课就是把这个 for 循环删掉。循环体留下，循环本身消失，
             取而代之的是<strong>一百万个线程同时各执行一次循环体</strong>。「第 i 次迭代」变成了「第 i 号线程」，
-            迭代变量 <code>i</code> 不再由 <code>i++</code> 产生，而是每个线程问硬件：「我是谁？」这一章就讲清楚这个模型：
-            线程怎么编号、为什么要分层组织、以及一段 CUDA 程序从 CPU 到 GPU 再回来的完整旅程。
+            迭代变量 <code>i</code> 不再由 <code>i++</code> 产生，而是每个线程去问硬件：我是谁？这一章把这个模型讲清楚：
+            线程怎么编号、为什么要分层组织，以及一段 CUDA 程序从 CPU 到 GPU 再回来的完整旅程。
           </>,
         )}
       </p>
@@ -222,15 +221,15 @@ export default function Chapter() {
           <li>
             {t(
               <>
-                <strong>Line 2 (highlighted)</strong>: the soul of the entire CUDA model. As each thread reaches
-                this line, it reads "who am I" from the built-in variables and computes a globally unique index{' '}
-                <code>i</code>. Note that every thread executes this line, yet each one computes a different{' '}
-                <code>i</code> — and this is exactly how "same code, different data" is realized.
+                <strong>Line 2 (highlighted)</strong>: the heart of the whole model. When a thread reaches this
+                line, it reads "who am I" out of the built-in variables and computes a globally unique index{' '}
+                <code>i</code>. Every thread runs this line, but each lands on a different <code>i</code>. That gap
+                is how "same code, different data" actually works.
               </>,
               <>
-                <strong>第 2 行（高亮）</strong>：整个 CUDA 模型的灵魂。每个线程跑到这里时，从内建变量里读出「我是谁」，
-                算出一个全局唯一的编号 <code>i</code>。注意这行代码所有线程都执行，但每个线程算出的 <code>i</code> 不同——
-                这正是「同一份代码、不同的数据」的实现方式。
+                <strong>第 2 行（高亮）</strong>：整个模型的核心。线程跑到这里，从内建变量里读出「我是谁」，
+                算出一个全局唯一的编号 <code>i</code>。所有线程都执行这行，但每个线程算出的 <code>i</code> 都不一样。
+                正是这个差异，让「同一份代码、不同的数据」真正跑起来。
               </>,
             )}
           </li>
@@ -305,24 +304,24 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              Threads aren't launched one at a time — they're launched in whole blocks. Say <code>n = 1000</code>{' '}
-              with 256 threads per block. You can't launch "3.9 blocks," only round up to 4, so 1024 threads
-              actually run — 24 more than the data. Those 24 threads compute indices <code>i</code> from 1000 to
-              1023, and if you don't stop them, <code>C[i] = A[i] + B[i]</code> becomes a genuine{' '}
-              <strong>out-of-bounds read and write</strong>: at best you corrupt data, at worst the whole kernel
+              Threads don't launch one at a time. They launch in whole blocks. Say <code>n = 1000</code> with 256
+              threads per block. You can't launch "3.9 blocks," so you round up to 4, and 1024 threads actually run,
+              24 more than there is data for. Those 24 threads compute indices <code>i</code> from 1000 to 1023.
+              Leave them unchecked and <code>C[i] = A[i] + B[i]</code> turns into a real{' '}
+              <strong>out-of-bounds read and write</strong>: best case you corrupt data, worst case the whole kernel
               dies with <code>illegal memory access</code>. So that <code>if</code> isn't defensive-programming
-              fussiness — it's the inevitable consequence of one structural fact: "thread count is rounded up to
-              whole blocks, so it almost always exceeds the data size." Nearly every production kernel opens with a
-              line of bounds checking just like this.
+              fussiness. It falls straight out of one structural fact: thread count rounds up to whole blocks, so it
+              almost always overshoots the data size. Nearly every production kernel opens with a bounds check
+              exactly like this one.
             </>,
             <>
-              线程不是按 1 个的粒度启动的，而是按 block 的粒度启动。假设 <code>n = 1000</code>、每 block 256 线程，
-              你不可能启动「3.9 个 block」，只能向上取整启动 4 个，于是实际有 1024 个线程在跑——比数据多出 24 个。
-              这 24 个线程算出的 <code>i</code> 是 1000 到 1023，如果不拦住它们，<code>C[i] = A[i] + B[i]</code>{' '}
+              线程不是一个一个启动的，而是整块整块地启动。假设 <code>n = 1000</code>、每 block 256 线程，
+              你启动不了「3.9 个 block」，只能向上取整启动 4 个，于是实际有 1024 个线程在跑，比数据多出 24 个。
+              这 24 个线程算出的 <code>i</code> 落在 1000 到 1023。不拦住它们，<code>C[i] = A[i] + B[i]</code>{' '}
               就是一次实打实的<strong>越界读写</strong>：轻则数据损坏，重则整个 kernel 报{' '}
               <code>illegal memory access</code> 崩掉。所以那行 <code>if</code> 不是防御性编程的洁癖，
-              而是「线程数按 block 取整、几乎永远多于数据量」这一结构性事实的必然要求。几乎每一个生产 kernel
-              的开头都站着这么一行边界检查。
+              它直接来自一个结构性事实：线程数按 block 取整，几乎永远多于数据量。几乎每一个生产 kernel
+              的开头，都站着这么一行边界检查。
             </>,
           )}
         </p>
@@ -359,13 +358,13 @@ export default function Chapter() {
           {t(
             <>
               <code>&lt;&lt;&lt;numBlocks, blockSize&gt;&gt;&gt;</code> reads as "launch numBlocks blocks, each with
-              blockSize threads." The natural first question is: why bother with two layers? Why can't I just write
-              "launch 1048576 threads"? The answer lies in what each layer can and can't do:
+              blockSize threads." The obvious question: why two layers? Why not just write "launch 1048576 threads"?
+              The answer is in what each layer can and can't do:
             </>,
             <>
               <code>&lt;&lt;&lt;numBlocks, blockSize&gt;&gt;&gt;</code> 读作「启动 numBlocks 个 block，每个 block 含
-              blockSize 个线程」。第一个问题自然是：为什么要费劲分两层？让我直接写「启动 1048576 个线程」不行吗？
-              答案藏在两层各自的能力差异里：
+              blockSize 个线程」。一个很自然的问题：为什么要分两层？直接写「启动 1048576 个线程」不行吗？
+              答案藏在两层各自能做什么、不能做什么：
             </>,
           )}
         </p>
@@ -428,31 +427,32 @@ export default function Chapter() {
         <Callout
           type="insight"
           title={t(
-            'Block independence is not a limitation — it is the source of scalability',
-            'block 间独立不是限制，而是可扩展性的来源',
+            'Block independence is where scalability comes from',
+            'block 间独立，正是可扩展性的来源',
           )}
         >
           <p>
             {t(
               <>
-                Precisely because blocks are independent, the hardware scheduler can treat them as{' '}
+                Because blocks are independent, the hardware scheduler can treat them as{' '}
                 <strong>a bag of unrelated tasks</strong> and toss one at whichever SM just went idle. The same
-                compiled binary runs on a laptop GPU with 10 SMs — the hardware lays out 10 blocks at once — and on
-                an H100 with 132 SMs — 132 at once — without changing a single line, performance scaling
-                automatically with the SM count. This is what CUDA calls{' '}
-                <strong>transparent scalability</strong>: you describe "which units of work are independent," and
-                the hardware decides "how to spread them out." Conversely, the moment you quietly assume an
-                execution order between blocks (say, block 1 waits on data written by block 0), your program
-                deadlocks or produces wrong results on certain cards — independence is the contract between you and
-                the hardware.
+                compiled binary runs on a laptop GPU with 10 SMs (the hardware lays out 10 blocks at once) and on an
+                H100 with 132 SMs (132 at once), no source change, performance scaling with the SM count on its own.
+                CUDA calls this <strong>transparent scalability</strong>: you describe which units of work are
+                independent, and the hardware decides how to spread them out. The newer Blackwell cards push the
+                same idea further with even more SMs and bandwidth, and the binary still doesn't change. Quietly
+                assume an order between blocks, though, and you're in trouble. Have block 1 wait on data block 0
+                wrote and the program will deadlock or return garbage on some cards. Independence is the contract
+                between you and the hardware.
               </>,
               <>
-                正因为 block 互相独立，硬件调度器才可以把它们<strong>当作一袋互不相干的任务</strong>，哪个 SM
+                因为 block 互相独立，硬件调度器才能把它们<strong>当成一袋互不相干的任务</strong>，哪个 SM
                 空了就扔一个过去。同一份编译产物，在 10 个 SM 的笔记本 GPU 上跑，硬件一次摆 10 个 block；
-                在 132 个 SM 的 H100 上跑，一次摆 132 个——程序一行不改，性能随 SM 数量自动伸缩。
-                这就是 CUDA 所谓的「透明可扩展性（transparent scalability）」：你描述「有哪些独立的工作」，
-                硬件决定「怎么铺开」。反过来，一旦你偷偷假设了 block 间的执行顺序（比如 block 1 等 block 0
-                写好的数据），程序就会在某些卡上死锁或出错——独立性是你和硬件之间的契约。
+                在 132 个 SM 的 H100 上跑，一次摆 132 个。源码一行不改，性能就随 SM 数量自动伸缩。
+                CUDA 把这叫「透明可扩展性（transparent scalability）」：你描述有哪些独立的工作，
+                硬件决定怎么铺开。更新的 Blackwell 代用更多 SM、更高带宽把这套思路推得更远，编译产物照样不用改。
+                可一旦你偷偷假设了 block 间的执行顺序，麻烦就来了：让 block 1 去等 block 0 写好的数据，
+                程序就会在某些卡上死锁或算错。独立性是你和硬件之间的契约。
               </>,
             )}
           </p>
@@ -460,33 +460,33 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              The two-layer structure maps cleanly onto two layers of hardware reality: a block's ability to
-              cooperate comes from the physical fact that it's "pinned to one SM"; the independence between blocks
-              comes from the commercial fact that "the SM count varies card to card." One layer is too flat (who
-              cooperates with whom among a million threads?), three is too baroque, and two cuts "the scope of
-              cooperation" cleanly apart from "the scale of parallelism." As an aside: within a block, the hardware
-              further slices threads into groups of 32 called{' '}
+              The two layers map onto two layers of hardware reality. A block can cooperate because it's physically
+              pinned to one SM; blocks stay independent because the SM count varies from card to card, a fact of the
+              product line, not the architecture. One layer would be too flat (who cooperates with whom among a
+              million threads?) and three would be overkill. Two is just enough to separate the scope of cooperation
+              from the scale of parallelism. One aside: inside a block, the hardware slices threads further into
+              groups of 32 called{' '}
               <Term t={t('warps', 'warp（线程束）')}>
                 {t(
-                  'The smallest unit the hardware schedules — 32 threads executing the same instruction in lockstep. The star of the previous chapter.',
+                  'The smallest unit the hardware schedules: 32 threads executing the same instruction in lockstep. The star of the previous chapter.',
                   '硬件调度的最小单位，32 个线程锁步执行同一条指令。上一章的主角。',
                 )}
               </Term>
-              . This is a third layer from the hardware's point of view, but it doesn't appear in the launch syntax
-              of the programming model — you declare threads and blocks, and the hardware slices warps on its own.
+              . That's a third layer from the hardware's point of view, but it never shows up in the programming
+              model's launch syntax. You declare threads and blocks; the hardware slices warps on its own.
             </>,
             <>
-              两层结构正好映射到硬件的两层现实：block 内的协作能力来自「钉死在一个 SM 上」这个物理事实；block
-              间的独立性来自「SM 数量因卡而异」这个商业事实。一层太扁（百万线程谁跟谁协作？），三层太繁，
-              两层刚好把「能协作的范围」和「能并行的规模」切开。顺带一提：block 内的线程在硬件上还会被切成 32
+              这两层正好映射到硬件的两层现实。block 内能协作，是因为它被物理地钉死在一个 SM 上；block
+              间相互独立，是因为 SM 数量因卡而异——这是产品线的事实，不是架构的事实。一层太扁（百万线程谁跟谁协作？），
+              三层又太繁，两层刚好把能协作的范围和能并行的规模切开。顺带一提：block 内的线程在硬件上还会被切成 32
               个一组的{' '}
               <Term t={t('warps', 'warp（线程束）')}>
                 {t(
-                  'The smallest unit the hardware schedules — 32 threads executing the same instruction in lockstep. The star of the previous chapter.',
+                  'The smallest unit the hardware schedules: 32 threads executing the same instruction in lockstep. The star of the previous chapter.',
                   '硬件调度的最小单位，32 个线程锁步执行同一条指令。上一章的主角。',
                 )}
               </Term>
-              ，这是硬件视角的第三层，但它不出现在编程模型的启动语法里——你声明 thread 和 block，硬件自己去切 warp。
+              ，这是硬件视角的第三层，但它从不出现在编程模型的启动语法里。你声明 thread 和 block，warp 由硬件自己切。
             </>,
           )}
         </p>
@@ -571,19 +571,18 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              What's worth noticing is the proportion of wasted threads: at N=1000, blockDim=256 you waste only
-              24/1024 ≈ 2.3%, harmless; but at N=16, blockDim=1024 the waste hits 98% — the whole card has just 16
-              threads doing actual work. This is exactly why "a job with too little data isn't worth shipping to the
-              GPU": no launch configuration can rescue a problem that simply can't keep the machine fed. Another
-              intuition: bigger blockDim isn't always better. It affects the scope of cooperation and occupancy
-              (detailed in <ChapterLink n={5} />), but has no effect on "whether the result is correct" — correctness
-              comes from the index formula and the bounds check.
+              Watch the fraction of wasted threads. At N=1000, blockDim=256 you waste only 24/1024 ≈ 2.3%, which is
+              harmless. At N=16, blockDim=1024 the waste hits 98%: the whole card has 16 threads doing real work.
+              That's why a job with too little data isn't worth shipping to the GPU. No launch configuration rescues
+              a problem that can't keep the machine fed. A second intuition: bigger blockDim isn't always better. It
+              moves the scope of cooperation and occupancy (covered in <ChapterLink n={5} />), but it has no bearing
+              on whether the result is correct. Correctness comes from the index formula and the bounds check.
             </>,
             <>
-              值得注意的是浪费线程的占比：N=1000、blockDim=256 时只浪费 24/1024 ≈ 2.3%，无伤大雅；但若 N=16、blockDim=1024，
-              浪费高达 98%——整卡只有 16 个线程在干活。这也是为什么「数据量太小的活不值得下发到 GPU」：
-              launch 配置救不了本来就喂不饱机器的问题。另一个直觉：blockDim 不是越大越好，它影响的是协作范围和占用率（
-              <ChapterLink n={5} />细讲），对「能不能算对」没有影响——算对靠的是索引公式和边界检查。
+              留意一下浪费线程的占比。N=1000、blockDim=256 时只浪费 24/1024 ≈ 2.3%，无伤大雅；N=16、blockDim=1024 时，
+              浪费却高达 98%，整卡只有 16 个线程在干活。这就是为什么数据量太小的活不值得下发到 GPU：
+              launch 配置救不了一个本来就喂不饱机器的问题。还有个直觉：blockDim 不是越大越好。它影响的是协作范围和占用率（
+              <ChapterLink n={5} />细讲），但跟能不能算对没关系。算得对，靠的是索引公式和边界检查。
             </>,
           )}
         </p>
@@ -637,17 +636,16 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              Now that the formula makes sense, watch it execute. The simulator below slows one{' '}
-              <code>add&lt;&lt;&lt;3, 8&gt;&gt;&gt;</code> launch into a single-steppable animation: at each step,
-              the 8 threads of the current block do the same thing <strong>simultaneously</strong> — compute their
-              index together, clear the bounds check together, read A and B together (cyan flash), write C together
-              (volt flash). Notice that no single thread is "looping" — the loop has been spatialized into 24 cells
-              side by side.
+              Now that the formula makes sense, watch it run. The simulator below slows one{' '}
+              <code>add&lt;&lt;&lt;3, 8&gt;&gt;&gt;</code> launch into a single-steppable animation. At each step the
+              8 threads of the current block do the same thing <strong>simultaneously</strong>: compute their index
+              together, clear the bounds check together, read A and B together (cyan flash), write C together (volt
+              flash). No single thread is looping. The loop has been spatialized into 24 cells side by side.
             </>,
             <>
-              公式看懂了，再看执行。下面的模拟器把一次 <code>add&lt;&lt;&lt;3, 8&gt;&gt;&gt;</code>{' '}
-              启动放慢成可以单步的动画：每一步里，当前 block 的 8 个线程<strong>同时</strong>做同一件事——同时算索引、
-              同时过边界检查、同时读 A 和 B（cyan 闪烁）、同时写 C（volt 闪烁）。注意没有任何一个线程在「循环」，
+              公式看懂了，再看它怎么跑。下面的模拟器把一次 <code>add&lt;&lt;&lt;3, 8&gt;&gt;&gt;</code>{' '}
+              启动放慢成可以单步的动画。每一步里，当前 block 的 8 个线程<strong>同时</strong>做同一件事：一起算索引、
+              一起过边界检查、一起读 A 和 B（cyan 闪烁）、一起写 C（volt 闪烁）。没有任何一个线程在循环，
               循环被空间化成了 24 个并排的格子。
             </>,
           )}
@@ -656,18 +654,18 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              The button to really play with is "shuffle scheduling": it randomly reorders the execution of the 3
-              blocks and replays. Block 2 runs first, block 0 brings up the rear? C's result is identical to the
-              last bit. This is the visualization of the contract from the previous section — each element is
-              touched exactly once by "its own" thread, there's no data dependency between threads, so the schedule
-              order is irrelevant. On a real GPU this kind of reordering happens constantly: whichever SM frees up
-              first gets the next block. <strong>Never assume an execution order between blocks</strong> — a line
-              worth repeating to yourself three times.
+              The button to play with is "shuffle scheduling": it reorders the 3 blocks at random and replays. Block
+              2 runs first, block 0 brings up the rear? C comes out identical to the last bit. That's the contract
+              from the previous section made visible. Each element is touched exactly once by its own thread, no
+              thread depends on another, so the schedule order doesn't matter. On a real GPU this reordering happens
+              constantly: whichever SM frees up first grabs the next block.{' '}
+              <strong>Never assume an execution order between blocks</strong>, a line worth repeating to yourself
+              three times.
             </>,
             <>
-              重点玩「乱序调度」按钮：它随机打乱 3 个 block 的执行顺序重放一遍。block 2 先跑、block 0
-              垫底？C 的结果分毫不差。这正是上一节那条契约的可视化——每个元素只被「自己的」那个线程碰一次，
-              线程之间没有任何数据依赖，所以调度顺序无关紧要。真实 GPU 上这种乱序时刻都在发生：哪个 SM 先空出来，
+              值得一玩的是「乱序调度」按钮：它把 3 个 block 的执行顺序随机打乱再重放一遍。block 2 先跑、block 0
+              垫底？C 的结果分毫不差。这就是上一节那条契约的可视化：每个元素只被「自己的」那个线程碰一次，
+              线程之间没有数据依赖，所以调度顺序无关紧要。真实 GPU 上这种乱序时刻都在发生：哪个 SM 先空出来，
               哪个 block 就先上。<strong>永远不要假设 block 间的执行顺序</strong>，这句话值得在心里默念三遍。
             </>,
           )}
@@ -708,15 +706,16 @@ export default function Chapter() {
               <>
                 <strong>The kernel launch is asynchronous (line 31).</strong> The line{' '}
                 <code>add&lt;&lt;&lt;...&gt;&gt;&gt;</code> only <em>submits</em> the work to the GPU; the CPU
-                doesn't wait for it to finish and runs straight on to the next line. That's a good thing — the CPU
-                can use the time to prep the next batch of data — but it also means reading the result right after
-                the launch reads nothing. To wait explicitly, use <code>cudaDeviceSynchronize()</code>.
+                doesn't wait for it to finish and runs straight on to the next line. That's usually what you want,
+                since the CPU can spend the time prepping the next batch of data. But it also means reading the
+                result right after the launch reads nothing. To wait explicitly, call{' '}
+                <code>cudaDeviceSynchronize()</code>.
               </>,
               <>
                 <strong>kernel 启动是异步的（第 31 行）。</strong>
-                <code>add&lt;&lt;&lt;...&gt;&gt;&gt;</code> 这行只是把任务<em>提交</em>给 GPU，CPU 不等它跑完就继续执行下一行。
-                这是好事——CPU 可以趁机准备下一批数据——但也意味着你在 launch 之后立刻读结果是读不到的。
-                想显式等待用 <code>cudaDeviceSynchronize()</code>。
+                <code>add&lt;&lt;&lt;...&gt;&gt;&gt;</code> 这行只是把任务<em>提交</em>给 GPU，CPU 不等它跑完就接着执行下一行。
+                这通常是好事，CPU 可以趁机准备下一批数据；但它也意味着你在 launch 之后立刻读结果是读不到的。
+                想显式等待，调 <code>cudaDeviceSynchronize()</code>。
               </>,
             )}
           </li>
@@ -724,15 +723,15 @@ export default function Chapter() {
             {t(
               <>
                 <strong>cudaMemcpy is an implicit sync point (line 35).</strong> A D2H copy can't start until the
-                kernel has finished writing C, so this line naturally "waits" for the kernel to end. Many beginner
-                programs compute correctly without any explicit sync, riding entirely on this safety net — but know
-                the why behind the what, because the moment you switch to an async copy (
-                <code>cudaMemcpyAsync</code>) this free insurance is gone.
+                kernel has finished writing C, so this line naturally waits for the kernel to end. Plenty of beginner
+                programs compute correctly with no explicit sync at all, riding entirely on this safety net. Know why
+                it works, though, because the moment you switch to an async copy (<code>cudaMemcpyAsync</code>) the
+                free insurance is gone.
               </>,
               <>
                 <strong>cudaMemcpy 是隐式同步点（第 35 行）。</strong>D2H 拷贝必须等 kernel 把 C
-                写完才开始搬，所以这一行天然「等」了 kernel 结束。很多入门程序没写任何显式同步也能算对，全靠它兜底——知其然也要知其所以然，
-                等你换成异步拷贝（<code>cudaMemcpyAsync</code>）时这层免费保险就没了。
+                写完才开始搬，所以这一行天然就「等」到了 kernel 结束。很多入门程序一句显式同步都没写也能算对，全靠它兜底。
+                但你得知道它为什么管用，因为一旦换成异步拷贝（<code>cudaMemcpyAsync</code>），这层免费保险就没了。
               </>,
             )}
           </li>
@@ -743,9 +742,9 @@ export default function Chapter() {
                 "sticky" and often surface late: an out-of-bounds access inside a kernel frequently isn't reported
                 until the next synchronizing operation, and a program that doesn't check error codes will crash
                 mysteriously a thousand miles from the actual error site. So everyone wraps every call in a{' '}
-                <code>CUDA_CHECK</code> macro (see the top of the code) that stops the moment something fails, with
-                the file name and line number attached. This isn't an optional good habit — it's the passing grade
-                for CUDA engineering.
+                <code>CUDA_CHECK</code> macro (see the top of the code) that stops the moment something fails and
+                prints the file name and line number. This isn't a nice-to-have habit. It's the passing grade for
+                CUDA engineering.
               </>,
               <>
                 <strong>每个 CUDA API 调用都返回错误码，必须检查。</strong>CUDA 的错误是「粘性」的而且经常延迟暴露：kernel
@@ -760,12 +759,11 @@ export default function Chapter() {
           <p>
             {t(
               <>
-                The most expensive part of the five steps is often not the compute but the PCIe movement in steps 2
-                and 4: PCIe 4.0 x16 measures around 25 GB/s, while H100 VRAM bandwidth is around 3.35 TB/s — two
-                orders of magnitude apart. For a kernel like vecAdd that "moves 12 bytes to do 1 addition," the
-                end-to-end time is spent almost entirely on movement. How to save on movement, and how to overlap
-                compute with movement, is the through-line of <ChapterLink n={4} label="Chapters 4" /> and{' '}
-                <ChapterLink n={6} />.
+                The priciest part of the five steps is often not the compute but the PCIe movement in steps 2 and 4.
+                PCIe 4.0 x16 measures around 25 GB/s; H100 VRAM bandwidth is around 3.35 TB/s. That's two orders of
+                magnitude apart. For a kernel like vecAdd that moves 12 bytes to do 1 addition, the end-to-end time
+                goes almost entirely into movement. How to move less, and how to overlap compute with movement, is
+                the through-line of <ChapterLink n={4} label="Chapters 4" /> and <ChapterLink n={6} />.
               </>,
               <>
                 五部曲里最贵的常常不是计算而是②和④的 PCIe 搬运：PCIe 4.0 x16 实测约 25 GB/s 上下，而 H100 显存带宽约
@@ -788,14 +786,14 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              When handling two-dimensional data like images or matrices, manually flattening them to 1D and
-              computing the index by hand works, of course — but CUDA offers a more natural notation: grids and
-              blocks themselves can be 1D, 2D, or 3D, declared with the <code>dim3</code> type. The index formula is
-              independent per dimension, each one the familiar "block start + offset within block":
+              For two-dimensional data like images or matrices, you can always flatten to 1D and compute the index
+              by hand. CUDA also gives you a more natural notation: grids and blocks can themselves be 1D, 2D, or 3D,
+              declared with the <code>dim3</code> type. The index formula stays independent per dimension, each one
+              the familiar "block start + offset within block":
             </>,
             <>
-              处理图像、矩阵这类二维数据时，把它们手动压扁成一维再算索引当然可行，但 CUDA 提供了更顺手的写法：grid 和
-              block 本身可以是 1D、2D 或 3D 的，用 <code>dim3</code> 类型声明。索引公式逐维独立，每一维都是熟悉的「block
+              处理图像、矩阵这类二维数据，你完全可以把它压扁成一维再手算索引。CUDA 还给了更顺手的写法：grid 和
+              block 本身可以是 1D、2D 或 3D 的，用 <code>dim3</code> 类型声明。索引公式逐维独立，每一维都是熟悉的那套「block
               起点 + 块内偏移」：
             </>,
           )}
@@ -809,20 +807,20 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              Picture an H×W image tiled by 16×16 tiles (blocks): <code>blockIdx.x/y</code> is the tile's column and
+              Picture an H×W image tiled by 16×16 tiles (blocks). <code>blockIdx.x/y</code> is the tile's column and
               row number, <code>threadIdx.x/y</code> is the local coordinate inside the tile, and a multiply-add per
-              dimension gives the global <code>col</code> and <code>row</code>. The bounds check is per-dimension
-              too — image width and height are rarely exact multiples of 16, so the tiles on the right and bottom
-              edges always poke out a little. The last line, <code>idx = row * W + col</code>, reminds us:
-              multidimensionality is just syntactic sugar the programming model gives you. VRAM is always a 1D byte
-              sequence, and 2D coordinates ultimately convert back to a linear address (row-major).
+              dimension gives the global <code>col</code> and <code>row</code>. The bounds check goes per-dimension
+              too, since image width and height are rarely exact multiples of 16 and the tiles on the right and
+              bottom edges always poke out a little. The last line, <code>idx = row * W + col</code>, is the
+              reminder: multidimensionality is just syntactic sugar from the programming model. VRAM is always a 1D
+              byte sequence, and 2D coordinates convert back to a linear address (row-major) in the end.
             </>,
             <>
-              想象一张 H×W 的图被 16×16 的瓷砖（block）铺满：<code>blockIdx.x/y</code> 是瓷砖的列号和行号，
-              <code>threadIdx.x/y</code> 是瓷砖内的局部坐标，两维分别做乘加就得到全局的 <code>col</code> 和{' '}
-              <code>row</code>。边界检查也要逐维做——图像宽高一般都不是 16 的整数倍，右边缘和下边缘的瓷砖都会探出去一截。
-              最后一行 <code>idx = row * W + col</code> 提醒我们：多维只是编程模型给的语法糖，显存永远是一维的字节序列，
-              2D 坐标终究要换算回线性地址（行优先，row-major）。
+              想象一张 H×W 的图被 16×16 的瓷砖（block）铺满。<code>blockIdx.x/y</code> 是瓷砖的列号和行号，
+              <code>threadIdx.x/y</code> 是瓷砖内的局部坐标，两维分别做乘加，就得到全局的 <code>col</code> 和{' '}
+              <code>row</code>。边界检查也要逐维做，因为图像宽高一般都不是 16 的整数倍，右边缘和下边缘的瓷砖总会探出去一截。
+              最后一行 <code>idx = row * W + col</code> 是个提醒：多维只是编程模型给的语法糖，显存永远是一维的字节序列，
+              2D 坐标到头来还是要换算回线性地址（行优先，row-major）。
             </>,
           )}
         </p>
@@ -838,18 +836,17 @@ export default function Chapter() {
           {t(
             <>
               A conventional gotcha: <code>x</code> is horizontal (column) and <code>y</code> is vertical (row), so{' '}
-              <code>row</code> maps to <code>y</code> and <code>col</code> maps to <code>x</code> — the exact
-              reverse of how the matrix subscript <code>(row, col)</code> is written. And this mapping isn't just
-              pretty: letting <code>threadIdx.x</code> run along the memory-contiguous direction (within a row)
-              means adjacent threads access adjacent addresses, which is the setup for the next chapter's "memory
-              coalescing." Pick the wrong indexing scheme and performance can differ by several times to an order of
-              magnitude.
+              <code>row</code> maps to <code>y</code> and <code>col</code> maps to <code>x</code>, the exact reverse
+              of how the matrix subscript <code>(row, col)</code> reads. The mapping earns its keep, too. Letting{' '}
+              <code>threadIdx.x</code> run along the memory-contiguous direction (within a row) puts adjacent threads
+              on adjacent addresses, which sets up the next chapter's "memory coalescing." Pick the wrong indexing
+              scheme and performance can swing by several times, up to an order of magnitude.
             </>,
             <>
               约定俗成的坑：<code>x</code> 是横向（列），<code>y</code> 是纵向（行），所以 <code>row</code> 对应{' '}
               <code>y</code>、<code>col</code> 对应 <code>x</code>，和矩阵下标 <code>(row, col)</code>{' '}
-              的书写顺序正好相反。另外这个映射不只是好看——让 <code>threadIdx.x</code> 沿着内存连续的方向（行内）走，
-              相邻线程就会访问相邻地址，这是下一章「合并访存」的伏笔：索引方式选错，性能可以差出几倍到一个数量级。
+              的书写顺序正好相反。这个映射也不只是好看：让 <code>threadIdx.x</code> 沿着内存连续的方向（行内）走，
+              相邻线程就会落在相邻地址上，这是下一章「合并访存」的伏笔。索引方式选错，性能可以差出几倍，甚至一个数量级。
             </>,
           )}
         </p>
@@ -858,8 +855,8 @@ export default function Chapter() {
       <Section index={7} title={t('Summary and further reading', '总结与延伸阅读')}>
         <p>
           {t(
-            'This chapter builds CUDA’s worldview; every later optimization grows on top of these few intuitions:',
-            '这一章建立的是 CUDA 的世界观，所有后续优化都长在这几条直觉上：',
+            'This chapter sets up the CUDA worldview. Every later optimization grows on top of these few intuitions:',
+            '这一章搭起的是 CUDA 的世界观，后面所有优化都长在这几条直觉上：',
           )}
         </p>
         <ul>
@@ -894,11 +891,12 @@ export default function Chapter() {
               <>
                 <strong>The two layers each have their job</strong>: within a block, threads can synchronize and
                 share memory (the unit of cooperation); between blocks they're fully independent (the unit of
-                scheduling) — and that independence buys you a program that scales transparently with the SM count.
+                scheduling). That independence is what buys you a program that scales transparently with the SM
+                count.
               </>,
               <>
                 <strong>两层层级各司其职</strong>：block 内可同步、可共享内存（协作单位）；block
-                间完全独立（调度单位）——独立性换来了程序随 SM 数量透明扩展。
+                间完全独立（调度单位）。正是这份独立性，换来了程序随 SM 数量透明扩展。
               </>,
             )}
           </li>
@@ -1000,13 +998,13 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              In the next chapter we follow this thread downward: we have threads, the indices are right, but
-              whether a kernel runs fast comes down ninety percent to <em>what pattern</em> these threads touch VRAM
-              with — memory access is king.
+              The next chapter follows this thread downward. The threads exist, the indices are right, but whether a
+              kernel runs fast comes down ninety percent to <em>the pattern</em> in which those threads touch VRAM.
+              Memory access is king.
             </>,
             <>
-              下一章我们沿着这条线往下走：线程有了、索引对了，但 kernel 跑得快不快，九成取决于这些线程<em>以什么模式</em>
-              touch 显存——访存为王。
+              下一章我们沿着这条线往下走。线程有了、索引对了，但 kernel 跑得快不快，九成取决于这些线程<em>以什么模式</em>
+              touch 显存。访存为王。
             </>,
           )}
         </p>

@@ -139,13 +139,13 @@ export function OnlineSoftmaxLab() {
       onReset={resetAll}
       footer={t(
         <>
-          Try dragging X[6] to its max: the new max appears only near the end of the scan, and the right side
-          shows a cascade of amber flashes — the entire accumulated l is multiplied by α=e<sup>m−m′</sup> to
+          Drag X[6] to its max: the new max appears only near the end of the scan, and the right side shows a
+          cascade of amber flashes as the entire accumulated l is multiplied by α=e<sup>m−m′</sup> to
           retroactively change basis. Compare the two methods digit by digit; the max error always sits at the
           floating-point ulp level.
         </>,
         <>
-          试着把 X[6] 拉到最大：扫描快结束时才出现新 max，右侧会看到一连串 amber 闪烁 ——
+          把 X[6] 拉到最大：扫描快结束时才出现新 max，右侧会看到一连串 amber 闪烁，
           已累计的 l 全部乘 α=e<sup>m−m′</sup> 追溯换底。两法结果逐位对比，最大误差始终在浮点 ulp 量级。
         </>,
       )}

@@ -103,8 +103,8 @@ export default function Home() {
       n: '01',
       t: t('Visual first', '可视化优先'),
       d: t(
-        'Every abstract idea comes with a diagram you can poke at. How warps get scheduled, how accesses coalesce, how a KV cache gets paged — see it, don’t memorize it.',
-        '每个抽象概念都有一张能拨弄的图。warp 怎么调度、访存怎么合并、KV Cache 怎么分页 —— 亲眼看见，而不是死记硬背。',
+        'Every abstract idea comes with a diagram you can poke at. How warps get scheduled, how accesses coalesce, how a KV cache gets paged. You see it happen instead of memorizing it.',
+        '每个抽象概念都配一张能拨弄的图：warp 怎么调度、访存怎么合并、KV Cache 怎么分页。你是看它发生，而不是背下来。',
       ),
     },
     {
@@ -119,8 +119,8 @@ export default function Home() {
       n: '03',
       t: t('Straight to production systems', '直达生产系统'),
       d: t(
-        'This course doesn’t end at toys: FlashAttention’s online softmax, vLLM’s PagedAttention, Megatron’s tensor parallelism — all ideas running in industry right now.',
-        '课程的终点不是玩具：FlashAttention 的 online softmax、vLLM 的 PagedAttention、Megatron 的张量并行 —— 都是工业界正在跑的思想。',
+        'The course doesn’t stop at toy kernels. FlashAttention’s online softmax, vLLM’s PagedAttention, Megatron’s tensor parallelism: these are the techniques serving frontier models in production today.',
+        '课程不会停在玩具 kernel。FlashAttention 的 online softmax、vLLM 的 PagedAttention、Megatron 的张量并行，都是当下生产环境里支撑前沿模型的真实手段。',
       ),
     },
   ]
@@ -162,8 +162,8 @@ export default function Home() {
 
             <p className="mt-4 max-w-[600px] text-[15px] leading-[1.75] text-ink2">
               {t(
-                'Take a GPU apart, write CUDA, and build an inference system — entirely in your browser. A simulator that actually runs code, so you grasp modern large-model infrastructure without installing a thing.',
-                '在浏览器里拆开 GPU、写 CUDA、搭推理系统。一个能真正跑代码的模拟器 —— 不装任何环境，把现代大模型基础设施的底层逻辑一次讲透。',
+                'Take a GPU apart, write CUDA, and build an inference system, all in your browser. The simulator actually runs your code, so you can work out how a frontier large language model is served without installing a thing.',
+                '在浏览器里拆开 GPU、写 CUDA、搭一套推理系统。模拟器会真的跑你的代码，不用装任何环境，就能搞懂今天最大的模型是怎么跑起来的。',
               )}
             </p>
 
@@ -210,8 +210,8 @@ export default function Home() {
         <h2 className="font-display text-2xl font-semibold text-ink">{t('Course map', '课程地图')}</h2>
         <p className="mt-2 max-w-[640px] text-[14.5px] leading-relaxed text-ink2">
           {t(
-            'Three parts that build on each other: first develop intuition for the hardware, then write CUDA by hand, and finally arrive at production-grade LLM inference systems. Every chapter ships with hands-on experiments.',
-            '三个部分层层递进：先建立对硬件的直觉，再亲手写 CUDA，最后抵达生产级大模型推理系统。每章都配有可以动手拨弄的实验。',
+            'Three parts, each building on the last. You start by building intuition for the hardware, move on to writing CUDA by hand, and end at the inference systems that run today’s largest models in production. Every chapter comes with experiments you can actually drive.',
+            '三个部分层层递进。你先建立对硬件的直觉，再亲手写 CUDA，最后落到支撑今天最大模型的生产推理系统。每章都配了能上手拨弄的实验。',
           )}
         </p>
 
@@ -297,8 +297,8 @@ export default function Home() {
               </div>
               <p className="mt-2 max-w-[440px] text-[12.5px] leading-relaxed text-ink3">
                 {t(
-                  'Everything runs in your browser. This course draws on the classic references below — all highly recommended for going deeper.',
-                  '全部内容在浏览器中运行。课程深受以下经典资料启发，强烈推荐延伸阅读。',
+                  'Everything runs in your browser. The course leans on the references below; read them when you want to go deeper.',
+                  '全部内容在浏览器里运行。课程参考了下面这些经典资料，想钻得更深时值得一读。',
                 )}
               </p>
             </div>

@@ -37,15 +37,15 @@ export function StaticBatchTimeline() {
     <Figure
       caption={t(
         <>
-          Static batching: the whole batch enters and exits together. The longest output in this batch is{' '}
-          {maxLen} tokens; the gray hatching = finished slots trapped in the batch and idling, accounting for{' '}
+          Static batching: the whole batch enters and leaves together. The longest output in this batch runs{' '}
+          {maxLen} tokens. The gray hatching marks finished slots trapped in the batch and idling, which eat{' '}
           <span className="font-mono text-rose">{pct(waste)}</span> of the batch&apos;s GPU slot-time. Click
           &quot;Resample&quot; to draw a new batch.
         </>,
         <>
-          静态批处理：整批同进同出。本批最长输出 {maxLen} token，
-          灰色斜纹 = 已完成却被困在批里的空转槽位，占整批 GPU 槽位时间的{' '}
-          <span className="font-mono text-rose">{pct(waste)}</span>。点「换一批」重新抽样。
+          静态批处理：整批同进同出。本批最长输出 {maxLen} token。灰色斜纹是已完成却被困在批里空转的槽位，
+          吃掉了整批 GPU 槽位时间的 <span className="font-mono text-rose">{pct(waste)}</span>。点「换一批」
+          重新抽样。
         </>,
       )}
     >

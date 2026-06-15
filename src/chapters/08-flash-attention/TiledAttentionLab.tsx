@@ -124,9 +124,9 @@ export function TiledAttentionLab() {
       footer={t(
         <>
           The dashed cells are the "phantom" of the score matrix: each S<sub>ij</sub> block lives only in
-          SRAM, gets merged into (m, l, O) on the spot, and is never written back to HBM. The traffic model:
-          naive counts 4 round-trips of S², flash counts K/V re-read once per Q row (precisely the cost of
-          the outer Q loop, but it is O(S·d)-scale). Real implementations use much smaller blocks (Br/Bc ≈
+          SRAM, gets merged into (m, l, O) on the spot, and is never written back to HBM. The traffic model
+          counts 4 round-trips of S² for naive, and for flash it counts K/V re-read once per Q row (the cost
+          of the outer Q loop, but O(S·d)-scale). Real implementations use much smaller blocks (Br/Bc ≈
           64–128, limited by SRAM capacity); we slice into 8 blocks here so it stays legible. With 32 heads,
           both sides' numbers scale by another ×32, and the ratio is unchanged.
         </>,

@@ -363,12 +363,12 @@ export default function PagedLab() {
         <div className="mt-2 text-[11.5px] leading-relaxed text-ink3">
           {shown.contig
             ? t(
-                'Physically contiguous: address = base + offset, no table needed at all — the price is the whole span gets locked in one shot.',
-                '物理上连续：寻址 = 基址 + 偏移，根本不需要表 —— 代价是整段区间被一次性锁死。',
+                'Physically contiguous: address = base + offset, no table needed at all. The price is the whole span gets locked in one shot.',
+                '物理上连续：寻址 = 基址 + 偏移，根本不用表。代价是整段区间被一次性锁死。',
               )
             : t(
-                'Physical blocks scattered all over; this table translates logical positions into physical addresses — exactly like the OS page table.',
-                '物理块东一块西一块，靠这张表把逻辑位置翻译成物理地址 —— 和操作系统的页表一模一样。',
+                'Physical blocks scattered all over; this table translates logical positions into physical addresses, exactly like the OS page table.',
+                '物理块东一块西一块，靠这张表把逻辑位置翻译成物理地址，和操作系统的页表一模一样。',
               )}
         </div>
       </div>
@@ -405,12 +405,11 @@ export default function PagedLab() {
         <>
           Hatching = memory allocated but holding no token, i.e. waste. Real vLLM has two more weapons this sim doesn't
           draw: requests sharing the same prompt prefix point at the same batch of physical blocks (prefix sharing), and
-          copy-on-write keeps each branch separate only after it forks — an identical prefix ever only occupies memory
-          once.
+          copy-on-write splits each branch off only once it forks, so an identical prefix ever only occupies memory once.
         </>,
         <>
           斜线 = 已分配却没有 token 的浪费。真实 vLLM 还有两件本模拟没画的武器：相同 prompt 前缀的请求共享同一批物理块
-          （prefix sharing），写时复制（copy-on-write）保证分叉后才各存一份 —— 相同前缀永远只占一份显存。
+          （prefix sharing）；写时复制（copy-on-write）让分支只有在分叉后才各存一份，相同前缀永远只占一份显存。
         </>,
       )}
     >

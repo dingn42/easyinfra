@@ -120,16 +120,16 @@ export function ContinuousBatchingLab() {
             <>
               Bands: <span className="text-ink3">gray = queue wait</span> ·{' '}
               <span className="text-cyan">cyan = prefill</span> · <span className="text-volt">volt = decode</span>{' '}
-              · hatch = finished but still holding a slot (static only). The request stream uses a fixed seed —
-              the workload is identical when you switch schedulers, so the readouts are directly comparable.
-              Simplifying assumptions: TPOT fixed at 30 ms/token, prefill at 8 token/ms, ignoring the effect of
-              batch size on per-step latency.
+              · hatch = finished but still holding a slot (static only). The request stream uses a fixed seed, so
+              the workload stays identical when you switch schedulers and the readouts compare directly.
+              Simplifying assumptions: TPOT fixed at 30 ms/token, prefill at 8 token/ms, ignoring how batch size
+              affects per-step latency.
             </>,
             <>
               色带：<span className="text-ink3">灰=排队等待</span> · <span className="text-cyan">cyan=prefill</span> ·{' '}
-              <span className="text-volt">volt=decode</span> · 斜纹=已完成却占着槽位（仅 static）。
-              请求流固定种子 —— 切换调度模式时负载完全相同，读数可直接对比。
-              简化假设：TPOT 固定 30ms/token、prefill 8 token/ms，忽略 batch 大小对单步时延的影响。
+              <span className="text-volt">volt=decode</span> · 斜纹=已完成却占着槽位（仅 static）。请求流用固定
+              种子，切换调度模式时负载完全相同，读数可直接对比。简化假设：TPOT 固定 30ms/token、prefill
+              8 token/ms，忽略 batch 大小对单步时延的影响。
             </>,
           )}
         </>

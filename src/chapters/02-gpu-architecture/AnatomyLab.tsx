@@ -90,7 +90,7 @@ const INFO: Record<InfoKey, Info> = {
     en: 'Disabled SM',
     count: { en: '12 per die (H100 SXM)', zh: '12 个 / die（H100 SXM）' },
     duty: {
-      en: 'Yield insurance: a die this large is bound to have defects. At the factory the faulty SMs are fused off — of the 144 built, only 132 ship to you.',
+      en: 'Yield insurance: a die this large is bound to have defects. At the factory the faulty SMs are fused off, so of the 144 built, only 132 ship to you.',
       zh: '良率冗余：硅片这么大，难免有瑕疵。出厂时把有缺陷的 SM 熔断屏蔽，144 个里只开 132 个卖给你。',
     },
     stats: [
@@ -159,8 +159,8 @@ const INFO: Record<InfoKey, Info> = {
     en: 'Warp Scheduler',
     count: { en: '4 per SM (1 per partition)', zh: '4 个 / SM（每分区 1 个）' },
     duty: {
-      en: 'Each cycle it picks one "ready" warp from those resident in its partition and issues its next instruction — the master switch behind latency hiding.',
-      zh: '每个周期从驻留在本分区的 warp 里挑一个「就绪」的，发射它的下一条指令 —— 延迟隐藏的总开关。',
+      en: 'Each cycle it picks one ready warp from those resident in its partition and issues its next instruction. This is the master switch behind latency hiding.',
+      zh: '每个周期从驻留在本分区的 warp 里挑一个「就绪」的，发射它的下一条指令。延迟隐藏的总开关就在这里。',
     },
     stats: [
       [{ en: 'Issue rate', zh: '发射率' }, { en: '1 warp instr / cycle', zh: '1 条 warp 指令 / 周期' }],
@@ -173,8 +173,8 @@ const INFO: Record<InfoKey, Info> = {
     en: 'Register File',
     count: { en: '64 KB / partition, 256 KB / SM', zh: '64 KB / 分区，256 KB / SM' },
     duty: {
-      en: "Every resident thread's private variables live here — switching warps saves and restores nothing, which is the physical reason context switches cost zero.",
-      zh: '所有驻留线程的「私人变量」常驻于此 —— warp 切换不需要保存/恢复任何状态，这是零成本切换的物质基础。',
+      en: "Every resident thread's private variables live here. Switching warps saves and restores nothing, which is the physical reason context switches cost zero.",
+      zh: '所有驻留线程的「私人变量」常驻于此。warp 切换不需要保存或恢复任何状态，这正是零成本切换的物质基础。',
     },
     stats: [
       [{ en: 'Capacity / SM', zh: '容量 / SM' }, { en: '256 KB (64K × 32-bit)', zh: '256 KB（16 万个 32-bit）' }],
@@ -579,13 +579,13 @@ export function AnatomyLab() {
       wide
       footer={t(
         <>
-          Drill down layer by layer: die → SM → component. Watch the area budget — there is almost no
-          "big cache" inside an SM; that silicon goes to the register file and execution units instead.
-          That is exactly where GPUs and CPUs part ways philosophically.
+          Drill down layer by layer: die → SM → component. Watch the area budget. There is almost no
+          big cache inside an SM; that silicon goes to the register file and execution units instead.
+          This is where GPUs and CPUs part ways philosophically.
         </>,
         <>
-          逐层点开：die → SM → 部件。注意面积分配 —— SM 里几乎没有「大缓存」，
-          省下的面积全部还给了寄存器堆和执行单元，这正是 GPU 与 CPU 在哲学上的分野。
+          逐层点开：die → SM → 部件。注意面积分配：SM 里几乎没有「大缓存」，
+          省下的面积全部还给了寄存器堆和执行单元，GPU 与 CPU 的哲学分野就在这里。
         </>,
       )}
     >

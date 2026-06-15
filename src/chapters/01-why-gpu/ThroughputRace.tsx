@@ -126,16 +126,16 @@ export function ThroughputRace({ index }: { index: number }) {
       wide
       footer={tx(
         <>
-          As long as the tasks are independent, more cores always win. But if the program has a serial part, the
-          speedup hits a ceiling — that&apos;s{' '}
-          <span className="text-ink">Amdahl&apos;s Law</span>: with a serial fraction s, no matter how many cores
-          you pile on, the speedup stays ≤ 1/s. The GPU&apos;s 20 µs launch overhead is the other half of why CPU
+          As long as the tasks are independent, more cores always win. But once the program has a serial part, the
+          speedup hits a ceiling. That&apos;s{' '}
+          <span className="text-ink">Amdahl&apos;s Law</span>: with a serial fraction s, the speedup stays ≤ 1/s no
+          matter how many cores you pile on. The GPU&apos;s 20 µs launch overhead is the other half of why the CPU
           wins when there are too few tasks.
         </>,
         <>
-          只要任务彼此独立，核多就是正义；但若程序有串行部分，加速比就有天花板 —— 这就是{' '}
-          <span className="text-ink">Amdahl 定律</span>：串行占比 s 时，无论堆多少核，加速比 ≤ 1/s。GPU 的 20 µs
-          启动开销正是「任务太少时 CPU 反而赢」的另一半原因。
+          只要任务彼此独立，核多就是正义；可一旦程序有串行部分，加速比就有了天花板，这就是{' '}
+          <span className="text-ink">Amdahl 定律</span>：串行占比 s 时，无论堆多少核，加速比都 ≤ 1/s。GPU 那
+          20 µs 启动开销，正是「任务太少时 CPU 反而赢」的另一半原因。
         </>,
       )}
     >

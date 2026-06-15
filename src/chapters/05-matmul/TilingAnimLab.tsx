@@ -138,12 +138,12 @@ export function TilingAnimLab() {
       onReset={onReset}
       footer={t(
         <>
-          Each segment loads only 2×T²=32 floats from global memory, yet the tile's 16 output cells do 4 multiply-adds each — for the same
+          Each segment loads only 2×T²=32 floats from global memory, yet the tile's 16 output cells do 4 multiply-adds each. For the same
           work, naive would read 16×8=128 floats. The gap between the two counters converges to{' '}
           <span className="font-mono text-volt">T = {T}×</span>: tiling's payoff is proportional to the tile edge length.
         </>,
         <>
-          每段装载只从全局内存读 2×T²=32 个 float，但瓦片内 16 个输出格各做 4 次乘加 ——
+          每段装载只从全局内存读 2×T²=32 个 float，瓦片内 16 个输出格却各做 4 次乘加。
           同样的活，naive 要读 16×8=128 个 float。两个计数器的差距最终收敛到{' '}
           <span className="font-mono text-volt">T = {T}×</span>：tiling 的收益与瓦片边长成正比。
         </>,

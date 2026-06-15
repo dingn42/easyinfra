@@ -71,12 +71,12 @@ export default function KVCalcLab() {
       onReset={reset}
       footer={t(
         <>
-          Flip GQA on and KV instantly shrinks by a factor of n_heads/n_kv (32→8 on 7B, a full 4×) — this is why LLaMA-2
-          70B and the entire LLaMA-3 line use GQA natively: trade under 1% of quality for 4–8× the concurrency.
+          Flip GQA on and KV instantly shrinks by a factor of n_heads/n_kv (32→8 on 7B, a full 4×). This is why LLaMA-2
+          70B and the entire LLaMA-3 line ship GQA natively: trade under 1% of quality for 4–8× the concurrency.
         </>,
         <>
-          把 GQA 打开，KV 立刻缩小 n_heads/n_kv 倍（7B 上是 32→8，整整 4×）——
-          这就是 LLaMA-2 70B、LLaMA-3 全系原生用 GQA 的原因：换不到 1% 的质量损失，换回 4~8 倍的并发。
+          把 GQA 打开，KV 立刻缩小 n_heads/n_kv 倍（7B 上是 32→8，整整 4×）。
+          这就是 LLaMA-2 70B、LLaMA-3 全系原生带 GQA 的原因：拿不到 1% 的质量损失，换回 4~8 倍的并发。
         </>,
       )}
     >

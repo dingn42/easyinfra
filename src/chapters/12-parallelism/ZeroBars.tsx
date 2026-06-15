@@ -35,8 +35,8 @@ export function ZeroBars() {
   return (
     <Figure
       caption={t(
-        `For a 7B model (mixed-precision training, activations excluded): at DP=${n} GPUs, the per-GPU "three-piece" memory. Each ZeRO tier shards one more class of state into 1/N.`,
-        `以 7B 模型（混合精度训练，不含激活）为例：DP=${n} 张卡时，每卡的「三件套」显存。ZeRO 每升一档，又一类状态被切成 1/N。`,
+        `For a 7B model (mixed-precision training, activations excluded): the per-GPU three-piece memory at DP=${n} GPUs. Each ZeRO tier shards one more class of state into 1/N.`,
+        `以 7B 模型（混合精度训练，不含激活）为例：DP=${n} 张卡时每卡的「三件套」显存。ZeRO 每升一档，又一类状态被切成 1/N。`,
       )}
     >
       <div className="mb-3 max-w-[280px]">

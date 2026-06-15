@@ -149,12 +149,12 @@ export function WarpLatencyLab() {
       footer={t(
         <>
           Drop warps to 1: the whole pipeline stalls during memory latency (long blank stretches).
-          Crank it to 16 warps with high compute density and the ALU barely catches its breath — this is
-          exactly why <strong className="text-ink">occupancy</strong> matters, covered in detail in chapter 5.
+          Crank it to 16 warps with high compute density and the ALU barely catches its breath. This is
+          why <strong className="text-ink">occupancy</strong> matters, covered in detail in chapter 5.
         </>,
         <>
           把 warp 数拉到 1：访存延迟期间整条流水线空转（大段空白）。拉满 16 个 warp、提高计算密度，
-          ALU 几乎没有喘息 —— 这就是 <strong className="text-ink">occupancy（占用率）</strong>重要的原因，第 5 章会细讲。
+          ALU 几乎没有喘息的机会。这就是 <strong className="text-ink">occupancy（占用率）</strong>重要的原因，第 5 章会细讲。
         </>,
       )}
     >

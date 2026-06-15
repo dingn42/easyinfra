@@ -134,12 +134,12 @@ export function MemoryLatencyLab() {
       onReset={onReset}
       footer={t(
         <>
-          The same datum costs 500× more from HBM than from a register. Everything in chapter 4 —
-          coalesced access, shared-memory tiling — is at bottom a fight against this one chart.
+          The same datum costs 500× more from HBM than from a register. Everything in chapter 4,
+          coalesced access and shared-memory tiling alike, is at bottom a fight against this one chart.
         </>,
         <>
-          同一份数据，放在寄存器和放在 HBM，取一次差 500 倍。第 4 章的全部内容
-          —— 合并访存、shared memory 分块 —— 本质上都是在跟这张图搏斗。
+          同一份数据，放在寄存器和放在 HBM，取一次差 500 倍。第 4 章的全部内容，
+          合并访存也好、shared memory 分块也好，说到底都是在跟这张图搏斗。
         </>,
       )}
     >
@@ -259,8 +259,8 @@ export function MemoryLatencyLab() {
           </div>
           <p className="mt-3 text-[11px] leading-relaxed text-ink3">
             {t(
-              'Click repeatedly and the fetches queue up and fly one by one, cycles piling on — try 5 hits on HBM, then 5 on registers.',
-              '连续点击会排队依次飞行，周期持续累计 —— 试试连点 5 次 HBM，再连点 5 次寄存器。',
+              'Click repeatedly and the fetches queue up and fly one by one, cycles piling on. Try 5 hits on HBM, then 5 on registers.',
+              '连续点击会排队依次飞行，周期持续累计。试试连点 5 次 HBM，再连点 5 次寄存器。',
             )}
           </p>
         </div>

@@ -276,13 +276,13 @@ export function FloatBitLab() {
         <>
           Bit colors: <span className="text-rose">sign</span> / <span className="text-cyan">exponent</span> /{' '}
           <span className="text-volt">mantissa</span>. Switching format re-encodes the current value with
-          round-to-nearest — try hitting "0.1" in FP32, then flip to BF16 and watch where the value drifts
-          once the lower mantissa bits get chopped off.
+          round-to-nearest. Try hitting "0.1" in FP32, then flip to BF16 and watch where the value drifts once
+          the lower mantissa bits get chopped off.
         </>,
         <>
           位颜色：<span className="text-rose">sign 符号</span> / <span className="text-cyan">exponent 指数</span> /{' '}
-          <span className="text-volt">mantissa 尾数</span>。切换格式时会把当前值四舍五入重编码 ——
-          试试在 FP32 下按「0.1」再切到 BF16，看尾数被砍掉后值偏到哪去了。
+          <span className="text-volt">mantissa 尾数</span>。切换格式会把当前值四舍五入重新编码。
+          试试在 FP32 下按「0.1」，再切到 BF16，看尾数被砍掉之后值偏到了哪。
         </>,
       )}
     >
@@ -457,8 +457,8 @@ export function FloatBitLab() {
             ? t(` (one line drawn per ${zoom.stride.toLocaleString()} values)`, `（图中每 ${zoom.stride.toLocaleString()} 个画 1 个）`)
             : t(' (every value drawn)', '（已逐个画出）')}
           {t(
-            '. Same 16 bits: FP16 packs 1024 values per bucket but only reaches ~65k; BF16 fits 128 per bucket yet stretches to 3.4×10³⁸ — that is the whole trade-off.',
-            '。同样 16 位：FP16 每格 1024 个值但只覆盖到 6.5 万；BF16 每格 128 个值却覆盖到 3.4×10³⁸ —— 取舍就在这。',
+            '. Same 16 bits: FP16 packs 1024 values into a bucket but only reaches ~65k; BF16 fits 128 per bucket yet stretches to 3.4×10³⁸. That is the whole trade-off.',
+            '。同样 16 位：FP16 每格塞 1024 个值，却只覆盖到 6.5 万；BF16 每格 128 个值，却一路覆盖到 3.4×10³⁸。取舍就在这里。',
           )}
         </p>
       </div>

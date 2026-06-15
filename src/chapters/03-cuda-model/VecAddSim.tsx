@@ -91,8 +91,8 @@ export function VecAddSim() {
   const curLine = phase === 0 ? 2 : phase === 1 ? 3 : phase >= 2 ? 4 : -1
   const statusText = done
     ? t(
-        `✓ all ${N} elements computed — whatever order the blocks run in, C comes out identical`,
-        `✓ ${N} 个元素全部算完 —— 无论 block 按什么顺序执行，C 的结果一模一样`,
+        `✓ all ${N} elements computed. Whatever order the blocks ran in, C comes out identical`,
+        `✓ ${N} 个元素全部算完。无论 block 按什么顺序执行，C 的结果都一模一样`,
       )
     : phase === 0
       ? t(
@@ -174,15 +174,15 @@ export function VecAddSim() {
       onReset={reset}
       footer={t(
         <>
-          Hit "⇄ shuffle scheduling" to make the hardware run the 3 blocks in a random order, then compare C's
-          result — <span className="text-ink">identical</span>. CUDA doesn't guarantee block execution order;
-          precisely because each block is independent, the hardware can toss them at any idle SM it likes. When you
-          write code, never assume an ordering between blocks.
+          Hit "⇄ shuffle scheduling" to run the 3 blocks in a random order, then compare C's result:{' '}
+          <span className="text-ink">identical</span>. CUDA doesn't guarantee block execution order. Because each
+          block is independent, the hardware can toss it at any idle SM it likes. When you write code, never assume
+          an ordering between blocks.
         </>,
         <>
-          点「⇄ 乱序调度」让硬件以随机顺序执行 3 个 block，再对比 C 的结果 ——{' '}
-          <span className="text-ink">一模一样</span>。CUDA 不保证 block 的执行顺序，正因为每个 block 互相独立，
-          硬件才能把它们随意扔给任何空闲的 SM。写代码时永远不要假设 block 间的先后关系。
+          点「⇄ 乱序调度」让硬件随机打乱顺序执行 3 个 block，再对比 C 的结果：{' '}
+          <span className="text-ink">一模一样</span>。CUDA 不保证 block 的执行顺序。因为每个 block 互相独立，
+          硬件才能把它随手扔给任何一个空闲的 SM。写代码时永远不要假设 block 间的先后关系。
         </>,
       )}
     >

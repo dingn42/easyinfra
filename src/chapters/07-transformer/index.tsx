@@ -11,22 +11,25 @@ export default function Chapter() {
       <p>
         {t(
           <>
-            Open LLaMA-7B&apos;s config.json and all you find is a handful of unremarkable numbers: hidden_size 4096,
-            32 layers, FFN 11008, 32 heads. So where does the &quot;7B&quot; in the name actually come from? How many
-            floating-point operations does it really burn to produce a single token? And why, as the sequence grows,
-            does memory blow up before compute does? These questions sound like they call for digging through papers —
-            in fact you can do all of them in your head. The luxury of the Transformer lies precisely in its
-            simplicity: the entire model is built almost entirely out of one operation — matrix multiply. In this
-            chapter we crack open a single Transformer layer and bookkeep it term by term, and you walk away with a few
-            back-of-the-envelope formulas you can rederive on a whiteboard in thirty seconds. They are the shared
-            abacus behind everything that follows — FlashAttention, KV cache, inference serving, quantization.
+            Open LLaMA-7B&apos;s config.json and you get a handful of unremarkable numbers: hidden_size 4096, 32 layers,
+            FFN 11008, 32 heads. So where does the &quot;7B&quot; in the name come from? How many floating-point
+            operations does it actually burn to produce one token? And why, as the sequence grows, does memory blow up
+            before compute does? These sound like questions for a paper-reading session. You can answer all three in
+            your head. A Transformer is almost embarrassingly simple under the hood: peel back the architecture and it
+            is one operation repeated, matrix multiply, with a thin layer of seasoning on top. The same shape powers
+            every model people actually run today, from Llama to DeepSeek-V3 to the frontier systems behind chat
+            assistants. In this chapter we crack open a single layer and bookkeep it term by term. You walk away with a
+            few back-of-the-envelope formulas you can rederive on a whiteboard in thirty seconds, and they turn out to
+            be the shared abacus behind everything that follows: FlashAttention, KV cache, inference serving,
+            quantization.
           </>,
           <>
             打开 LLaMA-7B 的 config.json，里面只有几个不起眼的数字：hidden_size 4096、32 层、FFN 11008、32 个
             head。但「7B」这个名字是怎么从这几个数里长出来的？生成一个 token 到底要烧多少次浮点运算？为什么序列一长，
-            显存先于算力爆炸？这些问题听起来要翻论文，其实全部可以心算。Transformer 的奢侈之处恰恰在于它的简单——
-            整个模型几乎只由一种运算构成：矩阵乘法。这一章我们把一层 Transformer 拆开，逐项记账，最后你会得到几条
-            能在白板上三十秒推完的经验公式。它们是后面所有章节——FlashAttention、KV cache、推理服务、量化——共同的算盘。
+            显存会先于算力爆炸？这些问题听起来得翻论文，但三个都能心算出来。Transformer 拆开看简单得有点过分：剥掉外壳，
+            它就是一种运算的反复堆叠——矩阵乘法，外面再裹一层薄薄的调味。今天大家真正在跑的模型几乎都是这个形状，从
+            Llama 到 DeepSeek-V3，再到聊天助手背后的前沿系统。这一章我们把一层拆开，逐项记账，最后你会得到几条能在
+            白板上三十秒推完的经验公式。它们是后面所有章节共同的算盘：FlashAttention、KV cache、推理服务、量化。
           </>,
         )}
       </p>
@@ -44,45 +47,45 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              Nearly every mainstream LLM today is a decoder-only Transformer: the same kind of layer stacked N times,
-              nothing fancier. Understand one layer and you understand the whole model. A layer contains two
-              substructures — the attention sublayer and the MLP (multi-layer perceptron, also called FFN) sublayer —
-              and both hang off the same{' '}
+              Almost every LLM in production is a decoder-only Transformer: one kind of layer stacked N times, and
+              that&apos;s the whole architecture. Understand one layer and you understand the model. A layer has two
+              substructures, the attention sublayer and the MLP (multi-layer perceptron, also called FFN) sublayer, and
+              both hang off the same{' '}
               <Term t="residual stream">
                 the trunk vector running through every layer; each sublayer reads from it and writes a delta back.
                 Think of it as the model&apos;s working-memory bus.
               </Term>
-              . The data flow is a fixed routine: first RMSNorm (Root Mean Square Normalization), then project out Q,
-              K, V, apply RoPE (Rotary Position Embedding) to Q and K, run multi-head attention, pass through the
-              output projection O, add back to the residual. Then a second RMSNorm and into the MLP — LLaMA uses a
-              SwiGLU structure: gate and up project up along two paths, SiLU gating multiplies them elementwise, the
-              down projection brings the dimension back down — then add back to the residual again. One layer done; the
-              next one repeats.
+              . The data flow follows a fixed routine. First RMSNorm (Root Mean Square Normalization), then project out
+              Q, K, V, apply RoPE (Rotary Position Embedding) to Q and K, run multi-head attention, push the result
+              through the output projection O, and add it back to the residual. Then a second RMSNorm and into the MLP.
+              LLaMA uses a SwiGLU block: gate and up project upward along two paths, SiLU gating multiplies them
+              elementwise, and the down projection brings the dimension back down before adding to the residual a
+              second time. One layer done, and the next one repeats it verbatim.
             </>,
             <>
-              现在主流的大语言模型几乎都是 decoder-only Transformer（仅解码器架构）：同一种层堆 N 次，没有别的花样。
-              理解了一层，就理解了整个模型。一层里有两个子结构——注意力（attention）子层和 MLP（多层感知机，也叫
-              FFN）子层——它们都挂在同一条
+              现在跑在生产里的大语言模型几乎都是 decoder-only Transformer（仅解码器架构）：同一种层堆 N 次，整个架构
+              就这么多。看懂一层，就看懂了整个模型。一层里有两个子结构，注意力（attention）子层和 MLP（多层感知机，
+              也叫 FFN）子层，它们都挂在同一条
               <Term t="残差流">
                 贯穿所有层的主干向量，每个子层都从它读取、向它写回一个增量。可以把它理解成模型的「工作内存总线」。
               </Term>
-              上。数据流是固定的套路：先做 RMSNorm（均方根归一化，Root Mean Square Normalization），投影出 Q、K、V，给 Q 和 K 套上
-              RoPE（旋转位置编码，Rotary Position Embedding），做分头注意力，过输出投影 O，加回残差；然后第二次
-              RMSNorm，进 MLP——LLaMA 用的是 SwiGLU 结构：gate 和 up 两路升维、SiLU 门控逐元素相乘、down 投影降维——
-              再加回残差。一层结束，下一层重复。
+              上。数据流走的是一套固定流程。先做 RMSNorm（均方根归一化，Root Mean Square Normalization），投影出 Q、
+              K、V，给 Q 和 K 套上 RoPE（旋转位置编码，Rotary Position Embedding），做分头注意力，结果过输出投影 O，
+              加回残差。然后第二次 RMSNorm，进 MLP。LLaMA 用的是 SwiGLU 块：gate 和 up 两路升维，SiLU 门控逐元素相乘，
+              down 投影再降维，最后第二次加回残差。一层结束，下一层一模一样地再来一遍。
             </>,
           )}
         </p>
         <p>
           {t(
             <>
-              The diagram below is a precise dissection of one LLaMA-7B layer. Every node is color-coded by category;
-              click to see its tensor shape, parameter count, and single-token FLOPs. Forget the formulas for now and
-              just get a feel for one thing: <strong>which nodes are &quot;heavy&quot; and which are &quot;light&quot;</strong>.
+              The diagram below dissects one LLaMA-7B layer. Every node is color-coded by category; click one to see its
+              tensor shape, parameter count, and single-token FLOPs. Forget the formulas for now and just get a feel for
+              one thing: <strong>which nodes are &quot;heavy&quot; and which are &quot;light&quot;</strong>.
             </>,
             <>
-              下面这张图是 LLaMA-7B 单层的精确解剖。每个节点都标了类别色，点开能看到张量形状、参数量和单 token 的
-              FLOPs（浮点运算次数，Floating Point Operations）。先别管公式，凭直觉感受一件事：
+              下面这张图把 LLaMA-7B 单层解剖开来。每个节点都标了类别色，点开能看到张量形状、参数量和单 token 的
+              FLOPs（浮点运算次数，Floating Point Operations）。先别管公式，就凭直觉感受一件事：
               <strong>哪些节点「重」，哪些节点「轻」</strong>。
             </>,
           )}
@@ -93,21 +96,21 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              After one pass you&apos;ll notice a conclusion that&apos;s almost boringly clean: a Transformer layer&apos;s
-              parameters and compute land almost entirely on five matrix multiplies — the three QKV projections, the O
-              projection, and the MLP&apos;s three projections (gate/up count as two). RMSNorm, RoPE, softmax, and the
-              residual adds together don&apos;t even reach one part in a thousand of the total. This isn&apos;t a
-              coincidence; it&apos;s the design philosophy of the architecture: cram all the &quot;heavy lifting&quot; into
-              GEMM (General Matrix Multiply), because — as <ChapterLink n={5} /> showed — GEMM is the only operation on a GPU that
-              can keep the Tensor Cores fed. Everything else is just seasoning: normalization keeps the numerics
-              stable, RoPE injects positional information, and gating supplies nonlinearity.
+              Click through once and the conclusion is clean to the point of boredom: a Transformer layer&apos;s
+              parameters and compute land almost entirely on five matrix multiplies. The three QKV projections, the O
+              projection, and the MLP&apos;s three projections (gate and up count as two). RMSNorm, RoPE, softmax, and
+              the residual adds together don&apos;t reach one part in a thousand of the total. That split is no accident.
+              It is the design philosophy of the architecture: shove all the heavy lifting into GEMM (General Matrix
+              Multiply), because, as <ChapterLink n={5} /> showed, GEMM is the only operation on a GPU that can keep the
+              Tensor Cores fed. Everything else is seasoning. Normalization keeps the numerics stable, RoPE injects
+              positional information, gating supplies the nonlinearity.
             </>,
             <>
-              点过一轮你会发现一个干净得近乎无聊的结论：一层 Transformer 的参数和计算几乎全部落在五个矩阵乘法上——
-              QKV 三个投影、O 投影、MLP 的三个投影（gate/up 算两个）。RMSNorm、RoPE、softmax、残差加法这些环节合起来
-              连总量的千分之一都不到。这不是巧合，而是这套架构的设计哲学：把所有「重活」都塞进
-              GEMM（通用矩阵乘法，General Matrix Multiply），因为<ChapterLink n={5} />讲过，GEMM 是 GPU 上唯一能把 Tensor Core
-              喂饱的运算。架构里剩下的部分只负责「调味」：归一化保证数值稳定，RoPE 注入位置信息，门控提供非线性。
+              点过一轮，你会得到一个干净到有点无聊的结论：一层 Transformer 的参数和计算几乎全压在五个矩阵乘法上。
+              QKV 三个投影、O 投影、MLP 的三个投影（gate 和 up 算两个）。RMSNorm、RoPE、softmax、残差加法这些环节
+              加起来还不到总量的千分之一。这种分布不是偶然，而是这套架构的设计取向：把所有重活都塞进
+              GEMM（通用矩阵乘法，General Matrix Multiply），因为<ChapterLink n={5} />讲过，GEMM 是 GPU 上唯一能把
+              Tensor Core 喂饱的运算。剩下的部分都只是调味。归一化保证数值稳定，RoPE 注入位置信息，门控提供非线性。
             </>,
           )}
         </p>
@@ -115,18 +118,17 @@ export default function Chapter() {
           <p>
             {t(
               <>
-                These operations all cost compute proportional to d or S (linear), while GEMM is proportional to d². At
-                d=4096, one RMSNorm is about 16K operations; the QKV projection right next to it is 100 million — four
-                orders of magnitude apart. So when you tally the books, just drop them; the error won&apos;t exceed one
-                part in a thousand. But beware: &quot;FLOPs negligible&quot; does not mean &quot;time negligible.&quot; These
-                operators are textbook memory-bound; <ChapterLink n={6} />&apos;s roofline already explained why. The FLOPs ledger
-                and the time ledger are two separate books.
+                Their compute scales with d or S (linear), while GEMM scales with d². At d=4096 one RMSNorm is about 16K
+                operations; the QKV projection right next to it is 100 million, four orders of magnitude more. So when
+                you tally the books you can just drop them and the error stays under one part in a thousand. The catch:
+                negligible FLOPs do not mean negligible time. These operators are textbook memory-bound, and{' '}
+                <ChapterLink n={6} />&apos;s roofline already explained why. FLOPs and time are two separate ledgers.
               </>,
               <>
-                这些操作的计算量都正比于 d 或 S（一次方），而 GEMM 正比于 d²。d=4096 时，一次 RMSNorm 约 1.6 万次运算，
-                旁边的 QKV 投影是 1 亿次——差了四个数量级。所以算总账时直接忽略它们，误差不会超过千分之一。但注意：
-                「FLOPs 可以忽略」不等于「耗时可以忽略」，这些算子是典型的 memory-bound（受显存带宽限制），<ChapterLink n={6} />的
-                roofline 已经解释过为什么。FLOPs 账和时间账是两本账。
+                它们的计算量正比于 d 或 S（一次方），而 GEMM 正比于 d²。d=4096 时，一次 RMSNorm 约 1.6 万次运算，
+                旁边的 QKV 投影是 1 亿次，差了四个数量级。所以算总账时把它们直接划掉，误差也不会超过千分之一。但有个
+                陷阱：FLOPs 可以忽略，不等于耗时可以忽略。这些算子是典型的 memory-bound（受显存带宽限制），<ChapterLink n={6} />的
+                roofline 已经讲过为什么。FLOPs 和时间是两本账。
               </>,
             )}
           </p>
@@ -190,37 +192,38 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              Not one parameter off the official checkpoint count. Notice the power structure on the ledger: 135 million
-              per MLP layer, 67 million per attention layer — <strong>the MLP walks away with roughly two-thirds of the
-              parameters</strong>. &quot;Attention is the body of the Transformer&quot; is a popular misconception: by
-              parameter count, the body is the MLP, and attention is just the small, precise router that ferries
-              information between tokens.
+              Not one parameter off the official checkpoint count. Look at how the ledger splits: 135 million per MLP
+              layer against 67 million per attention layer, so <strong>the MLP walks away with roughly two-thirds of the
+              parameters</strong>. &quot;Attention is the body of the Transformer&quot; is a popular misconception. By
+              parameter count the body is the MLP. Attention is the small router that ferries information between
+              tokens.
             </>,
             <>
-              和官方权重 checkpoint 数出来的一个不差。注意账本里的权力结构：MLP 一层 1.35 亿，attention 一层 0.67
-              亿——<strong>MLP 拿走了大约三分之二的参数</strong>。「Transformer 的本体是 attention」是个流行的误解：
-              按参数算，它的本体是 MLP，attention 只是那个负责在 token 之间搬运信息的、小而精的路由器。
+              和官方 checkpoint 数出来的一个不差。看账本怎么分配：MLP 一层 1.35 亿，attention 一层 0.67 亿，
+              <strong>MLP 拿走了大约三分之二的参数</strong>。「Transformer 的本体是 attention」是个流行的误解。
+              按参数算，本体是 MLP。attention 只是那个在 token 之间搬运信息的小路由器。
             </>,
           )}
         </p>
         <p>
           {t(
             <>
-              This ledger also instantly explains why{' '}
+              The same ledger explains why{' '}
               <Term t="GQA">
                 Grouped-Query Attention: multiple Q heads share one set of K/V heads. With n_kv=8, n_head=64, the K/V
                 projections shrink to 1/8, and the KV cache shrinks by the same factor (detailed in Chapter 9).
               </Term>{' '}
-              saves parameters: the output dimension of the K and V projections drops from d to{' '}
-              <MathTex tex="n_{kv} \cdot d_{head}" />, hence:
+              saves parameters, and why it has become the default attention variant at scale. The output dimension of
+              the K and V projections drops from d to <MathTex tex="n_{kv} \cdot d_{head}" />, so:
             </>,
             <>
-              这套账还能立刻解释{' '}
+              同一本账还能解释{' '}
               <Term t="GQA">
                 分组查询注意力（Grouped-Query Attention）：多个 Q head 共享同一组 K/V head。n_kv=8、n_head=64
                 时，K/V 投影缩小到原来的 1/8，KV cache 也同比例缩小（第 9 章细讲）。
               </Term>{' '}
-              为什么省参数：K、V 投影的输出维度从 d 变成 <MathTex tex="n_{kv} \cdot d_{head}" />，于是：
+              为什么省参数，以及它为什么成了大模型上默认的注意力变体。K、V 投影的输出维度从 d 降到{' '}
+              <MathTex tex="n_{kv} \cdot d_{head}" />，于是：
             </>,
           )}
         </p>
@@ -229,12 +232,12 @@ export default function Chapter() {
           {t(
             <>
               LLaMA-2 70B uses n_kv=8, n_head=64, dropping attention params from 4d² to 2.25d². Run the same formula for
-              the 70B&apos;s total: 80 layers × (2.25·8192² + 3·8192·28672) + 2·32000·8192 ≈ 69.0B — checks out again.
-              One four-line formula handles both generations.
+              the 70B total: 80 layers × (2.25·8192² + 3·8192·28672) + 2·32000·8192 ≈ 69.0B, and it checks out again.
+              One four-line formula, two generations of models.
             </>,
             <>
-              LLaMA-2 70B 用 n_kv=8、n_head=64，attention 参数从 4d² 降到 2.25d²。用上面的公式算 70B 的总账：
-              80 层 × (2.25·8192² + 3·8192·28672) + 2·32000·8192 ≈ 69.0B，又对上了。一套四行的公式，两代模型通吃。
+              LLaMA-2 70B 用 n_kv=8、n_head=64，attention 参数从 4d² 降到 2.25d²。用同一条公式算 70B 的总账：
+              80 层 × (2.25·8192² + 3·8192·28672) + 2·32000·8192 ≈ 69.0B，又对上了。一套四行公式，吃下两代模型。
             </>,
           )}
         </p>
@@ -251,15 +254,15 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              In a matrix multiply, every weight participates in exactly one multiply-accumulate (MAC) per forward pass:
-              one multiply, one add, 2 FLOPs. As a token flows through the whole model, every linear-layer weight is
-              used exactly once. So during decode (autoregressive token-by-token generation), the forward compute for a
-              single token is roughly:
+              In a matrix multiply, every weight does exactly one multiply-accumulate (MAC) per forward pass: one
+              multiply, one add, 2 FLOPs. As a token flows through the model, each linear-layer weight gets used once.
+              So during decode (autoregressive token-by-token generation), the forward compute for a single token comes
+              out to roughly:
             </>,
             <>
-              矩阵乘法里，每个权重在每次前向中恰好参与一次乘加（multiply-accumulate，MAC）：乘一下，加一下，
-              2 FLOPs。一个 token 流过整个模型，每个线性层的权重都被用到恰好一次。所以 decode（逐 token 自回归生成）
-              时，单 token 的前向计算量约等于：
+              矩阵乘法里，每个权重在每次前向中只做一次乘加（multiply-accumulate，MAC）：乘一下，加一下，2 FLOPs。
+              一个 token 流过整个模型，每个线性层的权重都被用到一次。所以 decode（逐 token 自回归生成）时，单 token
+              的前向计算量大致是：
             </>,
           )}
         </p>
@@ -267,20 +270,20 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              The first term is the sum of all GEMMs — twice the parameter count, independent of sequence length. The
-              second term is the two &quot;parameter-free&quot; matrix operations inside attention: Q dotted against the S
-              cached K vectors (<MathTex tex="2Sd" />), then the softmax weights summed over the S V vectors (another{' '}
-              <MathTex tex="2Sd" />), giving <MathTex tex="4Sd" /> per layer, times L layers. This term burns no
-              weights, yet grows linearly with context length S — remember it; it&apos;s the only term in this whole
-              chapter that &quot;grows.&quot; For prefill (processing the whole prompt in parallel at once), add up the
-              tally for all S tokens; under a causal mask each token sees S/2 of context on average:
+              The first term is the sum of all GEMMs: twice the parameter count, independent of sequence length. The
+              second term is the two parameter-free matrix operations inside attention. Q dotted against the S cached K
+              vectors (<MathTex tex="2Sd" />), then the softmax weights summed over the S V vectors (another{' '}
+              <MathTex tex="2Sd" />), giving <MathTex tex="4Sd" /> per layer, times L layers. It burns no weights yet
+              grows linearly with context length S. Keep an eye on it, because it is the one term in this whole chapter
+              that grows. For prefill (processing the whole prompt in parallel at once), sum the tally over all S tokens;
+              under a causal mask each token sees S/2 of context on average:
             </>,
             <>
-              第一项是所有 GEMM 的总和——2 倍参数量，与序列长度无关。第二项是 attention 里两次「非参数」的矩阵运算：
+              第一项是所有 GEMM 的总和：2 倍参数量，与序列长度无关。第二项是 attention 里两次「非参数」的矩阵运算。
               Q 对 S 个缓存 K 做点积（<MathTex tex="2Sd" />），softmax 权重再对 S 个 V 加权求和（又一个{' '}
-              <MathTex tex="2Sd" />），每层 <MathTex tex="4Sd" />，乘 L 层。这一项不消耗任何权重，却随上下文长度 S
-              线性增长——记住它，它是整章唯一会「长大」的项。对 prefill（一次性并行处理整段 prompt），把 S 个 token
-              的账加起来，causal mask 下平均每个 token 看 S/2 的上下文：
+              <MathTex tex="2Sd" />），每层 <MathTex tex="4Sd" />，乘 L 层。它不消耗任何权重，却随上下文长度 S 线性
+              增长。盯紧这一项，它是整章唯一会长大的项。到了 prefill（一次性并行处理整段 prompt），把 S 个 token 的
+              账加起来，causal mask 下平均每个 token 看 S/2 的上下文：
             </>,
           )}
         </p>
@@ -289,19 +292,20 @@ export default function Chapter() {
           <p>
             {t(
               <>
-                &quot;2 × parameter count&quot; is the mental-math foundation of all LLM inference economics: a 7B model
-                decodes one token in ≈ 14 GFLOPs, a 70B in ≈ 140 GFLOPs — 10× the parameters means 10× the per-token
-                compute, no tables required. Running it backwards is even more devastating: an A100&apos;s BF16 peak is
-                312 TFLOPS, so the pure-compute ceiling is 312e12 ÷ 14e9 ≈ 22,000 tokens per second — yet real
-                single-stream decode only does a couple hundred tokens/s. The two-orders-of-magnitude gap isn&apos;t
-                about compute, it&apos;s about bandwidth, and that&apos;s exactly the question <ChapterLink n={6} />&apos;s roofline
-                and <ChapterLink n={10} />&apos;s batching set out to answer.
+                &quot;2 × parameter count&quot; is the number you do all your LLM inference economics on. A 7B model
+                decodes one token in ≈ 14 GFLOPs, a 70B in ≈ 140 GFLOPs: 10× the parameters, 10× the per-token compute,
+                no tables required. Run it backwards and it gets brutal. An A100&apos;s BF16 peak is 312 TFLOPS, so the
+                pure-compute ceiling is 312e12 ÷ 14e9 ≈ 22,000 tokens per second, yet real single-stream decode manages
+                only a couple hundred tokens/s. That two-orders-of-magnitude gap is a bandwidth problem, not a compute
+                problem, and it is exactly the question <ChapterLink n={6} />&apos;s roofline and{' '}
+                <ChapterLink n={10} />&apos;s batching set out to answer.
               </>,
               <>
-                「2 × 参数量」是整个 LLM 推理经济学的心算基础：7B 模型 decode 一个 token ≈ 14 GFLOPs，70B ≈ 140
-                GFLOPs——参数翻 10 倍，每 token 计算量就翻 10 倍，不用查任何表。倒过来用更有杀伤力：一张 A100 的 BF16
-                峰值是 312 TFLOPS，纯算力上限是每秒 312e12 ÷ 14e9 ≈ 22000 个 token——而实际单流 decode 只有一百多
-                token/s。差出两个数量级的原因不在算力而在带宽，这正是<ChapterLink n={6} /> roofline 和<ChapterLink n={10} />批处理要回答的问题。
+                「2 × 参数量」是你做所有 LLM 推理经济学时心算用的那个数。7B 模型 decode 一个 token ≈ 14 GFLOPs，
+                70B ≈ 140 GFLOPs：参数翻 10 倍，每 token 计算量也翻 10 倍，不用查任何表。倒过来算就更狠了。一张
+                A100 的 BF16 峰值是 312 TFLOPS，纯算力上限是每秒 312e12 ÷ 14e9 ≈ 22000 个 token，可实际单流 decode
+                只有一百多 token/s。差出两个数量级，是带宽问题，不是算力问题，而这正是<ChapterLink n={6} /> roofline
+                和<ChapterLink n={10} />批处理要回答的问题。
               </>,
             )}
           </p>
@@ -310,12 +314,12 @@ export default function Chapter() {
           {t(
             <>
               The explorer below turns these two formulas into a dashboard. The five sliders map to hyperparameters you
-              can find in any model config; the readouts on the right recompute in real time. Watch the stacked bar in
-              particular: it shows where a single token&apos;s FLOPs actually go.
+              can find in any model config, and the readouts recompute in real time. Watch the stacked bar in
+              particular; it shows where a single token&apos;s FLOPs actually go.
             </>,
             <>
               下面的巡览器把这两条公式做成了仪表盘。五根滑杆对应你在任何模型 config 里都能找到的超参，右侧读数实时
-              重算。重点看那根堆叠条：它展示单 token 的 FLOPs 流向了哪里。
+              重算。重点看那根堆叠条，它告诉你单 token 的 FLOPs 到底花在了哪里。
             </>,
           )}
         </p>
@@ -325,18 +329,18 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              A few experiments worth running by hand: (1) keep the LLaMA-7B preset and pull S from 128 to 32K —{' '}
-              <span className="text-amber">score·AV</span> climbs from under 1% to nearly 60%, overtaking the MLP, and
-              that&apos;s only the decode ledger; in prefill it&apos;s a quadratic term and grows even more violently;
-              (2) switch to the GPT-3 preset and notice that tripling d brings a d² — i.e. 9× — per-layer cost; (3)
-              toggle MHA / GQA: the parameter count moves, but the score·AV term doesn&apos;t budge — GQA saves
-              parameters and KV-cache memory, not attention compute (not a single Q head was removed).
+              Three experiments worth running by hand. Keep the LLaMA-7B preset and pull S from 128 to 32K:{' '}
+              <span className="text-amber">score·AV</span> climbs from under 1% to nearly 60% and overtakes the MLP, and
+              this is only the decode ledger; in prefill it is a quadratic term and grows even more violently. Switch to
+              the GPT-3 preset and watch tripling d cost a d², a 9× hit per layer. Toggle MHA / GQA and the parameter
+              count moves while the score·AV term sits dead still: GQA buys back parameters and KV-cache memory, never
+              attention compute, since not a single Q head was removed.
             </>,
             <>
-              几个值得亲手做的实验：① 保持 LLaMA-7B 预设，把 S 从 128 拉到 32K——<span className="text-amber">score·AV</span>{' '}
-              的占比从不到 1% 涨到近六成，反超 MLP，而且这还只是 decode 的账，prefill 里它是平方项，涨得更凶；② 切到 GPT-3
-              预设，注意 d 翻 3 倍带来的是 d² 即 9 倍的单层开销；③ 切换 MHA / GQA，参数量动了，但 score·AV 一项纹丝
-              不动——GQA 省的是参数和 KV cache 显存，不省 attention 的计算（Q head 一个都没少）。
+              三个值得亲手做的实验。保持 LLaMA-7B 预设，把 S 从 128 拉到 32K：<span className="text-amber">score·AV</span>{' '}
+              的占比从不到 1% 涨到近六成，反超 MLP，而这还只是 decode 的账，prefill 里它是平方项，涨得更凶。切到 GPT-3
+              预设，看 d 翻 3 倍带来的是 d² 即 9 倍的单层开销。切换 MHA / GQA，参数量动了，score·AV 那一项却纹丝不动：
+              GQA 省回来的是参数和 KV cache 显存，从来不是 attention 的计算，因为 Q head 一个都没少。
             </>,
           )}
         </p>
@@ -391,20 +395,20 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              So far attention looks harmless: a third of the parameters, and at short sequences only a rounding error
-              of FLOPs. But it differs from the MLP in one essential way — the MLP computes each token independently,
-              and its intermediate tensors don&apos;t depend on S; attention forces every token to meet every preceding
-              token pairwise. A naive implementation materializes this meeting as a real tensor:{' '}
-              <MathTex tex="A = QK^\top" />, shape <MathTex tex="[B,\, h,\, S,\, S]" />. It isn&apos;t a parameter, never
-              enters the checkpoint, and gets discarded the moment softmax and AV are done — but for that instant it
+              So far attention looks harmless: a third of the parameters, and at short sequences a rounding error of
+              FLOPs. It differs from the MLP in one essential way. The MLP computes each token independently and its
+              intermediate tensors don&apos;t depend on S, while attention forces every token to meet every preceding
+              token pairwise. A naive implementation materializes that meeting as a real tensor:{' '}
+              <MathTex tex="A = QK^\top" />, shape <MathTex tex="[B,\, h,\, S,\, S]" />. It is not a parameter, never
+              enters the checkpoint, and is discarded the instant softmax and AV finish. For that instant, though, it
               genuinely sits in memory, with a footprint of:
             </>,
             <>
-              到目前为止 attention 看起来人畜无害：参数占三分之一，FLOPs 在短序列下也只是零头。但它和 MLP 有一个本质
-              区别——MLP 对每个 token 独立计算，中间张量的大小与 S 无关；attention 却要让每个 token 和前面所有 token
-              两两见面。naive（朴素）实现会把这场见面会物化成一个真实的张量：<MathTex tex="A = QK^\top" />，形状{' '}
-              <MathTex tex="[B,\, h,\, S,\, S]" />。它不是参数，不进 checkpoint，softmax 和 AV 一做完就被丢掉——
-              但在那一瞬间，它真实地躺在显存里，体积是：
+              到目前为止 attention 看起来人畜无害：占三分之一参数，FLOPs 在短序列下也只是零头。它和 MLP 有一个本质
+              区别。MLP 对每个 token 独立计算，中间张量的大小与 S 无关，而 attention 要让每个 token 和前面所有 token
+              两两见面。naive（朴素）实现会把这场见面物化成一个真实的张量：<MathTex tex="A = QK^\top" />，形状{' '}
+              <MathTex tex="[B,\, h,\, S,\, S]" />。它不是参数，不进 checkpoint，softmax 和 AV 一做完就被丢掉。但就在
+              那一瞬间，它实打实地躺在显存里，体积是：
             </>,
           )}
         </p>
@@ -412,16 +416,16 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              Mind the exponents: parameters don&apos;t depend on S, KV cache and activations grow linearly with S, but
-              this one temporary matrix is <strong>S²</strong>. The terror of a quadratic curve is that its first half
-              is completely unremarkable: at S=2048 a single layer&apos;s score is just 256MB — nobody notices it.
-              Stretch the sequence 16× to 32K and it balloons 256×. In the experiment below, watch it cross two red
-              lines with your own eyes.
+              Mind the exponents. Parameters don&apos;t depend on S; KV cache and activations grow linearly with S; this
+              one temporary matrix grows as <strong>S²</strong>. What makes a quadratic dangerous is how dull its first
+              half looks. At S=2048 a single layer&apos;s score is just 256MB, and nobody gives it a second glance.
+              Stretch the sequence 16× to 32K and it balloons 256×. The experiment below lets you watch it cross two red
+              lines.
             </>,
             <>
-              注意指数：参数与 S 无关，KV cache 和激活随 S 一次方增长，唯独这个临时矩阵是 <strong>S²</strong>。
-              平方曲线的可怕之处在于前半段毫无存在感：S=2048 时单层 score 只有 256MB，没人会注意它。把序列拉长
-              16 倍到 32K，它就膨胀 256 倍——在下面的实验里，亲眼看它越过两条红线。
+              注意指数。参数与 S 无关，KV cache 和激活随 S 一次方增长，唯独这个临时矩阵随 <strong>S²</strong> 增长。
+              平方曲线的危险，在于它前半段长得太不起眼。S=2048 时单层 score 只有 256MB，谁都不会多看一眼。把序列拉长
+              16 倍到 32K，它就膨胀 256 倍。下面的实验让你亲眼看它越过两条红线。
             </>,
           )}
         </p>
@@ -432,24 +436,24 @@ export default function Chapter() {
           {t(
             <>
               At S=32K, batch=1, a single layer&apos;s temporary score matrix is about 64GB (32 heads × 32768² × 2
-              bytes) — nearly five times the entire 7B weight set (13.5GB), pressing right up against the 80GB HBM
-              ceiling of an A100/H100; bump the batch to 2 and you OOM (Out of Memory) outright. The absurdity is
-              exactly this: the model itself isn&apos;t big, and computationally it&apos;s no more than the same order of
-              FLOPs as the linear layers — <strong>a single throwaway intermediate result is what blows up
-              memory</strong>. Worse, this matrix also gets written to HBM once, read by softmax once, and read again by
-              AV — three S²-scale round trips to memory, so the bandwidth ledger is just as ugly. The way out isn&apos;t
-              a bigger card; it&apos;s to never materialize the matrix at all: tile attention into blocks, stream the
-              computation on-chip in SRAM, and keep score alive only in registers and shared memory. That&apos;s
-              FlashAttention — the whole of the next chapter.
+              bytes), nearly five times the entire 7B weight set (13.5GB), pressing right up against the 80GB HBM ceiling
+              of an A100/H100. Bump the batch to 2 and you OOM (Out of Memory) outright. (Blackwell-class cards push the
+              ceiling higher, but a quadratic chews through any fixed budget eventually.) Here is the absurd part: the
+              model itself isn&apos;t big, and the FLOPs are the same order as the linear layers, yet{' '}
+              <strong>a single throwaway intermediate result is what blows up memory</strong>. It gets worse on the
+              bandwidth side. This matrix is written to HBM once, read by softmax once, and read again by AV, three
+              S²-scale round trips to memory. The fix isn&apos;t a bigger card. It is to never materialize the matrix:
+              tile attention into blocks, stream the computation on-chip in SRAM, and keep score alive only in registers
+              and shared memory. That is FlashAttention, the whole of the next chapter.
             </>,
             <>
-              S=32K、batch=1 时，单层临时 score 矩阵约 64GB（32 个 head × 32768² × 2 字节）——是 7B 模型全部权重
-              （13.5GB）的近五倍，直逼 A100/H100 的 80GB HBM 上限；batch 开到 2 就直接 OOM（Out of Memory，显存
-              溢出）。荒谬感正在于此：模型本身不大，计算上也不过是和线性层同量级的 FLOPs，
-              <strong>纯粹是一个用完即弃的中间结果撑爆了显存</strong>。更糟的是这个矩阵还要往 HBM 写一遍、softmax
-              读一遍、AV 再读一遍——三趟 S² 级别的显存往返，带宽账同样难看。出路不是买更大的卡，而是根本不物化这个
-              矩阵：把 attention 拆成小块，在片上 SRAM 里流式地算，score 永远只存活在寄存器和 shared memory 里。
-              这就是 FlashAttention，下一章的全部内容。
+              S=32K、batch=1 时，单层临时 score 矩阵约 64GB（32 个 head × 32768² × 2 字节），是 7B 模型全部权重
+              （13.5GB）的近五倍，直逼 A100/H100 的 80GB HBM 上限。batch 开到 2 就直接 OOM（Out of Memory，显存
+              溢出）。（Blackwell 一代的卡把上限抬得更高，但平方项迟早会啃光任何固定预算。）荒谬就在这里：模型本身
+              不大，FLOPs 也只和线性层同量级，<strong>偏偏是一个用完即弃的中间结果撑爆了显存</strong>。带宽这边更糟。
+              这个矩阵要往 HBM 写一遍、softmax 读一遍、AV 再读一遍，三趟 S² 级别的显存往返。出路不是买更大的卡，而是
+              根本不物化这个矩阵：把 attention 拆成小块，在片上 SRAM 里流式地算，让 score 永远只活在寄存器和 shared
+              memory 里。这就是 FlashAttention，下一章的全部内容。
             </>,
           )}
         </p>
@@ -513,14 +517,14 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              The training ledger differs from inference by just one coefficient. The forward pass is 2P FLOPs/token;
-              backprop computes two sets of gradients — gradients with respect to activations (so the chain rule keeps
-              propagating backward) and gradients with respect to weights — each a GEMM the same size as the forward, so
+              The training ledger differs from inference by a single coefficient. The forward pass is 2P FLOPs/token.
+              Backprop computes two sets of gradients, one with respect to activations (so the chain rule keeps
+              propagating backward) and one with respect to weights, each a GEMM the same size as the forward, so
               backward ≈ 4P. Total:
             </>,
             <>
-              训练的账只比推理多一个系数。前向是 2P FLOPs/token；反向传播要算两组梯度——对激活的梯度（让链式法则
-              继续往前传）和对权重的梯度，每组都是一次与前向同规模的 GEMM，所以反向 ≈ 4P。合计：
+              训练的账只比推理多乘一个系数。前向是 2P FLOPs/token。反向传播要算两组梯度，一组对激活（让链式法则
+              继续往前传），一组对权重，每组都是一次与前向同规模的 GEMM，所以反向 ≈ 4P。合计：
             </>,
           )}
         </p>
@@ -528,54 +532,53 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              where T is the total number of training tokens. This rule of thumb comes from Kaplan et al.&apos;s scaling
-              laws paper and is the bedrock of the whole discipline of large-model training budgeting. Let&apos;s verify:
-              LLaMA-7B trained on 1T tokens, 6 × 6.74e9 × 1e12 ≈ 4×10²² FLOPs; at an A100 BF16 peak of 312 TFLOPS and a
-              real{' '}
+              where T is the total number of training tokens. This rule of thumb traces back to Kaplan et al.&apos;s
+              scaling-laws paper, and it underpins how everyone budgets large-model training runs. Verify it: LLaMA-7B
+              trained on 1T tokens, 6 × 6.74e9 × 1e12 ≈ 4×10²² FLOPs; at an A100 BF16 peak of 312 TFLOPS and a real{' '}
               <Term t="MFU">
                 Model FLOPs Utilization: the FLOPs implied by the model&apos;s actual throughput divided by the
                 hardware&apos;s peak compute. Hitting 40%–55% at large scale is considered excellent; the rest of the
                 time goes to communication, data loading, and memory-bound operators.
               </Term>{' '}
-              of about 45%, you need roughly 80,000 GPU-hours — the real figure Meta reports in the paper is 82,432
+              of about 45%, you need roughly 80,000 GPU-hours. The real figure Meta reports in the paper is 82,432
               GPU-hours. Four lines of arithmetic, error in the single-digit percent.
             </>,
             <>
-              其中 T 是训练 token 总数。这条经验式出自 Kaplan 等人的 scaling laws 论文，是整个大模型训练预算学的
-              地基。验证一下：LLaMA-7B 训了 1T token，6 × 6.74e9 × 1e12 ≈ 4×10²² FLOPs；按 A100 BF16 峰值 312
+              其中 T 是训练 token 总数。这条经验式可以追到 Kaplan 等人的 scaling laws 论文，大家给大模型训练算预算
+              基本都靠它。验证一下：LLaMA-7B 训了 1T token，6 × 6.74e9 × 1e12 ≈ 4×10²² FLOPs；按 A100 BF16 峰值 312
               TFLOPS、实际{' '}
               <Term t="MFU">
                 Model FLOPs Utilization：模型实际吞吐折算出的 FLOPs 除以硬件峰值算力。大规模训练能跑到 40%~55%
                 就算优秀，剩下的时间花在通信、数据加载和 memory-bound 算子上。
               </Term>{' '}
-              约 45% 计，需要约 8 万 GPU·小时——Meta 论文里报的真实数字是 82,432 GPU·小时。四行公式，误差个位数百分比。
+              约 45% 计，需要约 8 万 GPU·小时。Meta 论文里报的真实数字是 82,432 GPU·小时。四行公式，误差只在个位数百分比。
             </>,
           )}
         </p>
         <p>
           {t(
             <>
-              On the inference side, the same FLOPs formula splits into two phases with wildly different personalities.{' '}
-              <strong>Prefill</strong>: the S tokens of the prompt stream through the model in parallel at once; each
-              block of weights, once brought on-chip, can be reused S times, so arithmetic intensity is high and it&apos;s
-              compute-bound — pinned to the compute roof on the roofline, Tensor Cores firing on all cylinders, the same
-              workload as the training forward pass. <strong>Decode</strong>: autoregressive generation produces one
-              token at a time, so it must haul the full 13.5GB of weights from HBM yet only does 2P ≈ 14 GFLOPs — 2
-              operations per 2 bytes moved, an arithmetic intensity of only 1–2 FLOPs/Byte, while the A100&apos;s ridge
-              point is above 160. Two orders of magnitude apart means decode compute utilization is often under 1%, with
-              almost all the time spent waiting on memory. So the latency floor of single-stream decode follows
-              straight from bandwidth: 13.5GB ÷ 1.9TB/s ≈ 7ms/token, about 140 tokens/s — startlingly close to what you
-              measure. <ChapterLink n={10} /> unfolds this &quot;time ledger&quot; millisecond by millisecond.
+              On the inference side the same FLOPs formula splits into two phases with wildly different personalities.{' '}
+              <strong>Prefill</strong> streams all S tokens of the prompt through the model at once. Each block of
+              weights, once brought on-chip, is reused S times, so arithmetic intensity is high and the phase is
+              compute-bound: pinned to the compute roof on the roofline, Tensor Cores firing on all cylinders, the same
+              workload as the training forward pass. <strong>Decode</strong> generates one token at a time, so it hauls
+              the full 13.5GB of weights from HBM yet does only 2P ≈ 14 GFLOPs. That works out to 2 operations per 2
+              bytes moved, an arithmetic intensity of 1–2 FLOPs/Byte, against an A100 ridge point above 160. Two orders
+              of magnitude apart, so decode compute utilization is often under 1% and almost all the time goes to
+              waiting on memory. The latency floor of single-stream decode then drops straight out of bandwidth:
+              13.5GB ÷ 1.9TB/s ≈ 7ms/token, about 140 tokens/s, startlingly close to what you measure.{' '}
+              <ChapterLink n={10} /> unfolds this time ledger millisecond by millisecond.
             </>,
             <>
-              推理这边，同样的 FLOPs 公式却劈出两个性格迥异的阶段。<strong>Prefill</strong>：prompt 里的 S 个 token
-              一次性并行流过模型，每块权重搬进片上就能复用 S 次，算术强度（arithmetic intensity）高，是
-              compute-bound（算力受限）的——roofline 上贴着算力屋顶，Tensor Core 火力全开，和训练前向是同一种负载。
-              <strong>Decode</strong>：自回归生成一次只出一个 token，要把 13.5GB 权重从 HBM 完整搬一遍，却只做 2P ≈
-              14 GFLOPs——每搬 2 个字节做 2 次运算，算术强度只有 1~2 FLOPs/Byte 的量级，而 A100 的脊点（ridge
-              point）在 160 以上。差两个数量级，意味着 decode 时算力利用率常常不到 1%，时间几乎全花在等显存。所以
-              单流 decode 的延迟下限可以直接用带宽心算：13.5GB ÷ 1.9TB/s ≈ 7ms/token，约 140 token/s——和实测惊人
-              地接近。这本「时间账」<ChapterLink n={10} />会逐毫秒展开。
+              推理这边，同一条 FLOPs 公式劈出了两个性格迥异的阶段。<strong>Prefill</strong> 把 prompt 里的 S 个 token
+              一次性并行喂进模型。每块权重搬进片上后能复用 S 次，算术强度（arithmetic intensity）很高，这一段是
+              compute-bound（算力受限）的：贴着 roofline 的算力屋顶，Tensor Core 火力全开，和训练前向是同一种负载。
+              <strong>Decode</strong> 一次只生成一个 token，要把 13.5GB 权重从 HBM 完整搬一遍，却只做 2P ≈ 14 GFLOPs。
+              算下来每搬 2 个字节才做 2 次运算，算术强度只有 1~2 FLOPs/Byte，而 A100 的脊点（ridge point）在 160 以上。
+              差出两个数量级，于是 decode 的算力利用率常常不到 1%，时间几乎全花在等显存上。这样一来，单流 decode 的
+              延迟下限直接从带宽里掉出来：13.5GB ÷ 1.9TB/s ≈ 7ms/token，约 140 token/s，和实测惊人地接近。这本时间账，
+              <ChapterLink n={10} />会逐毫秒展开。
             </>,
           )}
         </p>
@@ -583,13 +586,13 @@ export default function Chapter() {
           <p>
             {t(
               <>
-                Raise the batch from 1 to 32 and the weights still get hauled only once, but the FLOPs become 32× —
-                arithmetic intensity rises linearly, the GPU is pushed off the bandwidth wall toward the compute roof,
-                and throughput is nearly a free 32× win. This is why batching is almost free in inference serving, and
-                the starting point for system designs like continuous batching and PagedAttention (<ChapterLink n={10} />).
+                Raise the batch from 1 to 32 and the weights still get hauled only once, while the FLOPs become 32×.
+                Arithmetic intensity rises linearly, the GPU comes off the bandwidth wall toward the compute roof, and
+                throughput is a nearly free 32× win. That is why batching is close to free in inference serving, and it
+                is the starting point for system designs like continuous batching and PagedAttention (<ChapterLink n={10} />).
               </>,
               <>
-                把 batch 从 1 加到 32，权重还是只搬一遍，FLOPs 却变成 32 份——算术强度线性上升，GPU 从带宽墙下被推向
+                把 batch 从 1 加到 32，权重还是只搬一遍，FLOPs 却变成 32 份。算术强度线性上升，GPU 从带宽墙下被推向
                 算力屋顶，吞吐近乎白赚 32 倍。这就是推理服务里 batching（批处理）近乎免费的原因，也是 continuous
                 batching、PagedAttention 这些系统设计的出发点（<ChapterLink n={10} />）。
               </>,
@@ -621,8 +624,8 @@ export default function Chapter() {
             {
               text: t('About 4×10²⁴ FLOPs', '约 4×10²⁴ FLOPs'),
               explain: t(
-                "100× too large — that's getting close to the rumored GPT-4-class training budget. 7B × 1T tokens by 6PT is 4×10²².",
-                '多了 100 倍，这已经接近 GPT-4 级别的传闻训练预算了。7B × 1T token 按 6PT 算是 4×10²²。',
+                "100× too large, getting into the range estimated for frontier-scale training runs. 7B × 1T tokens by 6PT is 4×10²².",
+                '多了 100 倍，已经进到外界估计的前沿规模训练量级了。7B × 1T token 按 6PT 算是 4×10²²。',
               ),
             },
             {
@@ -645,12 +648,12 @@ export default function Chapter() {
           <li>
             {t(
               <>
-                <strong>One layer = five GEMMs.</strong> The FLOPs of norm, RoPE, and softmax drop off the ledger (but
-                their time doesn&apos;t — they&apos;re memory-bound).
+                <strong>One layer = five GEMMs.</strong> The FLOPs of norm, RoPE, and softmax drop off the ledger; their
+                time doesn&apos;t, because they&apos;re memory-bound.
               </>,
               <>
-                <strong>一层 = 五个 GEMM。</strong>norm、RoPE、softmax 的 FLOPs 可以从账上划掉（但它们的耗时不能——
-                它们是 memory-bound 的）。
+                <strong>一层 = 五个 GEMM。</strong>norm、RoPE、softmax 的 FLOPs 可以从账上划掉；它们的耗时不能，因为
+                它们是 memory-bound 的。
               </>,
             )}
           </li>
@@ -685,11 +688,11 @@ export default function Chapter() {
             {t(
               <>
                 <strong>The hidden memory bomb: </strong>naive attention&apos;s S×S score matrix balloons as S², hitting
-                64GB per layer at 32K context — nearly five times the weights. FlashAttention was born for this (<ChapterLink n={8} />).
+                64GB per layer at 32K context, nearly five times the weights. FlashAttention was born for this (<ChapterLink n={8} />).
               </>,
               <>
                 <strong>显存的暗雷：</strong>naive attention 的 S×S score 矩阵随 S² 膨胀，32K 上下文时单层 64GB，
-                是权重的近五倍——FlashAttention 因此而生（<ChapterLink n={8} />）。
+                是权重的近五倍。FlashAttention 因此而生（<ChapterLink n={8} />）。
               </>,
             )}
           </li>

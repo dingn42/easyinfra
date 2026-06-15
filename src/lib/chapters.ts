@@ -59,8 +59,8 @@ export const PARTS: PartMeta[] = [
     title: { en: 'LLM Inference Systems', zh: '大模型推理系统' },
     titleEn: 'LLM INFERENCE SYSTEMS',
     blurb: {
-      en: 'FlashAttention, KV cache, continuous batching, quantization, and distributed parallelism — the core ideas behind production LLM infrastructure.',
-      zh: 'FlashAttention、KV Cache、连续批处理、量化与分布式并行 —— 生产级 LLM Infra 的核心思想。',
+      en: 'FlashAttention, the KV cache, continuous batching, quantization, distributed parallelism. The core ideas that keep today’s largest models, dense and Mixture-of-Experts alike, served in production.',
+      zh: 'FlashAttention、KV Cache、连续批处理、量化、分布式并行。这些核心思想撑起了今天最大的模型在生产环境里的服务，无论稠密还是 MoE。',
     },
   },
 ]
@@ -74,8 +74,8 @@ export const CHAPTERS: ChapterMeta[] = [
     titleEn: 'WHY GPUS',
     tagline: { en: 'From a latency machine to a throughput machine', zh: '从「延迟机器」到「吞吐机器」' },
     summary: {
-      en: 'How CPUs and GPUs differ in design philosophy, the intuition behind parallel computing, and why large models cannot live without GPUs.',
-      zh: 'CPU 与 GPU 的设计哲学差异、并行计算的基本直觉，以及大模型为什么离不开 GPU。',
+      en: 'Where CPUs and GPUs part ways in design, the intuition behind parallel computing, and why training and serving large models runs on GPUs.',
+      zh: 'CPU 与 GPU 在设计上的分道扬镳、并行计算的基本直觉，以及大模型的训练和推理为什么都跑在 GPU 上。',
     },
     minutes: 25,
     labs: [
@@ -197,8 +197,8 @@ export const CHAPTERS: ChapterMeta[] = [
     titleEn: 'FLASH ATTENTION',
     tagline: { en: 'Attention without ever writing the S×S matrix', zh: '不写回 S×S 矩阵，注意力照样算' },
     summary: {
-      en: 'Online softmax and tiled computation: the elegant algorithm that cuts attention’s memory from O(S²) to O(S).',
-      zh: 'Online softmax 与分块计算：把注意力的显存从 O(S²) 降到 O(S) 的精妙算法。',
+      en: 'Online softmax and tiled computation: the algorithm that drops attention’s memory from O(S²) to O(S) without ever changing the math.',
+      zh: 'Online softmax 与分块计算：在不改变数学的前提下，把注意力的显存从 O(S²) 降到 O(S)。',
     },
     minutes: 35,
     labs: [
@@ -266,8 +266,8 @@ export const CHAPTERS: ChapterMeta[] = [
     titleEn: 'PARALLELISM',
     tagline: { en: 'What to do when one card isn’t enough', zh: '一张卡放不下，怎么办' },
     summary: {
-      en: 'Data, tensor, and pipeline parallelism plus ZeRO: the art of slicing trillion-parameter models.',
-      zh: '数据并行、张量并行、流水线并行与 ZeRO：万亿参数模型的切分艺术。',
+      en: 'Data, tensor, and pipeline parallelism plus ZeRO: how you slice a model too big for any single card across hundreds of GPUs.',
+      zh: '数据并行、张量并行、流水线并行与 ZeRO：当一个模型大到放不进任何单卡时，如何把它切到成百上千张 GPU 上。',
     },
     minutes: 35,
     labs: [

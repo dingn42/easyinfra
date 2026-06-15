@@ -11,7 +11,7 @@ export function TensorParallelFigure() {
   return (
     <Figure
       caption={t(
-        'The Megatron cut for the MLP: W1 split by column (each GPU gets different columns of the activation), GeLU is element-wise so it computes independently, W2 split by row (each GPU gets a partial sum of Y), and across both layers there is a single communication at the very end. Right: whether this AllReduce travels over NVLink or cross-machine InfiniBand — about 18× difference in bandwidth.',
+        'The Megatron cut for the MLP: W1 split by column (each GPU gets different columns of the activation), GeLU is element-wise so it computes independently, W2 split by row (each GPU gets a partial sum of Y), and across both layers there is a single communication at the very end. Right: whether this AllReduce rides NVLink or cross-machine InfiniBand, about an 18× difference in bandwidth.',
         'MLP 的 Megatron 切法：W1 按列切（各卡得到激活的不同列），GeLU 逐元素可独立算，W2 按行切（各卡得到 Y 的部分和），整个两层只在末尾通信一次。右：这次 AllReduce 走 NVLink 还是跨机 InfiniBand，带宽差约 18 倍。',
       )}
     >

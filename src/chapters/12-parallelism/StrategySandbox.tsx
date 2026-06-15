@@ -127,17 +127,17 @@ export function StrategySandboxLab() {
     <Widget
       index={3}
       title={t('Parallel-Strategy Sandbox', '并行策略沙盘')}
-      subtitle={t('Given a model and a cluster, carve out a parallel plan that fits', '给定模型和集群，亲手切出一个能装下的并行方案')}
+      subtitle={t('Given a model and a cluster, carve out a parallel plan that fits', '给定模型和集群，亲手切一个能装下的并行方案')}
       onReset={reset}
       wide
       footer={t(
         <>
-          Estimation basis: training = BF16 weights 2B + gradients 2B + FP32 master/m/v 12B per parameter; activations approximated at 4K sequence, micro-batch=1, flash-attention, 1F1B residency (only thinned by TP);
-          inference = BF16 weights + 32-concurrent × 4K-context KV (GQA). ZeRO acts only on the DP dimension — with DP=1, tuning ZeRO does nothing. Real systems also vary with fragmentation, recomputation, and more, so treat these as approximate.
+          Estimation basis: training = BF16 weights 2B + gradients 2B + FP32 master/m/v 12B per parameter; activations approximated at 4K sequence, micro-batch=1, flash-attention, 1F1B residency (only thinned by TP).
+          Inference = BF16 weights + 32-concurrent × 4K-context KV (GQA). ZeRO acts only on the DP dimension, so with DP=1 tuning it does nothing. Real systems also vary with fragmentation, recomputation, and more, so treat these as approximate.
         </>,
         <>
-          估算口径：训练 = BF16 权重 2B + 梯度 2B + FP32 master/m/v 12B 每参数，激活按 4K 序列、micro-batch=1、flash-attention、1F1B 驻留近似（只被 TP 摊薄）；
-          推理 = BF16 权重 + 32 并发 × 4K 上下文 KV（GQA）。ZeRO 只作用于 DP 维 —— DP=1 时调 ZeRO 没有任何效果。真实系统还有碎片与重计算等变量，此处取「约」。
+          估算口径：训练 = BF16 权重 2B + 梯度 2B + FP32 master/m/v 12B 每参数，激活按 4K 序列、micro-batch=1、flash-attention、1F1B 驻留近似（只被 TP 摊薄）。
+          推理 = BF16 权重 + 32 并发 × 4K 上下文 KV（GQA）。ZeRO 只作用于 DP 维，所以 DP=1 时调它没有任何效果。真实系统还有碎片、重计算等变量，此处取「约」。
         </>,
       )}
     >
@@ -238,20 +238,20 @@ export function StrategySandboxLab() {
           {!dpInt &&
             t(
               <>
-                {gpus} GPUs aren’t divisible by TP×PP = {tp * pp} (gives {dpRaw.toFixed(2)}), so DP replicas can’t form. Adjust TP/PP so their product divides the GPU count.
+                {gpus} GPUs aren’t divisible by TP×PP = {tp * pp} (you get {dpRaw.toFixed(2)}), so DP replicas can’t form. Adjust TP/PP until their product divides the GPU count.
               </>,
               <>
-                {gpus} 张卡不能被 TP×PP = {tp * pp} 整除（得 {dpRaw.toFixed(2)}），DP 副本无法成形。调整 TP/PP 使乘积整除 GPU 数。
+                {gpus} 张卡不能被 TP×PP = {tp * pp} 整除（得 {dpRaw.toFixed(2)}），DP 副本凑不出来。调整 TP/PP，让乘积整除 GPU 数。
               </>,
             )}
           {dpInt &&
             !ppOk &&
             t(
               <>
-                PP = {pp} stages exceeds {model}’s {spec.layers} layers — there aren’t enough layers to give each stage some.
+                PP = {pp} stages exceeds {model}’s {spec.layers} layers: there aren’t enough layers to give each stage one.
               </>,
               <>
-                PP = {pp} 段超过了 {model} 的 {spec.layers} 层 —— 没法给每段都分到层。
+                PP = {pp} 段超过了 {model} 的 {spec.layers} 层：层数不够，没法给每段都分到。
               </>,
             )}
         </div>

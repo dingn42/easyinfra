@@ -133,15 +133,15 @@ export default function CacheCompareLab() {
       onReset={reset}
       footer={tr(
         <>
-          On the left, every step relights the whole score triangle — the <span className="text-rose">rose</span> of the
-          old rows is compute burned for nothing; on the right, the old rows just sit there in{' '}
+          On the left, every step relights the whole score triangle, and the <span className="text-rose">rose</span> of
+          the old rows is compute burned for nothing. On the right, the old rows just sit there in{' '}
           <span className="text-amber">amber</span>, waiting in memory to be read. Cost per step is O(t²·d) vs. O(t·d);
           over the whole sequence the cumulative cost is O(S³·d) vs. O(S²·d).
         </>,
         <>
-          左侧每一步都把整个 score 三角重新点亮 —— 旧行的<span className="text-rose">玫红</span>就是白白烧掉的算力；
+          左侧每一步都把整个 score 三角重新点亮，旧行的<span className="text-rose">玫红</span>就是白白烧掉的算力；
           右侧旧行只是<span className="text-amber">琥珀色</span>地躺在显存里等着被读。每步代价 O(t²·d) vs O(t·d)，
-          整个序列生成下来累计就是 O(S³·d) vs O(S²·d)。
+          整段生成累计下来就是 O(S³·d) vs O(S²·d)。
         </>,
       )}
     >

@@ -61,16 +61,16 @@ export function MemoryCalcLab() {
       onReset={reset}
       footer={t(
         <>
-          Ground rules: decode, batch=1, every token streams the full weight set out of HBM once;
-          the theoretical ceiling assumes ~2 TB/s on an 80G card and ignores KV cache, activations
-          and comms, so real numbers run a bit lower. Note that in W4A16 the multiply is still done
-          in FP16 — weights are <em>stored</em> as INT4, then dequantized on the fly inside the
-          kernel back to FP16 before hitting the Tensor Cores.
+          Ground rules: decode, batch=1, every token streams the full weight set out of HBM once. The
+          theoretical ceiling assumes ~2 TB/s on an 80G card and ignores KV cache, activations, and comms, so
+          real numbers run a bit lower. And remember that W4A16 still does the multiply in FP16: weights are{' '}
+          <em>stored</em> as INT4, then dequantized on the fly inside the kernel back to FP16 before they reach
+          the Tensor Cores.
         </>,
         <>
-          估算口径：decode、batch=1、每生成一个 token 都要把全部权重从 HBM 读一遍，按 80G 卡 ~2 TB/s
-          带宽算理论上限；忽略 KV cache、激活与通信开销，实际值会低一些。注意 W4A16 方案里乘法仍然用
-          FP16 做 —— 权重以 INT4 存放，kernel 内现场反量化（dequantize）回 FP16 再进 Tensor Core。
+          估算口径：decode、batch=1、每生成一个 token 都把全部权重从 HBM 读一遍，按 80G 卡 ~2 TB/s
+          带宽算理论上限；忽略 KV cache、激活和通信开销，实际值会低一些。还要记得 W4A16 的乘法仍是
+          FP16 做的：权重以 INT4 <em>存放</em>，kernel 内现场反量化（dequantize）回 FP16 才进 Tensor Core。
         </>,
       )}
     >

@@ -29,8 +29,8 @@ export function ChunkedPrefillSVG() {
     ))
   return (
     <Figure caption={t(
-      'Chunked prefill: slice a 2000-token prefill into several chunks and pack them into the same iterations as other requests’ decode tokens — a long prompt no longer stalls the neighbors’ TPOT.',
-      'chunked prefill：把 2000-token 的 prefill 切成若干 chunk，与其他请求的 decode token 拼进同一个迭代 —— 长 prompt 不再让邻居的 TPOT 卡顿。',
+      'Chunked prefill: slice a 2000-token prefill into several chunks and pack them into the same iterations as other requests’ decode tokens, so a long prompt no longer stalls the neighbors’ TPOT.',
+      'chunked prefill：把 2000-token 的 prefill 切成若干 chunk，与其他请求的 decode token 拼进同一个迭代，长 prompt 就不再卡住邻居的 TPOT。',
     )}>
       <svg viewBox="0 0 640 132" className="w-full" role="img" aria-label={t('Chunked prefill comparison diagram', 'chunked prefill 对比示意')}>
         <text x={0} y={26} className="fill-current font-mono text-ink3" fontSize={9}>{t('unchunked', '不切片')}</text>
@@ -59,7 +59,7 @@ export function ChunkedPrefillSVG() {
           { c: 'fill-volt/80', t: 'decode' },
         ])}
         <text x={352} y={76} className="fill-current font-mono text-volt" fontSize={8}>{t('← smoothly interleaved', '← 平滑交错')}</text>
-        <text x={120} y={108} className="fill-current font-mono text-ink3" fontSize={8}>{t('→ each cell = one engine iteration; cyan = prefill chunk, volt = another request’s decode token', '→ 每格 = 引擎的一个迭代（iteration），cyan = prefill chunk，volt = 其他请求的 decode token')}</text>
+        <text x={120} y={108} className="fill-current font-mono text-ink3" fontSize={8}>{t('→ each cell = one engine iteration; cyan = prefill chunk, volt = another request’s decode token', '→ 每格 = 引擎的一个迭代（iteration）；cyan = prefill chunk，volt = 其他请求的 decode token')}</text>
       </svg>
     </Figure>
   )
@@ -70,8 +70,8 @@ export function PreemptionSVG() {
   const t = useT()
   return (
     <Figure caption={t(
-      'Preemption: when the KV cache overflows memory, the scheduler evicts a request — either swapping its KV out to host memory wholesale, or simply discarding the KV and recomputing it later.',
-      '抢占（preemption）：KV cache 把显存挤爆时，调度器把某个请求请出去 —— 要么整体换出（swap）到主机内存，要么直接丢弃 KV、回头重算（recompute）。',
+      'Preemption: when the KV cache overflows memory, the scheduler evicts a request, either swapping its KV out to host memory wholesale, or discarding the KV and recomputing it later.',
+      '抢占（preemption）：KV cache 把显存挤爆时，调度器把某个请求请出去：要么整体换出（swap）到主机内存，要么直接丢弃 KV、回头重算（recompute）。',
     )}>
       <svg viewBox="0 0 640 120" className="w-full" role="img" aria-label={t('Preemption and swap diagram', '抢占与换出示意')}>
         {/* GPU 显存框 */}
@@ -119,8 +119,8 @@ export function SpeculativeSVG() {
   )
   return (
     <Figure caption={t(
-      'Speculative decoding: the draft model serially drafts k tokens (cheap), then the target model verifies them in one parallel forward pass. Accept the whole matching prefix, void everything after the first mismatch — one "big-model time" buys back several tokens.',
-      'speculative decoding：草稿模型串行起草 k 个 token（便宜），目标大模型一次前向并行验证。前缀命中的全收下，第一个不一致处之后作废 —— 一次「大模型时间」换回多个 token。',
+      'Speculative decoding: the draft model serially drafts k tokens (cheap), then the target model verifies them in one parallel forward pass. Accept the whole matching prefix and void everything after the first mismatch, so one "big-model time" buys back several tokens.',
+      'speculative decoding：草稿模型串行起草 k 个 token（便宜），目标大模型一次前向并行验证。前缀命中的全收下，第一个不一致之后的全作废，一次「大模型时间」就换回多个 token。',
     )}>
       <svg viewBox="0 0 640 150" className="w-full" role="img" aria-label={t('Speculative decoding flow diagram', 'speculative decoding 流程示意')}>
         {/* 草稿模型 */}
@@ -169,8 +169,8 @@ export function ServingStackSVG() {
   ]
   return (
     <Figure caption={t(
-      'A layered panorama of an inference serving stack: requests flow top-down, and each layer solves one class of problem. This chapter stars the middle two layers — the scheduler and the engine.',
-      '一个推理服务栈的分层全景：请求自上而下，每一层解决一类问题。本章的主角是中间两层 —— 调度器与引擎。',
+      'A layered panorama of an inference serving stack: requests flow top-down, and each layer solves one class of problem. This chapter stars the middle two layers, the scheduler and the engine.',
+      '一个推理服务栈的分层全景：请求自上而下，每一层解决一类问题。本章的主角是中间两层，调度器与引擎。',
     )}>
       <svg viewBox="0 0 640 248" className="w-full" role="img" aria-label={t('Inference serving stack layer diagram', '推理服务栈分层示意')}>
         {layers.map((l, i) => (

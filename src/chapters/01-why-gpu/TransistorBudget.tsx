@@ -86,13 +86,13 @@ export function TransistorBudget({ index }: { index: number }) {
       footer={t(
         <>
           A toy model with unitless scores: the single-thread score applies diminishing returns to the
-          control + cache share (echoing Pollack&apos;s rule — double a core&apos;s complexity and single-thread
-          performance rises only by about √2), while the throughput score is strictly proportional to ALU count.
-          Real silicon is of course messier, but the shape — one side with diminishing returns, the other growing
-          linearly — is real.
+          control + cache share (echoing Pollack&apos;s rule, where doubling a core&apos;s complexity buys only
+          about √2 more single-thread performance), while the throughput score is strictly proportional to ALU
+          count. Real silicon is messier, of course, but the shape is real: one side with diminishing returns, the
+          other growing linearly.
         </>,
         <>
-          卡通模型，分数无量纲：单线程分按控制 + 缓存占比做收益递减（呼应 Pollack 法则 —— 核心复杂度翻倍，
+          卡通模型，分数无量纲：单线程分按控制 + 缓存占比做收益递减（呼应 Pollack 法则，核心复杂度翻倍，
           单线程性能只涨约 √2 倍）；吞吐分严格正比 ALU 数量。真实芯片当然更复杂，但「一边收益递减、
           一边线性增长」这个结构是真的。
         </>,

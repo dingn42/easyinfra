@@ -57,13 +57,13 @@ export function AosSoaLab() {
         <>
           {t(
             <>
-              AoS isn't "wrong": if the kernel needs all of x/y/z, hauling them back together in one transaction
-              is actually the better deal. SoA only wins when you read just some fields — and the tensors in deep
+              AoS isn't "wrong." If the kernel needs all of x/y/z, hauling them back together in one transaction
+              is the better deal. SoA wins only when you read just some fields, which is why the tensors in deep
               learning frameworks are essentially all SoA.
             </>,
             <>
-              AoS 不是「错」：如果 kernel 同时要 x/y/z 三个字段，一个事务里顺便全带回来反而划算。只读
-              部分字段时 SoA 才是王道——深度学习框架里的 tensor 本质上全是 SoA。
+              AoS 并不「错」。如果 kernel 同时要 x/y/z 三个字段，一个事务里顺便全带回来反而划算。只读
+              部分字段时 SoA 才是王道，这也是为什么深度学习框架里的 tensor 本质上全是 SoA。
             </>,
           )}
         </>

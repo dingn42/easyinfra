@@ -86,13 +86,14 @@ export function BatchingCurves() {
     <Figure
       caption={t(
         <>
-          decode per-step latency ≈ max(weight read, compute). Small B → the weight read dominates, throughput
-          rises linearly with B and TPOT barely moves; B past the ridge (≈ compute/bandwidth ratio) → compute
-          becomes the bottleneck, throughput saturates and TPOT climbs steeply. Estimated for a 13B FP16 model.
+          decode per-step latency ≈ max(weight read, compute). At small B the weight read dominates, so
+          throughput rises linearly with B while TPOT barely moves. Once B passes the ridge (≈ compute/bandwidth
+          ratio) compute becomes the bottleneck, throughput saturates, and TPOT climbs steeply. Estimated for a
+          13B FP16 model.
         </>,
         <>
-          decode 单步时延 ≈ max(权重读取, 计算)。B 小→读权重独大，吞吐随 B 线性涨、TPOT 几乎不变；
-          B 越过 ridge（≈算力/带宽比）→ 计算成瓶颈，吞吐饱和、TPOT 开始陡增。13B FP16 模型估算。
+          decode 单步时延 ≈ max(权重读取, 计算)。B 小时读权重独大，吞吐随 B 线性涨、TPOT 几乎不变；
+          B 越过 ridge（≈ 算力/带宽比）后计算成了瓶颈，吞吐饱和、TPOT 开始陡增。按 13B FP16 模型估算。
         </>,
       )}
     >

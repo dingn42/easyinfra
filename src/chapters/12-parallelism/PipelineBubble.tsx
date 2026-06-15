@@ -122,11 +122,11 @@ export function PipelineBubbleLab() {
       footer={t(
         <>
           <span className="text-cyan">Cyan = forward</span>, <span className="text-amber">amber = backward</span> (timed at 2× forward), gray ground = bubble (that stage idling).
-          Switch to 1F1B and watch total time — identical to GPipe, the bubble ratio is unchanged; what changes is "peak activation residency": backward starts as early as possible, so the micro-batches each stage holds at once drop from M to ≤P.
+          Switch to 1F1B and watch the total time: identical to GPipe, the bubble ratio unchanged. What changes is peak activation residency — backward starts as early as possible, so the micro-batches each stage holds at once drop from M to ≤P.
         </>,
         <>
           <span className="text-cyan">青色 = 前向</span>，<span className="text-amber">琥珀 = 反向</span>（耗时取 2× 前向），灰底 = 气泡（该 stage 在空转）。
-          切到 1F1B 看总时长 —— 和 GPipe 一模一样，气泡率没变；变的是「峰值激活驻留」：反向尽早开跑，每个 stage 同时挂着的 micro-batch 从 M 个降到 ≤P 个。
+          切到 1F1B 看总时长：和 GPipe 一模一样，气泡率没变。变的是峰值激活驻留 —— 反向尽早开跑，每个 stage 同时挂着的 micro-batch 从 M 个降到 ≤P 个。
         </>,
       )}
     >

@@ -277,8 +277,8 @@ export const GLOSSARY: GlossaryGroup[] = [
         term: { en: 'MHA / GQA / MQA', zh: '多头 / 分组 / 多查询注意力' },
         abbr: 'GQA',
         def: {
-          en: 'Variants that share key/value heads across query heads. MHA: one KV head per query head. GQA: a few KV heads shared by groups. MQA: a single KV head. Fewer KV heads shrink the KV cache by n_heads / n_kv.',
-          zh: '在 query 头之间共享 key/value 头的几种变体。MHA：每个 query 头配一个 KV 头；GQA：几个 KV 头被分组共享；MQA：只有一个 KV 头。KV 头越少，KV cache 按 n_heads / n_kv 倍缩小。',
+          en: 'Variants that share key/value heads across query heads. MHA: one KV head per query head. GQA: a few KV heads shared by groups. MQA: a single KV head. Fewer KV heads shrink the KV cache by n_heads / n_kv, which is why GQA is the default in current frontier models.',
+          zh: '在 query 头之间共享 key/value 头的几种变体。MHA：每个 query 头配一个 KV 头；GQA：几个 KV 头被分组共享；MQA：只有一个 KV 头。KV 头越少，KV cache 按 n_heads / n_kv 倍缩小，这也是 GQA 成为当下前沿模型默认选择的原因。',
         },
         chapter: 9,
       },

@@ -146,22 +146,21 @@ export default function Chapter() {
       <p>
         {t(
           <>
-            The H100 spec sheet lists 16,896 FP32 cores — well over a hundred times the core count of a
-            top-end server CPU. But if you picture that as 16,896 little CPUs each doing its own thing,
-            you will be confused from your very first line of CUDA: why can a single <code>if</code> statement
-            halve your performance? Why do you need to launch tens of times more threads than there are cores
-            just to keep the chip busy? The answer is in how the hardware is organized — these cores move in
-            groups of 32, <strong>in lockstep</strong>, sharing one fetch and one scheduler. In this chapter we
-            take an H100 apart, from the silicon down to the execution units, and work out what rules this
-            machine actually runs by. The performance intuition for every later chapter is rooted right here.
+            The H100 spec sheet lists 16,896 FP32 cores, well over a hundred times the core count of a
+            top-end server CPU. Picture that as 16,896 little CPUs each doing its own thing and you will be
+            lost from your very first line of CUDA. Why can a single <code>if</code> statement halve your
+            performance? Why do you have to launch tens of times more threads than there are cores just to
+            keep the chip busy? It all comes down to how the hardware is wired up. These cores move in groups
+            of 32, <strong>in lockstep</strong>, sharing one fetch and one scheduler. This chapter takes an
+            H100 apart, from the silicon down to the execution units, and works out the rules this machine
+            actually runs by. The performance intuition behind every later chapter starts here.
           </>,
           <>
-            H100 的规格表上写着 16896 个 FP32 核心，是顶级服务器 CPU 核数的一百多倍。但如果你以为这是
-            16896 个可以各干各事的小 CPU，那从第一行 CUDA 代码开始就会困惑不断：为什么一个 <code>if</code>{' '}
-            语句能让性能掉一半？为什么线程数要开到核心数的几十倍才能跑满？答案藏在硬件组织方式里 ——
-            这些核心以 32 个为一组<strong>锁步（lockstep）行动</strong>，共享取指和调度。这一章我们把一块
-            H100 拆开，从硅片一路看到执行单元，搞清楚这台机器到底是按什么规则运转的。后面每一章的性能直觉，
-            根子都在这里。
+            H100 的规格表上写着 16896 个 FP32 核心，是顶级服务器 CPU 核数的一百多倍。可要是你把它想成 16896
+            个能各干各事的小 CPU，那从第一行 CUDA 代码开始就要犯迷糊：为什么一个 <code>if</code>{' '}
+            语句能让性能掉一半？为什么线程数要开到核心数的几十倍才能把芯片喂饱？这一切都取决于硬件是怎么接线的。
+            这些核心以 32 个为一组<strong>锁步（lockstep）行动</strong>，共享取指和调度。这一章我们把一块 H100
+            拆开，从硅片一路看到执行单元，弄清这台机器究竟按什么规则运转。后面每一章的性能直觉，根子都在这里。
           </>,
         )}
       </p>
@@ -172,7 +171,7 @@ export default function Chapter() {
         index={1}
         title={t('Top-down: from die to SM', '自顶向下：从 die 到 SM')}
         lead={t(
-          'A GPU is not one processor — it is a hundred-plus copies of the same processor, plus a pipeline to feed them data.',
+          'A GPU is not one processor. It is a hundred-plus copies of the same processor, plus a pipeline to feed them data.',
           'GPU 不是一个处理器，而是同一个处理器的一百多份拷贝，外加一套喂数据的管线。',
         )}
       >
@@ -180,21 +179,21 @@ export default function Chapter() {
           {t(
             <>
               Start with a sense of scale. An H100 die (codename GH100) is 814 mm² and packs roughly 80 billion
-              transistors using TSMC's 4N process — close to the physical limit of a single lithography exposure.
+              transistors on TSMC's 4N process, close to the physical limit of a single lithography exposure.
               Zoom in and the organization is a strict set of nested dolls: the die splits into 8{' '}
               <strong>GPCs</strong> (Graphics Processing Clusters), each GPC holds 9 <strong>TPCs</strong>{' '}
               (Texture Processing Clusters), and each TPC carries 2{' '}
               <Term t="SM (Streaming Multiprocessor)">
                 The GPU's fundamental compute unit. A thread block resides entirely on one SM, which supplies its
-                registers, shared memory, and execution units. Remember it — every later chapter comes back to it.
+                registers, shared memory, and execution units. Remember it; every later chapter comes back to it.
               </Term>
               . That multiplies out to 144 SMs; for yield, the H100 SXM fuses off 12, leaving{' '}
               <strong>132 SMs</strong> enabled (the previous-gen A100 had 108). GPCs and TPCs are nearly invisible to
-              the programmer — the only two levels you truly need to hold in your head are <strong>die and SM</strong>.
+              the programmer. The only two levels you truly need to hold in your head are <strong>die and SM</strong>.
             </>,
             <>
               先建立层级感。一块 H100 的硅片（die，代号 GH100）面积 814 mm²，用台积电 4N 工艺塞进了约
-              800 亿个晶体管 —— 接近光刻机单次曝光的物理上限。往里看，它的组织是严格的套娃结构：整片 die
+              800 亿个晶体管，已经逼近光刻机单次曝光的物理上限。往里看，它的组织是严格的套娃结构：整片 die
               划分为 8 个 <strong>GPC</strong>（Graphics Processing Cluster，图形处理簇），每个 GPC 里有 9 个{' '}
               <strong>TPC</strong>（Texture Processing Cluster，纹理处理簇），每个 TPC 装着 2 个{' '}
               <Term t="SM（Streaming Multiprocessor，流式多处理器）">
@@ -214,21 +213,21 @@ export default function Chapter() {
               identical processing partitions; each partition has 1 warp scheduler and 32 FP32 cores, for a total of{' '}
               <strong>128 FP32 cores, 4 warp schedulers, and 4 Tensor Cores</strong>. The four partitions each carry a
               64 KB register file (<strong>256 KB</strong> in total) and share one 256 KB block of L1 data
-              cache / shared memory (of which up to 228 KB can be configured as shared memory). Hold an SM's area
-              budget against a CPU core and you see two opposite design philosophies: a CPU core spends most of its
+              cache / shared memory, of which up to 228 KB can be configured as shared memory. Hold an SM's area
+              budget against a CPU core and two opposite design philosophies jump out. A CPU core spends most of its
               transistors on out-of-order execution, branch prediction, and deep caches, all to make a{' '}
-              <strong>single thread</strong> run as fast as possible; an SM throws all of that out and turns the
-              reclaimed area into execution units and registers — it never intended to make any one thread fast. What
+              <strong>single thread</strong> run as fast as possible. An SM throws all of that out and pours the
+              reclaimed area into execution units and registers. It never intended to make any one thread fast; what
               it wants is <strong>enough threads in flight at once</strong>.
             </>,
             <>
               SM 才是 GPU 真正意义上的「核」。每个 H100 的 SM 内部是四个结构完全相同的处理分区，每个分区有
               1 个 warp 调度器和 32 个 FP32 核心，合计 <strong>128 个 FP32 核心、4 个 warp 调度器、4 个
               Tensor Core</strong>；四个分区各自挂着 64 KB 寄存器堆（合计 <strong>256 KB</strong>），共用一块
-              256 KB 的 L1 数据缓存/共享内存（其中最多 228 KB 可配置为共享内存）。把 SM 的面积分配和 CPU
-              核对比一下，你会看到两种完全相反的设计哲学：CPU 核把大部分晶体管花在乱序执行、分支预测和多级大缓存上，
-              目标是让<strong>单个线程</strong>跑得尽量快；SM 把这些全部砍掉，省下的面积全部换成执行单元和寄存器 ——
-              它从一开始就没打算让任何一个线程跑得快，它要的是<strong>同时在飞的线程足够多</strong>。
+              256 KB 的 L1 数据缓存/共享内存，其中最多 228 KB 可配置为共享内存。把 SM 的面积分配和 CPU
+              核摆在一起看，两种截然相反的设计哲学就浮出来了。CPU 核把大部分晶体管花在乱序执行、分支预测和多级大缓存上，
+              图的是让<strong>单个线程</strong>跑得尽量快。SM 把这些全砍掉，省下的面积全部还给执行单元和寄存器。
+              它从一开始就没想让任何一个线程跑得快，它要的是<strong>同时在飞的线程足够多</strong>。
             </>,
           )}
         </p>
@@ -236,19 +235,22 @@ export default function Chapter() {
           {t(
             <>
               Note one counterintuitive number: an SM's register file (256 KB) is larger than its L1 cache, whereas a
-              single CPU core's registers add up to just a few KB. This "inversion" is not a design mistake — it is the
+              single CPU core's registers add up to just a few KB. This "inversion" is no design mistake. It is the
               physical foundation of the GPU's entire latency-hiding scheme, a thread we pick back up in section 3. The
-              rest of the chip is the "logistics" that serves those 132 SMs: a 50 MB L2 cache sits chip-wide in the
+              rest of the chip is the logistics that serve those 132 SMs: a 50 MB L2 cache sits chip-wide in the
               center of the die, 5 HBM3 stacks line its sides to provide 80 GB of capacity and 3.35 TB/s of bandwidth,
               the NVLink interface up top handles multi-GPU interconnect, and the GigaThread engine at the bottom hands
-              thread blocks out to the SMs. The dissection bench below lets you take one apart by hand.
+              thread blocks out to the SMs. (The newer Blackwell generation keeps this same skeleton and pushes the
+              bandwidth and low-precision throughput further still.) The dissection bench below lets you take one apart
+              by hand.
             </>,
             <>
               注意一个反直觉的数字：SM 的寄存器堆（256 KB）比它的 L1 缓存还要大，而 CPU 单核的寄存器加起来
-              不过几 KB。这个「倒挂」不是设计失误，而是整个 GPU 延迟隐藏机制的物质基础 —— 第 3 节会回收这个伏笔。
-              芯片的其余部分都是为这 132 个 SM 服务的「后勤系统」：die 中央一条 50 MB 的 L2 缓存为全片共享，
+              不过几 KB。这个「倒挂」不是设计失误，而是整个 GPU 延迟隐藏机制的物质基础，第 3 节会回收这个伏笔。
+              芯片的其余部分都在为这 132 个 SM 跑后勤：die 中央一条 50 MB 的 L2 缓存为全片共享，
               die 两侧贴着 5 颗 HBM3 显存堆叠提供 80 GB 容量和 3.35 TB/s 带宽，顶部的 NVLink 接口负责多卡互联，
-              底部的 GigaThread 引擎负责把线程块分发到各个 SM。下面这台解剖台可以亲手拆一遍。
+              底部的 GigaThread 引擎负责把线程块分发到各个 SM。（更新一代的 Blackwell 沿用了这套骨架，
+              把带宽和低精度吞吐又往上推了一截。）下面这台解剖台可以亲手拆一遍。
             </>,
           )}
         </p>
@@ -266,20 +268,20 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              Three things are worth noticing after a tour. First, <strong>an SM is copy-pasted</strong>: NVIDIA designs
-              one SM and stamps out 144 of them to tile the die — which is why a GPU's generational upgrade is largely
-              "stronger SMs plus more SMs," and why your program, to saturate the hardware, must split into enough
-              independent chunks to feed every SM. Second, <strong>the gray cells are real</strong>: yield on a chip
+              A tour leaves you with three things to take away. The first: <strong>an SM is copy-pasted</strong>. NVIDIA designs
+              one SM and stamps out 144 of them to tile the die, which is why a GPU's generational upgrade is largely
+              "stronger SMs plus more SMs," and why your program, to saturate the hardware, has to split into enough
+              independent chunks to feed every SM. The second: <strong>the gray cells are real</strong>. Yield on a chip
               this large is limited, fusing off defective SMs at the factory is industry standard, and the same GH100 die
-              is binned and sold by how many are disabled. Third, when you look inside an SM, note that each partition has
-              exactly 32 FP32 cores — that number is about to become the protagonist.
+              is binned and sold by how many are disabled. The third: look inside an SM and notice that each partition has
+              exactly 32 FP32 cores. That number is about to become the protagonist.
             </>,
             <>
-              逛完一圈值得留意三件事。其一，<strong>SM 是「复制粘贴」出来的</strong>：NVIDIA 设计好一个 SM，
-              复制 144 份铺满整片 die —— 所以 GPU 的代际升级很大程度上就是「SM 更强 + SM 更多」，而你写的程序
-              要想吃满硬件，就必须切成足够多的独立任务块去喂饱所有 SM。其二，<strong>灰色的格子是真实存在的</strong>：
+              逛完一圈，有三件事值得留意。其一，<strong>SM 是「复制粘贴」出来的</strong>。NVIDIA 设计好一个 SM，
+              复制 144 份铺满整片 die，所以 GPU 的代际升级很大程度上就是「SM 更强 + SM 更多」，而你写的程序
+              要想吃满硬件，就得切成足够多的独立任务块去喂饱所有 SM。其二，<strong>灰色的格子是真实存在的</strong>。
               大芯片良率有限，出厂时屏蔽掉有缺陷的 SM 是行业惯例，同一颗 GH100 die 按屏蔽数量分档出售。其三，
-              看 SM 内部时注意每个分区恰好是 32 个 FP32 核 —— 这个数字马上就要变成主角。
+              看 SM 内部时注意每个分区恰好是 32 个 FP32 核。这个数字马上就要变成主角。
             </>,
           )}
         </p>
@@ -289,7 +291,7 @@ export default function Chapter() {
         index={3}
         title={t('Warps and SIMT: 32 threads, one instruction', 'Warp 与 SIMT：32 个线程，一条指令')}
         lead={t(
-          "The smallest unit of hardware scheduling isn't a thread — it's a warp of 32 threads.",
+          "The smallest unit of hardware scheduling isn't a thread. It's a warp of 32 threads.",
           '硬件调度的最小单位不是线程，是 32 个线程组成的 warp。',
         )}
       >
@@ -322,21 +324,21 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              SIMT is a close cousin of the CPU's SIMD (Single Instruction, Multiple Data) at the hardware level — both
-              drive a row of execution units from one instruction — but the <strong>programming model is completely
-              different</strong>. Writing AVX-512, the vector width is your problem: you explicitly manipulate vector
+              At the hardware level SIMT is a close cousin of the CPU's SIMD (Single Instruction, Multiple Data): both
+              drive a row of execution units from one instruction. The <strong>programming model, though, is completely
+              different</strong>. Writing AVX-512, the vector width is your problem. You explicitly manipulate vector
               registers of 16 floats and handle alignment, tails, and masking yourself. Writing CUDA, you write an{' '}
               <strong>ordinary scalar thread</strong>: each thread has its own registers, its own program counter (per-thread
               PCs since Volta, even), its own branch direction, and "bundling them 32 at a time to run in lockstep" is
-              something the hardware does behind the scenes. This is where CUDA's usability comes from — anyone can write
-              scalar code, while almost nobody wants to touch vector intrinsics.
+              something the hardware does behind your back. That is where CUDA's usability comes from. Anyone can write
+              scalar code; almost nobody wants to touch vector intrinsics.
             </>,
             <>
-              SIMT 和 CPU 的 SIMD（Single Instruction, Multiple Data，单指令多数据）在硬件层面是近亲 ——
-              都是一条指令驱动一排运算单元 —— 但<strong>编程模型完全不同</strong>。写 AVX-512 时，向量宽度是你的事：
-              你显式操作 16 个 float 的向量寄存器，要自己处理对齐、收尾和掩码。写 CUDA 时，你写的是一个
+              在硬件层面，SIMT 和 CPU 的 SIMD（Single Instruction, Multiple Data，单指令多数据）是近亲：
+              都是一条指令驱动一排运算单元。可<strong>编程模型完全不同</strong>。写 AVX-512 时，向量宽度是你的事：
+              你显式操作 16 个 float 的向量寄存器，对齐、收尾、掩码都得自己处理。写 CUDA 时，你写的是一个
               <strong>普通的标量线程</strong>：每个线程有自己的寄存器、自己的程序计数器（Volta 之后甚至每线程独立
-              PC）、自己的分支走向，把这些线程「捆成 32 一组锁步执行」是硬件偷偷做的。这是 CUDA 易用性的来源 ——
+              PC）、自己的分支走向，把这些线程「捆成 32 一组锁步执行」是硬件背着你做的。CUDA 的易用性就是这么来的：
               标量代码人人会写，向量 intrinsics 没几个人愿意碰。
             </>,
           )}
@@ -344,10 +346,10 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              But abstractions always leak somewhere. The 32 threads share one fetch unit, which means that when threads
+              But abstractions always leak somewhere. The 32 threads share one fetch unit, so when threads
               inside a warp head down different branches, the hardware can only <strong>walk both paths in turn</strong>,
-              using an active mask to make the threads on the wrong path "tag along" — masking off the B threads while
-              executing branch A, then masking off the A threads while executing branch B. This is{' '}
+              using an active mask to make the threads on the wrong path tag along: mask off the B threads while
+              executing branch A, then mask off the A threads while executing branch B. This is{' '}
               <Term t="warp divergence">
                 When threads in one warp take different branches, the hardware executes every branch path serially and uses
                 a mask to switch off the irrelevant threads. The cost of the two sides adds up rather than taking the max.
@@ -355,8 +357,8 @@ export default function Chapter() {
               :
             </>,
             <>
-              但抽象总有漏出来的地方。32 个线程共用一个取指单元，意味着当 warp 内部走向不同分支时，硬件只能
-              <strong>把两条路径都执行一遍</strong>，靠活动掩码（active mask）让走错路的线程「陪跑」——
+              但抽象总有漏出来的地方。32 个线程共用一个取指单元，于是当 warp 内部走向不同分支时，硬件只能
+              <strong>把两条路径都执行一遍</strong>，靠活动掩码（active mask）让走错路的线程「陪跑」：
               执行 A 分支时屏蔽走 B 的线程，再执行 B 分支时屏蔽走 A 的线程。这就是{' '}
               <Term t="分支分化（warp divergence）">
                 同一 warp 内线程走向不同分支时，硬件串行执行所有分支路径、用掩码关闭不相关线程的现象。
@@ -386,26 +388,26 @@ export default function Chapter() {
           {t(
             <>
               The warp's second identity matters even more: it is <strong>the currency of latency hiding</strong>. Each
-              partition's warp scheduler holds several warps "resident" at once (up to 64 per SM on H100, 16 per partition).
-              Every cycle it glances at which warps have their next instruction ready (operands ready) and picks one to
-              issue. A warp waiting on memory? No problem — it sits quietly, and the scheduler turns to issue a different
-              warp, filling the execution units by "swapping in someone else to work" rather than "making one person wait
-              less." This is exactly the watershed between CPU and GPU: a CPU <strong>shortens</strong> latency with big
-              caches and out-of-order execution, while a GPU <strong>hides</strong> it with a flood of resident warps. And
-              the reason a warp switch costs zero is precisely the inverted register file from section 1: all the registers
+              partition's warp scheduler keeps several warps resident at once (up to 64 per SM on H100, 16 per partition).
+              Every cycle it glances at which warps have their next instruction ready, operands and all, and picks one to
+              issue. A warp waiting on memory? No problem. It sits quietly while the scheduler turns to issue a different
+              warp, filling the execution units by swapping in someone else to work rather than making one worker wait
+              less. This is the watershed between CPU and GPU: a CPU <strong>shortens</strong> latency with big
+              caches and out-of-order execution, while a GPU <strong>hides</strong> it under a flood of resident warps. And
+              the reason a warp switch costs zero is precisely that inverted register file from section 1. All the registers
               of 64 warps <strong>stay resident simultaneously</strong> in the 256 KB register file, so a switch saves and
-              restores no state — the scheduler simply fetches from a different number. By contrast, a CPU thread context
-              switch has to shuttle a whole register set in and out of memory, at a cost measured in microseconds.
+              restores no state; the scheduler simply fetches from a different number. A CPU thread context
+              switch, by contrast, has to shuttle a whole register set in and out of memory, at a cost measured in microseconds.
             </>,
             <>
               warp 的第二重身份更重要：它是<strong>延迟隐藏的筹码</strong>。每个分区的 warp 调度器手里同时
               「驻留」着多个 warp（H100 每 SM 最多 64 个，每分区 16 个），每个周期它扫一眼哪些 warp 的下一条指令
-              已经就绪（operands ready），从中挑一个发射。某个 warp 在等显存？没关系，它安静地挂着，调度器转头发射
-              别的 warp —— 用「换人干活」而不是「让一个人等得更短」来填满执行单元。这正是 CPU 与 GPU 的分水岭：
+              连操作数都就绪了，从中挑一个发射。某个 warp 在等显存？没关系，它安静地挂着，调度器转头发射
+              别的 warp，靠「换人干活」而不是「让一个人少等点」来填满执行单元。这就是 CPU 与 GPU 的分水岭：
               CPU 用大缓存和乱序执行<strong>缩短</strong>延迟，GPU 用海量驻留 warp <strong>隐藏</strong>延迟。
-              而 warp 切换之所以能做到零开销，就是因为第 1 节那个倒挂的寄存器堆：64 个 warp 的全部寄存器
-              <strong>同时常驻</strong>在 256 KB 的寄存器堆里，切换不需要保存恢复任何状态，调度器只是换一个编号取指而已。
-              对比之下，CPU 的线程上下文切换要进出内存搬运整套寄存器状态，开销是微秒级的。
+              warp 切换之所以能做到零开销，正是因为第 1 节那个倒挂的寄存器堆：64 个 warp 的全部寄存器
+              <strong>同时常驻</strong>在 256 KB 的寄存器堆里，切换不用保存恢复任何状态，调度器只是换一个编号去取指。
+              CPU 的线程上下文切换则相反，要进出内存搬运整套寄存器状态，开销是微秒级的。
             </>,
           )}
         </p>
@@ -420,7 +422,7 @@ export default function Chapter() {
           {
             text: t('Split the warp into two groups and run both branches in parallel', '把 warp 拆成两个小组，两条分支并行执行'),
             explain: t(
-              'A warp is an indivisible scheduling unit and can only issue one instruction per cycle — there is no "split and parallelize."',
+              'A warp is an indivisible scheduling unit and can only issue one instruction per cycle; there is no "split and parallelize."',
               'warp 是不可拆分的调度单位，一个周期只能发射一条指令，不存在「拆开并行」。',
             ),
           },
@@ -435,15 +437,15 @@ export default function Chapter() {
           {
             text: t('Run only the branch the majority (19 threads) chose, discarding the minority\'s results', '只执行多数线程（19 个）选择的分支，少数线程的结果作废'),
             explain: t(
-              "Every thread's semantics must be correct; the hardware never discards any thread's computation — it guarantees correctness with masking, at the cost of time.",
-              '每个线程的语义都必须正确，硬件不会丢弃任何线程的计算 —— 它靠掩码保证正确性，代价是时间。',
+              "Every thread's semantics must be correct; the hardware never discards any thread's computation. It guarantees correctness with masking, at the cost of time.",
+              '每个线程的语义都必须正确，硬件不会丢弃任何线程的计算，而是靠掩码保证正确性，代价是时间。',
             ),
           },
           {
-            text: t('Raise an exception — CUDA does not allow branches within a warp', '触发异常，CUDA 不允许 warp 内出现分支'),
+            text: t('Raise an exception; CUDA does not allow branches within a warp', '触发异常，CUDA 不允许 warp 内出现分支'),
             explain: t(
-              'Branching is perfectly legal and the result is correct; performance just drops because the two paths run serially — this is a performance trap, not an error.',
-              '分支完全合法，程序结果也正确，只是性能会因为两路串行执行而下降 —— 这是性能陷阱，不是错误。',
+              'Branching is perfectly legal and the result is correct; performance just drops because the two paths run serially. It is a performance trap, not an error.',
+              '分支完全合法，程序结果也正确，只是性能会因为两路串行执行而下降。这是性能陷阱，不是错误。',
             ),
           },
         ]}
@@ -477,38 +479,38 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              Behind this toy model is a formula worth writing on the wall: to fully hide a memory access of latency{' '}
-              <code>L</code>, there must be other instructions to issue during the wait. Each warp contributes about{' '}
+              Behind this toy model is a formula worth writing on the wall. To fully hide a memory access of latency{' '}
+              <code>L</code>, there has to be other work ready to issue during the wait. Each warp contributes about{' '}
               <code>C+1</code> instructions per round and then goes silent for <code>L</code> cycles, so utilization is
-              roughly <code>W×(C+1) / (C+1+L)</code>, capped at 100%. It points to two ways to raise utilization:{' '}
+              roughly <code>W×(C+1) / (C+1+L)</code>, capped at 100%. That gives you two dials for raising utilization:{' '}
               <strong>increase W</strong> (more resident warps, i.e. higher occupancy) or <strong>increase C</strong> (more
               compute between each memory access, i.e. a higher compute-to-memory ratio). The optimization stories of{' '}
               <ChapterLink n={5} /> and <ChapterLink n={6} /> all turn on these two dials.
             </>,
             <>
-              这个玩具模型背后有一条可以写在墙上的公式：要把延迟为 <code>L</code> 的访存完全藏住，期间就得有别的指令
-              可发。每个 warp 每轮贡献约 <code>C+1</code> 条指令、随后沉默 <code>L</code> 个周期，所以利用率约为{' '}
-              <code>W×(C+1) / (C+1+L)</code>，封顶 100%。它告诉你两条提高利用率的路：<strong>加 W</strong>
+              这个玩具模型背后有一条可以写在墙上的公式。要把延迟为 <code>L</code> 的访存完全藏住，等待期间就得有别的活
+              可干。每个 warp 每轮贡献约 <code>C+1</code> 条指令、随后沉默 <code>L</code> 个周期，所以利用率约为{' '}
+              <code>W×(C+1) / (C+1+L)</code>，封顶 100%。这就给了你两个提高利用率的旋钮：<strong>加 W</strong>
               （更多驻留 warp，即更高 occupancy）或者<strong>加 C</strong>（每次访存之间做更多计算，
               即更高的计算访存比）。<ChapterLink n={5} />、<ChapterLink n={6} />的优化故事，全部是围绕这两个旋钮展开的。
             </>,
           )}
         </p>
-        <Callout type="insight" title={t("GPUs don't eliminate latency — they just hide it", 'GPU 不消灭延迟，只是把延迟藏起来')}>
+        <Callout type="insight" title={t("GPUs don't eliminate latency, they hide it", 'GPU 不消灭延迟，只是把延迟藏起来')}>
           <p>
             {t(
               <>
-                An HBM access takes hundreds of cycles, and that physical fact is something the GPU cannot change — nor does
-                it intend to; its caches are even smaller than a CPU's. The GPU's bet is this: as long as there is enough
+                An HBM access takes hundreds of cycles, and that physical fact is one the GPU cannot change, nor does
+                it intend to; its caches are even smaller than a CPU's. The GPU's bet is simple: as long as there is enough
                 resident work, the wait can always be covered by someone else's computation. This is why a GPU program
-                launches tens of times more threads than there are cores — the extra threads aren't waste, they are the
+                launches tens of times more threads than there are cores. The extra threads aren't waste; they are the
                 cards the scheduler holds to fill the bubbles. Run short of cards and even an ocean of cores just idles.
               </>,
               <>
-                HBM 一次访问几百个周期，这个物理事实 GPU 改变不了，它甚至不打算改变 —— 它的缓存比 CPU
-                的还小。GPU 的赌注是：只要同时驻留的工作足够多，等待就永远可以被别人的计算盖住。
-                这就是为什么 GPU 程序要启动比核心数多几十倍的线程 —— 多出来的线程不是浪费，
-                它们是调度器手里用来填空泡的牌。牌不够，再多的核心也只能空转。
+                HBM 一次访问几百个周期，这个物理事实 GPU 改变不了，它甚至也不打算改变，毕竟它的缓存比 CPU
+                的还小。GPU 的赌注很简单：只要同时驻留的工作足够多，等待就永远可以被别人的计算盖住。
+                这就是为什么 GPU 程序要启动比核心数多几十倍的线程。多出来的线程不是浪费，
+                而是调度器手里用来填空泡的牌。牌不够，再多的核心也只能空转。
               </>,
             )}
           </p>
@@ -524,8 +526,8 @@ export default function Chapter() {
           {
             text: t('To run more threads in parallel and raise peak compute', '为了让更多线程并行执行，提高峰值算力'),
             explain: t(
-              'Peak compute is fixed by the number of execution units; no amount of extra resident warps raises it — each partition still issues only one instruction per cycle.',
-              '峰值算力由执行单元数量决定，驻留再多 warp 也不会提高峰值 —— 每个分区每周期仍然只能发射一条指令。',
+              'Peak compute is fixed by the number of execution units; no amount of extra resident warps raises it, since each partition still issues only one instruction per cycle.',
+              '峰值算力由执行单元数量决定，驻留再多 warp 也不会提高峰值，因为每个分区每周期仍然只能发射一条指令。',
             ),
           },
           {
@@ -544,10 +546,10 @@ export default function Chapter() {
             ),
           },
           {
-            text: t('Because a thread block must reside as a whole — a side effect of the programming model', '因为线程块必须整块驻留，这是编程模型的副作用'),
+            text: t('Because a thread block must reside as a whole, a side effect of the programming model', '因为线程块必须整块驻留，这是编程模型的副作用'),
             explain: t(
-              'A thread block does reside as a whole, but that is a consequence, not the goal — the hardware deliberately built a 256 KB register file precisely so it can keep many warps resident for latency hiding.',
-              '线程块确实整块驻留，但这是结果不是目的 —— 硬件特意把寄存器堆做到 256 KB，就是为了能驻留大量 warp 用于延迟隐藏。',
+              'A thread block does reside as a whole, but that is a consequence, not the goal. The hardware deliberately built a 256 KB register file precisely so it can keep many warps resident for latency hiding.',
+              '线程块确实整块驻留，但这是结果不是目的。硬件特意把寄存器堆做到 256 KB，就是为了能驻留大量 warp 用于延迟隐藏。',
             ),
           },
         ]}
@@ -579,21 +581,21 @@ export default function Chapter() {
           {t(
             <>
               This table rewards repeated chewing. <strong>Registers</strong> sit right at the execution units, almost free
-              to read and write, but capped at 255 per thread — exceed that and they "spill" to memory (a pitfall you'll hit
-              in <ChapterLink n={5} />). <strong>Shared memory and L1</strong> are actually two uses of the same on-chip SRAM: L1 is
-              hardware-managed, while shared memory is a programmer-controlled scratchpad — threads within one block use it to
+              to read and write, but capped at 255 per thread; exceed that and they spill to memory, a pitfall you'll hit
+              in <ChapterLink n={5} />. <strong>Shared memory and L1</strong> are two uses of the same on-chip SRAM. L1 is
+              hardware-managed; shared memory is a programmer-controlled scratchpad that threads within one block use to
               exchange data at ~30 cycles, more than an order of magnitude cheaper than going to memory. <strong>L2</strong> is
               a chip-wide relay shared by all 132 SMs; 50 MB sounds generous, but spread across tens of thousands of concurrent
-              threads it gets tight fast. At the bottom, <strong>HBM3</strong> latency runs 500+ cycles — measured at over 600
-              on Hopper — and one round trip takes long enough for a partition to issue hundreds of compute instructions.
+              threads it gets tight fast. At the bottom, <strong>HBM3</strong> latency runs 500+ cycles, measured at over 600
+              on Hopper, and one round trip takes long enough for a partition to issue hundreds of compute instructions.
             </>,
             <>
               这张表值得反复咀嚼。<strong>寄存器</strong>就在执行单元手边，读写几乎免费，但每个线程最多 255 个，
-              用超了就会「溢出」到显存（<ChapterLink n={5} />会撞上这个坑）。<strong>共享内存和 L1</strong> 其实是同一块片上
-              SRAM 的两种用法：L1 由硬件自动管理，共享内存则是程序员显式控制的便笺纸 —— 同一个线程块内的线程
+              用超了就会「溢出」到显存，<ChapterLink n={5} />会撞上这个坑。<strong>共享内存和 L1</strong> 是同一块片上
+              SRAM 的两种用法：L1 由硬件自动管理，共享内存则是程序员显式控制的便笺纸，同一个线程块内的线程
               用它交换数据，延迟约 30 个周期，比走显存便宜一个数量级以上。<strong>L2</strong> 是全片 132 个 SM
               共享的中转站，50 MB 听起来不小，但被几万个并发线程一摊就很紧张了。最底层的 <strong>HBM3</strong>{' '}
-              延迟在 500 周期以上 —— 实测 Hopper 上甚至能到 600 多个周期 —— 一次往返的时间，足够一个分区发射几百条
+              延迟在 500 周期以上，实测 Hopper 上甚至能到 600 多个周期，一次往返的时间足够一个分区发射几百条
               计算指令。
             </>,
           )}
@@ -616,14 +618,14 @@ export default function Chapter() {
           {t(
             <>
               While you're at it, recalibrate one intuition: HBM's <strong>bandwidth</strong> (3.35 TB/s) is tens of times that
-              of CPU memory, but its <strong>latency</strong> is no better than CPU memory — arguably worse. The GPU memory
-              system is a truck convoy built for throughput, not a sports car built for latency — so "batch up data and move it
-              in one shot" beats "fetch piecemeal on demand" by a wide margin, a principle that runs through coalesced access in{' '}
+              of CPU memory, but its <strong>latency</strong> is no better, arguably worse. The GPU memory
+              system is a truck convoy built for throughput, not a sports car built for latency. So batching up data and moving it
+              in one shot beats fetching piecemeal on demand by a wide margin, a principle that runs through coalesced access in{' '}
               <ChapterLink n={4} /> and FlashAttention in <ChapterLink n={8} />.
             </>,
             <>
               顺带校准一个直觉：HBM 的<strong>带宽</strong>（3.35 TB/s）是 CPU 内存的几十倍，但<strong>延迟</strong>
-              并不比 CPU 内存好，甚至更差。GPU 的显存系统是为吞吐设计的卡车车队，不是为延迟设计的跑车 ——
+              并不比 CPU 内存好，甚至更差。GPU 的显存系统是为吞吐设计的卡车车队，而非为延迟设计的跑车，
               所以「攒一批数据一次搬运」远胜「零碎地按需取用」，这个原则会贯穿<ChapterLink n={4} />的合并访存和<ChapterLink n={8} />的
               FlashAttention。
             </>,
@@ -642,18 +644,18 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              Everything so far has been about FP32 CUDA cores — one "scalar multiply-add" per cycle. But the H100 spec sheet
+              Everything so far has been about FP32 CUDA cores, one scalar multiply-add per cycle. But the H100 spec sheet
               carries a far more extravagant number: 989 TFLOPS in BF16, roughly 15× the FP32 CUDA cores (67 TFLOPS). That gap
-              comes from the purple block in each partition: the <strong>Tensor Core</strong>. It does no scalar arithmetic;
-              one <strong>MMA</strong> (Matrix Multiply-Accumulate) instruction multiplies a small matrix tile and accumulates
-              it — for example, a group of warps cooperating on a <code>16×8×16</code> tile multiply-add, one instruction doing
+              comes from the purple block in each partition, the <strong>Tensor Core</strong>. It does no scalar arithmetic.
+              One <strong>MMA</strong> (Matrix Multiply-Accumulate) instruction multiplies a small matrix tile and accumulates
+              it: a group of warps cooperating on a <code>16×8×16</code> tile multiply-add, say, one instruction doing
               the work of hundreds of scalar ones.
             </>,
             <>
-              到目前为止我们聊的都是 FP32 CUDA 核心 —— 每个周期做一次「标量乘加」。但 H100 的规格表上还有一个
+              到目前为止我们聊的都是 FP32 CUDA 核心，每个周期做一次标量乘加。但 H100 的规格表上还有一个
               夸张得多的数字：BF16 精度下 989 TFLOPS，是 FP32 CUDA 核心（67 TFLOPS）的约 15 倍。这个差距来自每个
-              分区里那个紫色的块：<strong>Tensor Core</strong>。它不做标量运算，一条 <strong>MMA</strong>
-              （Matrix Multiply-Accumulate，矩阵乘加）指令直接完成一小块矩阵的乘法并累加 —— 例如一组 warp
+              分区里那个紫色的块，<strong>Tensor Core</strong>。它不做标量运算，一条 <strong>MMA</strong>
+              （Matrix Multiply-Accumulate，矩阵乘加）指令直接完成一小块矩阵的乘法并累加：比如一组 warp
               协作完成 <code>16×8×16</code> 的矩阵片乘加，一条指令顶过去几百条标量指令。
             </>,
           )}
@@ -669,19 +671,19 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              Why is dedicated circuitry so much faster? Because matrix multiplication is intensely structured: a 16×16 tile has
+              Why is dedicated circuitry so much faster? Because matrix multiplication is intensely structured. A 16×16 tile has
               heavy operand reuse inside it, so dedicated hardware can amortize the cost of fetch, decode, and operand movement
-              across hundreds of multiply-adds, whereas a scalar core pays all that "administrative overhead" for every single
-              one. Add deep learning's tolerance for low precision — BF16 training and FP8 inference are now routine — and each
-              halving of precision doubles throughput for the same silicon area and bandwidth. That is why Tensor Cores became
-              the undisputed star of the LLM era: by FLOP count, 95%+ of a Transformer's forward and backward passes are matrix
-              multiplies (<ChapterLink n={7} /> does the arithmetic).
+              across hundreds of multiply-adds, where a scalar core pays all that administrative overhead for every single
+              one. Add deep learning's tolerance for low precision (BF16 has become the default for training, FP8 increasingly so
+              for both training and inference) and each halving of precision doubles throughput for the same silicon area and
+              bandwidth. That is why Tensor Cores became the undisputed star of the LLM era: by FLOP count, 95%+ of a Transformer's
+              forward and backward passes are matrix multiplies (<ChapterLink n={7} /> does the arithmetic).
             </>,
             <>
-              为什么专用电路能快这么多？因为矩阵乘有极强的结构性：一块 16×16 的数据片内部有大量操作数复用，
+              为什么专用电路能快这么多？因为矩阵乘有极强的结构性。一块 16×16 的数据片内部有大量操作数复用，
               专用电路可以把取指、译码、操作数搬运的开销摊薄到几百次乘加上，而标量核心每做一次乘加都要付一遍这些
-              「行政成本」。再加上深度学习对低精度的宽容 —— BF16 训练、FP8 推理已是常态 —— 精度每砍一半，
-              同样的硅片面积和带宽就能再翻一倍吞吐。这就是大模型时代 Tensor Core 成为绝对主角的原因：
+              「行政成本」。再加上深度学习对低精度的宽容（BF16 已是训练的默认，FP8 在训练和推理里也越来越常见），
+              精度每砍一半，同样的硅片面积和带宽就能再翻一倍吞吐。这就是大模型时代 Tensor Core 成为绝对主角的原因：
               Transformer 的前向反向，按 FLOPs 算 95% 以上是矩阵乘（<ChapterLink n={7} />会算这笔账）。
             </>,
           )}
@@ -691,15 +693,15 @@ export default function Chapter() {
             <>
               The good news is you almost never have to write Tensor Core instructions directly: NVIDIA's own libraries like
               cuBLAS and cuDNN select them automatically, and PyTorch's <code>torch.matmul</code> routes through Tensor Cores by
-              default in half precision. The bad news is that it raises the bar on "feeding data" by an order of magnitude — the
-              faster it computes, the easier it starves. A starved Tensor Core is no different from having no Tensor Core at all,
-              which is the central tension of the Roofline model in <ChapterLink n={6} /> and the entire reason FlashAttention exists in{' '}
+              default in half precision. The bad news is that it raises the bar on feeding data by an order of magnitude. The
+              faster it computes, the easier it starves, and a starved Tensor Core might as well not be there at all. That
+              is the central tension of the Roofline model in <ChapterLink n={6} /> and the entire reason FlashAttention exists in{' '}
               <ChapterLink n={8} />.
             </>,
             <>
               好消息是你几乎不需要直接编写 Tensor Core 指令：cuBLAS、cuDNN 这些 NVIDIA 官方库会自动选用它，
               PyTorch 的 <code>torch.matmul</code> 在半精度下默认走 Tensor Core。坏消息是它把对「喂数据」的要求
-              抬高了一个数量级 —— 算得越快，越容易饿。一颗吃不饱的 Tensor Core 和没有 Tensor Core 没什么区别，
+              抬高了一个数量级：算得越快，越容易饿，一颗吃不饱的 Tensor Core 和没有 Tensor Core 没什么两样。
               这是<ChapterLink n={6} /> Roofline 模型要讲的核心矛盾，也是<ChapterLink n={8} /> FlashAttention 存在的全部理由。
             </>,
           )}
@@ -737,11 +739,11 @@ export default function Chapter() {
             {t(
               <>
                 The atomic unit of hardware scheduling is the <strong>warp (32 threads in lockstep)</strong>. You write scalar
-                threads; the hardware bundles them into warps — and on divergence it walks both paths, using a mask to keep
+                threads; the hardware bundles them into warps, and on divergence it walks both paths, using a mask to keep
                 results correct.
               </>,
               <>
-                硬件调度的原子单位是 <strong>warp（32 线程锁步）</strong>。你写标量线程，硬件捆成 warp 执行 ——
+                硬件调度的原子单位是 <strong>warp（32 线程锁步）</strong>。你写标量线程，硬件捆成 warp 执行；
                 分支分化时两路都要走，靠掩码保证正确性。
               </>,
             )}
@@ -775,11 +777,11 @@ export default function Chapter() {
             {t(
               <>
                 A Tensor Core does a whole tile's matrix multiply-accumulate in one MMA instruction, with BF16 throughput about
-                15× the FP32 CUDA cores — the compute protagonist of large models, invoked automatically by cuBLAS/cuDNN/PyTorch.
+                15× the FP32 CUDA cores. It is the compute protagonist of large models, invoked automatically by cuBLAS/cuDNN/PyTorch.
               </>,
               <>
-                Tensor Core 用一条 MMA 指令做整片矩阵乘加，BF16 吞吐约为 FP32 CUDA 核的 15 倍 ——
-                大模型的算力主角，由 cuBLAS/cuDNN/PyTorch 自动调用。
+                Tensor Core 用一条 MMA 指令做整片矩阵乘加，BF16 吞吐约为 FP32 CUDA 核的 15 倍，
+                是大模型的算力主角，由 cuBLAS/cuDNN/PyTorch 自动调用。
               </>,
             )}
           </li>

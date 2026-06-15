@@ -192,18 +192,18 @@ export function QuantErrorLab() {
       onReset={reset}
       footer={t(
         <>
-          The histogram (<span className="text-cyan">cyan</span>, √-scaled height) is 4096 "weights";
-          the vertical lines are quantization grid points:
-          <span className="text-volt"> volt = grid points inside the ±4σ body that actually do work</span>,
+          The histogram (<span className="text-cyan">cyan</span>, √-scaled height) is 4096 "weights"; the
+          vertical lines are quantization grid points.
+          <span className="text-volt"> Volt = grid points inside the ±4σ body that actually do work</span>;
           <span className="text-rose"> rose = points stretched out by the outlier with almost no values to land on</span>.
-          In g=128 mode the grid of the group containing the outlier is drawn separately (dashed rose) —
-          the damage is locked inside its 128 numbers. The data uses a fixed seed, so results are reproducible.
+          In g=128 mode the grid of the group holding the outlier is drawn separately (dashed rose): the damage
+          stays locked inside its 128 numbers. The data uses a fixed seed, so results are reproducible.
         </>,
         <>
-          直方图（<span className="text-cyan">cyan</span>，√ 高度刻度）是 4096 个「权重」；竖线是量化格点：
-          <span className="text-volt"> volt = 落在主体 ±4σ 内、真正干活的格点</span>，
+          直方图（<span className="text-cyan">cyan</span>，√ 高度刻度）是 4096 个「权重」；竖线是量化格点。
+          <span className="text-volt"> volt = 落在主体 ±4σ 内、真正干活的格点</span>；
           <span className="text-rose"> rose = 被 outlier 撑出去、几乎没值可接的格点</span>。
-          g=128 模式下另画出含 outlier 的那一组的格点（玫瑰色）—— 灾难被锁在 128 个数里。数据固定种子，结果可复现。
+          g=128 模式下，含 outlier 的那一组的格点单独画出（虚线 rose）：灾难锁在那 128 个数里。数据固定种子，结果可复现。
         </>,
       )}
     >

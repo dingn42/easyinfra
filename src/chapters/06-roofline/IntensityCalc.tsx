@@ -152,19 +152,19 @@ export function IntensityCalc() {
       index={1}
       title={t('Arithmetic intensity calculator', '算术强度计算器')}
       subtitle={t(
-        'Same machine, but different ops differ in "constitution" by orders of magnitude',
+        'Same machine, yet different ops differ in "constitution" by orders of magnitude',
         '同一台机器，不同操作的「体质」差几个数量级',
       )}
       onReset={reset}
       footer={t(
         <>
           GEMM's AI = (2/b) · 1/(1/M + 1/N + 1/K): <b>the smallest of the three dimensions calls the shots</b>. Try
-          dragging K down to 16 — no M or N, however large, can bring it back; this is the root of why a "thin matmul
-          can't saturate compute."
+          dragging K down to 16. No M or N, however large, brings it back. That's the root of why a thin matmul can't
+          saturate compute.
         </>,
         <>
-          GEMM 的 AI = (2/b) · 1/(1/M + 1/N + 1/K)：<b>三个维度里最小的那个说了算</b>。把 K 拖到 16
-          试试——再大的 M、N 也救不回来，这正是「瘦矩阵乘吃不满算力」的根源。
+          GEMM 的 AI = (2/b) · 1/(1/M + 1/N + 1/K)：<b>三个维度里最小的那个说了算</b>。把 K 拖到 16 试试，再大的 M、N
+          也救不回来，这正是「瘦矩阵乘吃不满算力」的根源。
         </>,
       )}
     >
@@ -257,7 +257,7 @@ export function IntensityCalc() {
                   AI ({fmtAI(ai)}) &lt; ridge ({fmtAI(ridge)}): data-movement time (
                   <span className="font-mono text-amber">{fmtTime(tMem)}</span>) swamps compute (
                   <span className="font-mono">{fmtTime(tComp)}</span>). The theoretical ceiling is only{' '}
-                  <span className="font-mono text-ink">{(ai * hw.bw).toFixed(ai * hw.bw < 10 ? 2 : 0)} TFLOPS</span> —
+                  <span className="font-mono text-ink">{(ai * hw.bw).toFixed(ai * hw.bw < 10 ? 2 : 0)} TFLOPS</span>, so
                   most of the {peak} TFLOPS of peak compute just watches.
                 </>,
                 <>
@@ -265,7 +265,7 @@ export function IntensityCalc() {
                   <span className="font-mono text-amber">{fmtTime(tMem)}</span>）盖过了计算（
                   <span className="font-mono">{fmtTime(tComp)}</span>）。理论上限只有{' '}
                   <span className="font-mono text-ink">{(ai * hw.bw).toFixed(ai * hw.bw < 10 ? 2 : 0)} TFLOPS</span>
-                  ——峰值算力 {peak} TFLOPS 大部分在围观。
+                  ，峰值算力 {peak} TFLOPS 大部分在围观。
                 </>,
               )}
             </>
@@ -276,13 +276,13 @@ export function IntensityCalc() {
                   AI ({fmtAI(ai)}) &gt; ridge ({fmtAI(ridge)}): compute time (
                   <span className="font-mono text-cyan">{fmtTime(tComp)}</span>) swamps data movement (
                   <span className="font-mono">{fmtTime(tMem)}</span>). Bandwidth feeds it fine, so the performance
-                  ceiling is the peak compute, {peak} TFLOPS — from here on the game is utilization.
+                  ceiling is the peak compute, {peak} TFLOPS. From here on the game is utilization.
                 </>,
                 <>
                   AI（{fmtAI(ai)}）&gt; ridge（{fmtAI(ridge)}）：计算时间（
                   <span className="font-mono text-cyan">{fmtTime(tComp)}</span>）盖过了搬数据（
                   <span className="font-mono">{fmtTime(tMem)}</span>
-                  ）。带宽喂得饱，性能上限就是峰值算力 {peak} TFLOPS——接下来拼的是利用率。
+                  ）。带宽喂得饱，性能上限就是峰值算力 {peak} TFLOPS，接下来拼的是利用率。
                 </>,
               )}
             </>

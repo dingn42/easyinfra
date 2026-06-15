@@ -74,12 +74,12 @@ export function CoalescingLab() {
           {t(
             <>
               Sequential -&gt; 4 txn / 100%; stride=2 -&gt; 8 txn / 50%; stride&ge;8 -&gt; 32 txn / 12.5%, the
-              floor (each 32B sector has only 4B anyone wants). The next section's AoS field access is a
-              real-world stride case: stride = struct size.
+              floor (each 32B sector holds only 4B anyone wants). The AoS field access in the next section is
+              this same stride pattern out in the wild, with stride = struct size.
             </>,
             <>
               连续 → 4 txn / 100%；stride=2 → 8 txn / 50%；stride≥8 → 32 txn / 12.5% 见底（每个 32B
-              段里只有 4B 有人要）。下一节的 AoS 取字段就是真实世界的 stride 案例：stride = struct 大小。
+              段里只有 4B 有人要）。下一节的 AoS 取字段就是这套 stride 在真实代码里的样子，stride = struct 大小。
             </>,
           )}
         </>

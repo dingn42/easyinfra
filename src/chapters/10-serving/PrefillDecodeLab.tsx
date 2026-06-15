@@ -89,14 +89,14 @@ export function PrefillDecodeLab() {
           {tr(
             <>
               Numbers estimated for <span className="font-mono">Llama-70B FP16 @ H100</span> (989 TFLOPS / 3.35
-              TB/s), batch=1. Prefill packs the whole prompt into one big matmul that saturates compute; decode
+              TB/s), batch=1. Prefill packs the whole prompt into one big matmul that saturates compute. Decode
               reads all 140 GB of weights from HBM on every single step yet computes only 140 GFLOPs for one
-              token — utilization differs by well over an order of magnitude.
+              token, so utilization differs by well over an order of magnitude.
             </>,
             <>
               读数按 <span className="font-mono">Llama-70B FP16 @ H100</span>（989 TFLOPS / 3.35 TB/s）估算，batch=1。
               prefill 把整段 prompt 拼成一次大矩阵乘，算力吃满；decode 每一步都要把 140 GB 权重从 HBM
-              完整读一遍，却只为一个 token 算 140 GFLOPs —— 利用率差出一个数量级不止。
+              完整读一遍，却只为一个 token 算 140 GFLOPs，利用率差出的不止一个数量级。
             </>,
           )}
         </>

@@ -35,24 +35,23 @@ export default function Chapter() {
       <p>
         {t(
           <>
-            Picture a chatbot with no cache at all: by the time it has produced its 1000th token, emitting the 1001st
-            means re-running all 1000 prior tokens <em>through the model from scratch</em> — and it does this again for
-            every single character it speaks. That is not hyperbole; it is the most naive form of autoregressive
-            generation. The KV cache rescues us from this absurdity: history is computed once, and from then on you just
-            look it up. But there is no free lunch — the compute you save turns into a memory-devouring monster. On an
-            80&nbsp;GB A100, the model weights claim one slice and almost all of the rest belongs to the KV cache. How
-            well you manage that territory decides whether one inference server can serve 5 users at once or 50. This
-            chapter nails down two things: why the KV cache is even valid, and how vLLM's PagedAttention squeezes that
-            memory to the limit.
+            Picture a chatbot with no cache at all. By the time it has produced its 1000th token, emitting the 1001st
+            means re-running all 1000 prior tokens <em>through the model from scratch</em>, and it does this again for
+            every single character it speaks. That is not hyperbole. It is the most naive form of autoregressive
+            generation, and it is unusable. The KV cache fixes it: history is computed once, and after that you just look
+            it up. The catch is that the compute you save turns into a memory hog. On an 80&nbsp;GB A100 the model weights
+            claim one slice and almost all of the rest belongs to the KV cache. How well you manage that territory decides
+            whether one inference server handles 5 users at once or 50. This chapter pins down two things: why the KV
+            cache is valid in the first place, and how vLLM's PagedAttention squeezes the memory to the limit.
           </>,
           <>
-            想象一个不加任何缓存的聊天机器人：它回答到第 1000 个 token 时，为了吐出第 1001 个，
-            要把前面 1000 个 token <em>从头到尾重新算一遍</em> —— 而且每吐一个字都要这样来一次。
-            这不是夸张，这就是 Transformer 自回归生成最朴素的形态。KV Cache 把它从这种荒谬中救了下来：
-            历史只算一次，之后查表即可。但天下没有免费的午餐 —— 省下的计算变成了吃显存的怪物，
+            想象一个完全不带缓存的聊天机器人。它回答到第 1000 个 token 时，为了吐出第 1001 个，
+            要把前面 1000 个 token <em>从头到尾重新算一遍</em>，而且每吐一个字都要重来一次。
+            这不是夸张，这就是 Transformer 自回归生成最朴素的样子，而它根本没法用。KV Cache 把它修好了：
+            历史只算一次，之后查表即可。代价是，省下的计算变成了吃显存的大户。
             一张 80GB 的 A100，模型权重占掉一块，剩下的几乎全是 KV Cache 的地盘。
-            这块地盘管得好不好，直接决定一台推理服务器能同时伺候 5 个用户还是 50 个。
-            本章讲清楚两件事：KV Cache 为什么成立，以及 vLLM 的 PagedAttention 怎么把这块显存管到极致。
+            这块地盘管得好不好，直接决定一台推理服务器能同时扛 5 个用户还是 50 个。
+            本章讲清两件事：KV Cache 凭什么成立，以及 vLLM 的 PagedAttention 怎么把这块显存压到极致。
           </>,
         )}
       </p>
@@ -63,8 +62,8 @@ export default function Chapter() {
         index={1}
         title={t('Autoregressive generation: only K and V are worth caching', '自回归生成：能缓存的，只有 K 和 V')}
         lead={t(
-          'The legitimacy of caching rests on one quiet fact: under a causal mask, a history token’s K and V never change once computed.',
-          '缓存的合法性来自一个安静的事实：在因果掩码下，历史 token 的 K、V 一旦算出，就永远不变。',
+          'Caching is legitimate because of one quiet fact: under a causal mask, a history token’s K and V never change once computed.',
+          '缓存之所以合法，靠的是一个不起眼的事实：在因果掩码下，历史 token 的 K、V 一旦算出就再不会变。',
         )}
       >
         <p>
@@ -72,23 +71,23 @@ export default function Chapter() {
             <>
               An LLM generates{' '}
               <Term t="autoregressively">
-                one token at a time, appending each to the end of the input as the condition for the next prediction —
-                the output is conditioned on all of its own prior outputs.
+                one token at a time, appending each to the end of the input as the condition for the next prediction; the
+                output is conditioned on all of its own prior outputs.
               </Term>{' '}
               : step <MathTex tex="t" /> takes all the preceding <MathTex tex="t-1" /> tokens and predicts the{' '}
               <MathTex tex="t" />
-              th. Recall the attention mechanism from <ChapterLink n={7} />. At every layer, the new token does this: it takes its
-              own query vector <MathTex tex="q_t" /> and dot-products it against the key vectors of{' '}
-              <em>every history token</em>, then uses the resulting weights to take a weighted sum over all the history
+              th. Recall the attention mechanism from <ChapterLink n={7} />. At every layer, the new token takes its own
+              query vector <MathTex tex="q_t" />, dot-products it against the key vectors of{' '}
+              <em>every history token</em>, and uses the resulting weights to take a weighted sum over all the history
               value vectors:
             </>,
             <>
               大语言模型的生成是<Term t="自回归（autoregressive）">
-                每次只生成一个 token，并把它拼回输入末尾作为下一步预测的条件 —— 输出依赖自己之前的全部输出。
+                每次只生成一个 token，把它拼回输入末尾作为下一步预测的条件；输出依赖自己之前的全部输出。
               </Term>的：第 <MathTex tex="t" /> 步拿到前面全部 <MathTex tex="t-1" /> 个 token，预测第{' '}
-              <MathTex tex="t" /> 个。回忆<ChapterLink n={7} />的注意力机制，新 token 在每一层要做的事是：
-              用自己的查询向量 <MathTex tex="q_t" /> 去和<em>所有历史 token</em> 的键向量做点积，
-              再用得到的权重对所有历史的值向量加权求和：
+              <MathTex tex="t" /> 个。回忆一下<ChapterLink n={7} />的注意力机制，新 token 在每一层做的事是：
+              拿自己的查询向量 <MathTex tex="q_t" /> 和<em>所有历史 token</em> 的键向量做点积，
+              再用得到的权重对所有历史值向量加权求和：
             </>,
           )}
         </p>
@@ -96,47 +95,47 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              Notice how differently the three roles are treated in this expression.{' '}
-              <strong>Q only needs the current one</strong>: a history token's q vector was already used up on its own
-              step and is never queried by anyone again, so storing it is pointless. <strong>K and V, by contrast, are
-              the ones queried over and over</strong>: token 1's <MathTex tex="k_1, v_1" /> get reused by steps 2, 3, …,
-              1000. More importantly, <MathTex tex="k_i = x_i W_K" /> and <MathTex tex="v_i = x_i W_V" /> depend only on
-              position <MathTex tex="i" />'s own representation — the causal mask guarantees that later tokens cannot
-              reach back and rewrite history's hidden states, so once these K and V are computed, they are valid for
-              life. <strong>Depends only on itself, yet is read again and again — that is the textbook definition of
-              "worth caching."</strong>
+              The three roles get very different treatment in this expression.{' '}
+              <strong>Q only needs the current one.</strong> A history token's q vector was already spent on its own step
+              and is never queried again, so storing it buys you nothing. <strong>K and V are the ones queried over and
+              over.</strong> Token 1's <MathTex tex="k_1, v_1" /> get reused by steps 2, 3, …, 1000. And{' '}
+              <MathTex tex="k_i = x_i W_K" /> and <MathTex tex="v_i = x_i W_V" /> depend only on position{' '}
+              <MathTex tex="i" />'s own representation: the causal mask guarantees later tokens can't reach back and
+              rewrite history's hidden states, so once these K and V are computed they stay valid for the rest of the
+              run. <strong>Depends only on itself, read again and again. That is the textbook profile of something worth
+              caching.</strong>
             </>,
             <>
-              注意这个式子里三个角色的待遇完全不同。<strong>Q 只需要当前这一个</strong>：
-              历史 token 的 q 向量在它们自己的那一步已经用完了，之后再也不会被任何人查询，存着没有意义。
-              而 <strong>K 和 V 是被反复查询的一方</strong>：第 1 个 token 的{' '}
-              <MathTex tex="k_1, v_1" /> 会被第 2、3、…、1000 步反复用到。更关键的是，
+              这个式子里三个角色的待遇截然不同。<strong>Q 只需要当前这一个。</strong>
+              历史 token 的 q 向量在它自己那一步就用完了，之后再不会被谁查询，存着毫无意义。
+              而 <strong>K 和 V 是被反复查询的一方。</strong>第 1 个 token 的{' '}
+              <MathTex tex="k_1, v_1" /> 会被第 2、3、…、1000 步反复用到。再加上
               <MathTex tex="k_i = x_i W_K" />、<MathTex tex="v_i = x_i W_V" /> 只依赖第{' '}
-              <MathTex tex="i" /> 个位置自己的表示 —— 因果掩码（causal mask）保证后来的 token
-              不会回头改写历史的隐状态，所以这些 K、V 算出来一次，终生有效。
-              <strong>只依赖自身、又被反复读取 —— 这正是「值得缓存」的教科书定义。</strong>
+              <MathTex tex="i" /> 个位置自己的表示：因果掩码（causal mask）保证后来的 token
+              不会回头改写历史的隐状态，所以这些 K、V 算出来一次，整段生成里都有效。
+              <strong>只依赖自身，又被反复读取，这就是「值得缓存」最典型的样子。</strong>
             </>,
           )}
         </p>
         <p>
           {t(
             <>
-              So inference splits into two phases with utterly different personalities.{' '}
-              <strong>Prefill</strong>: push the entire prompt through the model in parallel in one shot, computing the K
-              and V at every layer and every position and storing them in the cache — one big matrix multiply that
-              saturates the compute. <strong>Decode</strong>: from then on, each step feeds in just <em>one</em> new
-              token, computes its q, k, v, appends the k, v to the cache, and queries the whole cache with q. The cost
-              of attention per step drops from recomputing everything at <MathTex tex="O(S^2 \cdot d)" /> to{' '}
-              <MathTex tex="O(S \cdot d)" /> — a full factor of S removed, and S routinely runs into the thousands or
-              tens of thousands.
+              So inference splits into two phases with completely different characters.{' '}
+              <strong>Prefill</strong> pushes the entire prompt through the model in parallel in one shot, computing K
+              and V at every layer and every position and storing them in the cache. It's one big matrix multiply that
+              saturates the compute. <strong>Decode</strong> then feeds in just <em>one</em> new token per step,
+              computes its q, k, v, appends the k, v to the cache, and queries the whole cache with q. Per-step attention
+              drops from recomputing everything at <MathTex tex="O(S^2 \cdot d)" /> down to{' '}
+              <MathTex tex="O(S \cdot d)" />, a full factor of S gone, and S routinely runs into the thousands or tens of
+              thousands.
             </>,
             <>
-              于是推理被切成了两个性格迥异的阶段。<strong>预填充（prefill）</strong>：
-              把整段 prompt 一次性并行过模型，算出所有层、所有位置的 K、V 存进缓存 ——
-              这是一次大矩阵乘，算力被吃满。<strong>解码（decode）</strong>：之后每步只把<em>一个</em>新
-              token 喂进模型，算出它的 q、k、v，把 k、v 追加进缓存，再用 q 查询整个缓存。
-              每步注意力的代价从重算全部的 <MathTex tex="O(S^2 \cdot d)" /> 降到{' '}
-              <MathTex tex="O(S \cdot d)" /> —— 整整少了一个 S 的量级，而 S 动辄是几千上万。
+              于是推理被切成两个性格迥异的阶段。<strong>预填充（prefill）</strong>把整段 prompt
+              一次性并行过模型，算出所有层、所有位置的 K、V 存进缓存，这是一次大矩阵乘，算力被吃满。
+              <strong>解码（decode）</strong>之后每步只把<em>一个</em>新 token 喂进模型，算出它的 q、k、v，
+              把 k、v 追加进缓存，再用 q 查询整个缓存。每步注意力的代价从重算全部的{' '}
+              <MathTex tex="O(S^2 \cdot d)" /> 降到 <MathTex tex="O(S \cdot d)" />，
+              整整少了一个 S 的量级，而 S 动辄几千上万。
             </>,
           )}
         </p>
@@ -146,17 +145,17 @@ export default function Chapter() {
             {t(
               <>
                 The cache shaves an order of magnitude off the compute per decode step, but every token's K and V, at
-                every layer, must live resident in memory — and every step still has to read the whole cache back out of
-                HBM. The result: decode goes from "can't compute it fast enough" to "can't read it fast enough." In the
-                language of <ChapterLink n={6} />'s roofline, it is a textbook memory-bound workload. This trade moves the
-                battlefield from compute to memory — capacity decides how many people you can serve at once, bandwidth
+                every layer, has to stay resident in memory, and every step still reads the whole cache back out of HBM.
+                So decode flips from "can't compute it fast enough" to "can't read it fast enough." In{' '}
+                <ChapterLink n={6} />'s roofline terms, it's a textbook memory-bound workload. The trade moves the
+                battlefield from compute to memory: capacity decides how many people you can serve at once, bandwidth
                 decides how fast each token comes out. This chapter owns capacity; the next one owns bandwidth.
               </>,
               <>
                 缓存把 decode 每步的计算量砍掉一个数量级，但每个 token、每一层的 K 和 V
-                都要常驻显存 —— 而且每步还得把整个缓存从 HBM 读一遍。结果是 decode
-                从「算不过来」变成了「读不过来」：用<ChapterLink n={6} /> roofline 的语言说，它是个典型的
-                memory-bound 工作负载。这笔交易把战场从算力挪到了显存 ——
+                都得常驻显存，而且每步还要把整个缓存从 HBM 读一遍。于是 decode
+                从「算不过来」翻转成了「读不过来」。用<ChapterLink n={6} /> roofline 的话说，它是个典型的
+                memory-bound 工作负载。这笔交易把战场从算力挪到了显存：
                 容量决定你能同时服务多少人，带宽决定每个 token 出得多快。本章管容量，下一章管带宽。
               </>,
             )}
@@ -176,19 +175,19 @@ export default function Chapter() {
           {t(
             <>
               The lab below plays both algorithms side by side, token by token. Each little cell is one entry of the
-              attention-score matrix (one <MathTex tex="q \cdot k" /> dot product):{' '}
-              <span className="text-volt">green</span> is the cell genuinely computed this step,{' '}
-              <span className="text-rose">rose</span> is an old cell the no-cache side is needlessly recomputing every
-              step, and <span className="text-amber">amber</span> is a cache hit — data sitting in memory, read but not
-              recomputed. Notice that each step the right side adds only a thin new row, while the left side has to burn
-              the entire triangle anew every step.
+              attention-score matrix (one <MathTex tex="q \cdot k" /> dot product).{' '}
+              <span className="text-volt">Green</span> is the cell genuinely computed this step.{' '}
+              <span className="text-rose">Rose</span> is an old cell the no-cache side is needlessly recomputing every
+              step. <span className="text-amber">Amber</span> is a cache hit: data sitting in memory, read but not
+              recomputed. Each step, the right side adds one thin new row; the left side burns the entire triangle
+              again from scratch.
             </>,
             <>
               下面的实验把两种算法摆在一起逐 token 播放。每个小格子是注意力 score 矩阵里的一个单元
-              （一次 <MathTex tex="q \cdot k" /> 点积）：<span className="text-volt">荧光绿</span>是本步真正新算的格子，
+              （一次 <MathTex tex="q \cdot k" /> 点积）。<span className="text-volt">荧光绿</span>是本步真正新算的格子，
               <span className="text-rose">玫红</span>是无缓存一侧每步都在白白重算的旧格子，
-              <span className="text-amber">琥珀色</span>是缓存命中 —— 数据躺在显存里，只读不算。
-              注意右侧每步只新增薄薄一行，而左侧整个三角形每步都要重新烧一遍。
+              <span className="text-amber">琥珀色</span>是缓存命中：数据躺在显存里，只读不算。
+              右侧每步只新增薄薄一行，左侧整个三角形每步都要从头重烧一遍。
             </>,
           )}
         </p>
@@ -196,19 +195,19 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              The curve readings reward a second look: flip to "per step" and the no-cache cost grows quadratically with
-              t (the whole t×t triangle), while with cache it is just a linear single row; flip to "cumulative" and the
-              gap widens further into <MathTex tex="O(S^3)" /> versus <MathTex tex="O(S^2)" />. Push the target length
-              from 32 to 48 and you'll see the savings multiplier keep climbing — the longer the sequence, the more the
-              cache saves your life. This is exactly why no production inference engine dares run without a KV cache: it
-              is not an optimization option, it is the ticket to entry.
+              The curve readings reward a second look. Flip to "per step" and the no-cache cost grows quadratically with
+              t (the whole t×t triangle), while with cache it's a single linear row. Flip to "cumulative" and the gap
+              widens into <MathTex tex="O(S^3)" /> versus <MathTex tex="O(S^2)" />. Push the target length from 32 to 48
+              and the savings multiplier keeps climbing: the longer the sequence, the more the cache earns its keep. This
+              is why no production inference engine dares run without a KV cache. It isn't an optimization knob, it's the
+              price of admission.
             </>,
             <>
-              曲线读数值得多看一眼：切到「每步」，无缓存的代价随 t 二次增长（整个 t×t 三角），
-              有缓存只是线性的一行；切到「累计」，差距进一步拉开成 <MathTex tex="O(S^3)" /> 对{' '}
-              <MathTex tex="O(S^2)" />。把目标长度从 32 拉到 48，你会看到节省倍数还在继续上涨 ——
-              序列越长，缓存越是救命。这也是为什么没有任何一个生产推理引擎敢不开 KV Cache：
-              它不是优化选项，是入场券。
+              曲线读数值得多看一眼。切到「每步」，无缓存的代价随 t 二次增长（整个 t×t 三角），
+              有缓存只是线性的一行；切到「累计」，差距拉开成 <MathTex tex="O(S^3)" /> 对{' '}
+              <MathTex tex="O(S^2)" />。把目标长度从 32 拉到 48，节省倍数还在往上爬：
+              序列越长，缓存越是救命。所以没有哪个生产推理引擎敢不开 KV Cache，
+              它不是一个优化旋钮，而是入场券。
             </>,
           )}
         </p>
@@ -229,8 +228,8 @@ export default function Chapter() {
               text: <MathTex tex="O(S \cdot d)" />,
               correct: true,
               explain: t(
-                'Exactly. The new token’s q dot-products against the S cached k vectors (S·d), then takes a weighted sum over the S v vectors (S·d) — O(S·d) overall. The price is that all S copies of K and V must stay resident in memory, and every step reads them back from HBM.',
-                '正是。新 token 的 q 要和缓存里 S 个 k 做点积（S·d），再对 S 个 v 加权求和（S·d）—— 整体 O(S·d)。代价是这 S 份 K、V 都得常驻显存，且每步都要从 HBM 读一遍。',
+                'Right. The new token’s q dot-products against the S cached k vectors (S·d), then takes a weighted sum over the S v vectors (S·d), so O(S·d) overall. The price: all S copies of K and V stay resident in memory, and every step reads them back from HBM.',
+                '对。新 token 的 q 要和缓存里 S 个 k 做点积（S·d），再对 S 个 v 加权求和（S·d），整体 O(S·d)。代价是这 S 份 K、V 都得常驻显存，每步都要从 HBM 读一遍。',
               ),
             },
             {
@@ -262,11 +261,11 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              How big is the KV cache, really? This bill is worth working out by hand, because every term maps to a real
+              How big is the KV cache, really? Work the bill out by hand, because every term maps to a real
               architectural decision. At fp16 precision, each token occupies, in the cache:
             </>,
             <>
-              KV Cache 到底多大？这笔账值得手算一遍，因为每一项都对应一个真实的架构决策。
+              KV Cache 到底多大？这笔账手算一遍，因为每一项都对应一个真实的架构决策。
               fp16 精度下，每个 token 在缓存里占：
             </>,
           )}
@@ -282,40 +281,41 @@ export default function Chapter() {
           {t(
             <>
               Multiply by sequence length S for one request's footprint, and by batch for the total on a whole card.
-              Plug in LLaMA-7B's real parameters (L=32, 32 heads, 128 dims per head): 512 KB per token — a single token's
-              cache is bigger than an entire high-res image. One 4K-context request is 2 GB, a seventh of the 7B model's
-              13.5 GB of weights; stretch the context to 32K and one request is 16 GB, with weights now the minor party.
-              This is the literal meaning of "memory becomes the new battlefield":{' '}
-              <strong>in the long-context era, the main occupant of memory is not the weights, it is the KV cache.</strong>
+              Plug in LLaMA-7B's real parameters (L=32, 32 heads, 128 dims per head) and you get 512 KB per token. A
+              single token's cache is bigger than a whole high-res image. One 4K-context request is 2 GB, a seventh of
+              the 7B model's 13.5 GB of weights; stretch the context to 32K and one request is 16 GB, with the weights
+              now the minor party. This is the literal meaning of "memory becomes the new battlefield."{' '}
+              <strong>In the long-context era, the largest occupant of memory is the KV cache, not the weights.</strong>
             </>,
             <>
-              再乘上序列长度 S 是单条请求的占用，乘上 batch 是整张卡上的总量。代入 LLaMA-7B
-              的真实参数（L=32，32 个头，每头 128 维）：每个 token 512KB —— 一个 token 的缓存比一整张高清图片还大。
+              乘上序列长度 S 就是单条请求的占用，再乘上 batch 是整张卡的总量。代入 LLaMA-7B
+              的真实参数（L=32，32 个头，每头 128 维），每个 token 512KB，一个 token 的缓存比一整张高清图还大。
               4K 上下文的一条请求就是 2GB，是 7B 模型 13.5GB 权重的七分之一；上下文拉到 32K，
               一条请求 16GB，权重反倒成了小头。这就是「显存成为新战场」的字面意思：
-              <strong>长上下文时代，显存的主要住户不是权重，是 KV Cache。</strong>
+              <strong>长上下文时代，显存里最大的住户是 KV Cache，不是权重。</strong>
             </>,
           )}
         </p>
         <p>
           {t(
             <>
-              The most intriguing term in the formula is <MathTex tex="n_{kv}" />. In standard multi-head attention
-              (MHA), the KV head count equals the attention head count; whereas{' '}
-              <strong>grouped-query attention (GQA)</strong> lets several Q heads share one group of K, V heads — LLaMA-2
-              70B uses 64 Q heads to query just 8 KV heads, shrinking the cache by a factor of 8 with almost no quality
-              loss. The more extreme <strong>MQA (multi-query attention)</strong> simply lets all Q heads share a single
-              KV group. These are not showing off: they are architectural designs forced into being by the engineering
-              bill — the pain of "the KV cache is too expensive" came first, and only then did GQA become standard issue
-              in nearly every modern open-source model.
+              The most interesting term in the formula is <MathTex tex="n_{kv}" />. In standard multi-head attention
+              (MHA) the KV head count equals the attention head count.{' '}
+              <strong>Grouped-query attention (GQA)</strong> instead lets several Q heads share one group of K, V heads:
+              LLaMA-2 70B uses 64 Q heads to query just 8 KV heads, shrinking the cache by a factor of 8 with almost no
+              quality loss. The more extreme <strong>MQA (multi-query attention)</strong> lets all Q heads share a single
+              KV group. None of this is for show. It's architecture bent into shape by the engineering bill: the pain of
+              "the KV cache is too expensive" came first, and that pressure is why GQA is now the default attention
+              variant across nearly every modern open model, from the Llama 3 line to Mixtral and Qwen.
             </>,
             <>
-              公式里最值得玩味的一项是 <MathTex tex="n_{kv}" />。标准的多头注意力（MHA, Multi-Head
-              Attention）里 KV 头数等于注意力头数；而<strong>分组查询注意力（GQA, Grouped-Query
-              Attention）</strong>让多个 Q 头共享同一组 K、V 头 —— LLaMA-2 70B 用 64 个 Q 头查询仅仅
-              8 个 KV 头，缓存直接缩小 8 倍，模型质量几乎无损。更极端的 <strong>MQA（Multi-Query
-              Attention）</strong>干脆让全部 Q 头共享 1 组 KV。这些不是炫技：它们是工程账倒逼出来的架构设计 ——
-              先有「KV Cache 太贵」这个痛点，才有 GQA 进入几乎所有现代开源模型的标配清单。
+              公式里最有意思的一项是 <MathTex tex="n_{kv}" />。标准多头注意力（MHA, Multi-Head
+              Attention）里 KV 头数等于注意力头数；<strong>分组查询注意力（GQA, Grouped-Query
+              Attention）</strong>则让多个 Q 头共享同一组 K、V 头：LLaMA-2 70B 用 64 个 Q 头查询仅仅
+              8 个 KV 头，缓存直接缩小 8 倍，质量几乎无损。更极端的 <strong>MQA（Multi-Query
+              Attention）</strong>干脆让全部 Q 头共享 1 组 KV。这些都不是炫技，而是被工程账倒逼出来的架构：
+              先有「KV Cache 太贵」这个痛点，正是这股压力让 GQA 成了如今几乎所有现代开源模型的默认注意力变体，
+              从 Llama 3 全系到 Mixtral、Qwen 都是如此。
             </>,
           )}
         </p>
@@ -323,19 +323,19 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              Run three experiments with the calculator: (1) pick 7B, 4K context, and push batch from 8 to 64 — see when
-              the KV bar hits the red line; (2) flip the GQA switch and the KV bar instantly shrinks to a quarter (this 7B
-              goes 32→8 KV heads, a 4× cut; the factor is n_heads/n_kv, so 70B's 64→8 is 8×), the max concurrency
-              quadruples — one line of architecture change worth half a card; (3) switch to 70B — the
+              Run three experiments with the calculator. (1) Pick 7B, 4K context, and push batch from 8 to 64; watch for
+              when the KV bar hits the red line. (2) Flip the GQA switch and the KV bar instantly shrinks to a quarter
+              (this 7B goes 32→8 KV heads, a 4× cut; the factor is n_heads/n_kv, so 70B's 64→8 is 8×), and max
+              concurrency quadruples. One line of architecture change is worth half a card. (3) Switch to 70B and the
               weights alone cross the 80 GB red line, which is why 70B-class models are off the table on a single card
               and have to wait for <ChapterLink n={12} />'s tensor parallelism to be split apart.
             </>,
             <>
-              用计算器做三个实验：① 选 7B、4K 上下文，把 batch 从 8 拉到 64 —— 看 KV
-              什么时候撞上红线；② 打开 GQA 开关，KV 条瞬间缩成四分之一（这个 7B 是 32→8 个 KV 头，缩 4×；
-              缩减倍数 = n_heads/n_kv，所以 70B 的 64→8 是 8×），最大并发翻四倍 ——
-              一行架构改动顶得上半张卡；③ 切到 70B —— 权重一项就越过 80GB
-              红线，这就是为什么 70B 级别的模型单卡免谈，必须等到<ChapterLink n={12} />的张量并行来拆。
+              用计算器做三个实验。① 选 7B、4K 上下文，把 batch 从 8 拉到 64，看 KV
+              什么时候撞上红线。② 打开 GQA 开关，KV 条瞬间缩成四分之一（这个 7B 是 32→8 个 KV 头，缩 4×；
+              缩减倍数 = n_heads/n_kv，所以 70B 的 64→8 是 8×），最大并发翻四倍，
+              一行架构改动就顶得上半张卡。③ 切到 70B，光权重一项就越过 80GB
+              红线，这就是为什么 70B 级别的模型单卡免谈，得等<ChapterLink n={12} />的张量并行来拆。
             </>,
           )}
         </p>
@@ -353,16 +353,16 @@ export default function Chapter() {
           {t(
             <>
               Knowing the KV cache is big, the next question is how to <em>place</em> it. Deep-learning framework tensors
-              demand contiguous memory by default, so early inference systems (FasterTransformer, Orca, etc.) took a very
-              blunt approach: when a request arrives, pre-allocate one contiguous block of memory sized to its{' '}
-              <em>maximum possible length</em> (prompt + max_tokens) all at once. This seemingly harmless decision
-              manufactured three kinds of waste.
+              demand contiguous memory by default, so early inference systems (FasterTransformer, Orca, etc.) took a blunt
+              approach: when a request arrives, pre-allocate one contiguous block sized to its{' '}
+              <em>maximum possible length</em> (prompt + max_tokens) all at once. That innocent-looking decision breeds
+              three kinds of waste.
             </>,
             <>
               知道了 KV Cache 很大，下一个问题是怎么<em>放</em>。深度学习框架的张量默认要求连续内存，
-              所以早期推理系统（FasterTransformer、Orca 等）的做法非常直白：请求进来时，
+              所以早期推理系统（FasterTransformer、Orca 等）的做法很粗暴：请求进来时，
               按它<em>可能达到的最大长度</em>（prompt + max_tokens）一次性预分配一整块连续显存。
-              这个看似无害的决定，制造了三种浪费。
+              这个看着人畜无害的决定，养出了三种浪费。
             </>,
           )}
         </p>
@@ -371,49 +371,49 @@ export default function Chapter() {
             <>
               The first is{' '}
               <Term t="internal fragmentation">
-                space inside an allocation unit that goes unused — fenced off, unusable by others, unused by yourself.
+                space inside an allocation unit that goes unused: fenced off, unusable by others, unused by yourself.
               </Term>{' '}
-              : a user declares max_tokens=2048 but actually stops after generating 300 tokens — the slots for the
-              remaining 1700-plus tokens are locked from the moment of allocation until the request ends. No one can know
-              in advance when generation will stop, so this waste is incurable in any "fence off the worst case" scheme.
-              The second is the waste reserved "just in case": even if the request really could grow to max_len, most of
+              : a user declares max_tokens=2048 but stops after generating 300 tokens, and the slots for the remaining
+              1700-plus tokens stay locked from the moment of allocation until the request ends. Nobody can know in
+              advance when generation will stop, so this waste is incurable in any "fence off the worst case" scheme. The
+              second is the reservation kept "just in case": even if the request really could grow to max_len, most of
               the reserved region sits empty until it gets there. The third is{' '}
               <Term t="external fragmentation">
-                enough free total, but chopped into discontiguous little segments that nothing can fit into — the old
+                enough free total, but chopped into discontiguous little segments that nothing can fit into, the old
                 affliction of the malloc era.
               </Term>{' '}
-              : requests of varied lengths come and go, and memory gets riddled like a sieve — 30% still free, yet a new
-              long request can't find a single contiguous span to fit in, and can only wait.
+              : requests of varied lengths come and go, and memory gets riddled like a sieve. 30% still free, yet a new
+              long request can't find one contiguous span to fit in, and can only wait.
             </>,
             <>
               第一种是<Term t="内部碎片（internal fragmentation）">
-                分配单元内部用不到的空间 —— 圈进来了，别人用不了，自己也没用上。
-              </Term>：用户申报 max_tokens=2048，实际生成 300 个 token 就停了 ——
+                分配单元内部用不到的空间：圈进来了，别人用不了，自己也没用上。
+              </Term>：用户申报 max_tokens=2048，实际生成 300 个 token 就停了，
               剩下 1700 多个 token 的位置从分配那一刻起就被锁死，直到请求结束才释放。
-              生成会在何时结束没人能提前知道，所以这种浪费在「按最坏情况圈地」的方案里无药可救。
+              生成何时结束没人能提前知道，所以这种浪费在「按最坏情况圈地」的方案里无药可救。
               第二种是为「万一」预留的浪费：哪怕请求真能长到 max_len，在它长到之前，
-              预留区的大部分也一直空着。第三种是<Term t="外部碎片（external fragmentation）">
-                空闲总量足够，但被切成不连续的小段，谁都装不下 —— malloc 时代的老毛病。
-              </Term>：长短不一的请求来来去去，显存被打成千疮百孔的筛子 ——
-              明明还剩 30% 的空闲，新来的长请求却找不到一段放得下它的连续区间，只能干等。
+              预留区大部分也一直空着。第三种是<Term t="外部碎片（external fragmentation）">
+                空闲总量足够，但被切成不连续的小段，谁都装不下，malloc 时代的老毛病。
+              </Term>：长短不一的请求来来去去，显存被打成千疮百孔的筛子，
+              明明还剩 30% 空闲，新来的长请求却找不到一段放得下它的连续区间，只能干等。
             </>,
           )}
         </p>
         <p>
           {t(
             <>
-              The three wastes stacked together produce a shocking result: the vLLM paper (SOSP 2023) measured that in
-              the mainstream systems of the day, only 20.4%–38.2% of memory actually held KV data —{' '}
-              <strong>on an 80 GB card, more than half the memory idles under the name "already allocated."</strong> And
-              memory utilization translates directly into concurrency, into throughput, into the cost per million
-              tokens. The root cause is not the cache itself, but the assumption that "KV must be stored contiguously."
+              Stack the three wastes together and the result is brutal: the vLLM paper (SOSP 2023) measured that in the
+              mainstream systems of the day, only 20.4%–38.2% of memory actually held KV data.{' '}
+              <strong>On an 80 GB card, more than half the memory idles under the label "already allocated."</strong> And
+              memory utilization is concurrency, is throughput, is the cost per million tokens. The root cause isn't the
+              cache itself; it's the assumption that "KV must be stored contiguously."
             </>,
             <>
-              这三种浪费叠加的结果触目惊心：vLLM 论文（SOSP 2023）实测，
-              当时的主流系统里真正存放着 KV 数据的显存只占 20.4%~38.2% ——
+              三种浪费叠加起来，结果触目惊心：vLLM 论文（SOSP 2023）实测，
+              当时的主流系统里真正装着 KV 数据的显存只占 20.4%~38.2%，
               <strong>一张 80GB 的卡，超过一半的显存以「已分配」的名义闲着。</strong>
-              而显存利用率直接等于并发数、等于吞吐、等于每百万 token 的成本。
-              问题的根源不在缓存本身，在「KV 必须连续存放」这个假设。
+              而显存利用率就是并发数，就是吞吐，就是每百万 token 的成本。
+              问题的根源不在缓存本身，而在「KV 必须连续存放」这个假设。
             </>,
           )}
         </p>
@@ -422,15 +422,15 @@ export default function Chapter() {
             {t(
               <>
                 The tension between the "contiguous address space" a program wants and physical memory's "fragmentation
-                reality" was answered by the operating system long ago: virtual memory and paging — give the program a
-                contiguous <em>logical</em> address space, and use a page table to map it onto physical page frames
-                scattered anywhere. What PagedAttention does is lift this sixty-year-old wisdom intact into GPU memory:
-                the token sequence is the logical address, a KV block is a page, and the block table is the page table.
+                reality" was solved by the operating system long ago: virtual memory and paging. Hand the program a
+                contiguous <em>logical</em> address space, then use a page table to map it onto physical page frames
+                scattered anywhere. PagedAttention lifts this sixty-year-old idea intact into GPU memory: the token
+                sequence is the logical address, a KV block is a page, and the block table is the page table.
               </>,
               <>
-                程序要的「连续地址空间」和物理内存的「碎片现实」之间的矛盾，操作系统早就给出了答案：
-                虚拟内存与分页 —— 给程序连续的<em>逻辑</em>地址，用页表映射到任意散落的<em>物理</em>页帧。
-                PagedAttention 做的事，就是把这套六十年前的智慧原封不动搬进显存：
+                程序要的「连续地址空间」和物理内存的「碎片现实」之间的矛盾，操作系统早就解过：
+                虚拟内存与分页。给程序一段连续的<em>逻辑</em>地址，再用页表把它映射到任意散落的<em>物理</em>页帧。
+                PagedAttention 做的，就是把这套六十年前的老办法原封不动搬进显存：
                 token 序列是逻辑地址，KV block 是页，block table 就是页表。
               </>,
             )}
@@ -451,23 +451,23 @@ export default function Chapter() {
             <>
               vLLM's scheme has three steps. <strong>Chunking</strong>: slice the entire KV memory pool into fixed-size
               physical blocks, each holding a fixed number (say, 16) of tokens' K and V.{' '}
-              <strong>On-demand allocation</strong>: when a request arrives, allocate just enough blocks for the prompt;
-              afterward, only append one block per 16 tokens generated — no one fences off land for "a possible future"
-              anymore, and internal fragmentation is compressed to the remainder of the last block (half a block on
+              <strong>On-demand allocation</strong>: when a request arrives, allocate just enough blocks for the prompt,
+              then append one more block per 16 tokens generated. Nobody fences off land for "a possible future"
+              anymore, and internal fragmentation shrinks to the leftover slack in the last block (half a block on
               average, under 4%). <strong>Table-based addressing</strong>: each request keeps a block table mapping
-              logical block numbers to physical block numbers — the physical blocks need not be contiguous at all, and
+              logical block numbers to physical block numbers. The physical blocks need not be contiguous at all, so
               external fragmentation vanishes: as long as the pool has any free block left, it can go to any request. The
-              attention kernel is rewritten accordingly so that q, when computing, indexes through the table and reads
-              the K, V scattered all over the place by jumping around.
+              attention kernel is rewritten to match, so that q indexes through the table and jumps around to read the K,
+              V scattered all over the pool.
             </>,
             <>
               vLLM 的方案分三步。<strong>切块</strong>：把整个 KV 显存池切成固定大小的物理块（block），
               每块存固定数量（如 16 个）token 的 K、V。<strong>按需分配</strong>：请求到来时只为
-              prompt 分配刚好够用的块；之后每生成满 16 个 token 才追加一块 ——
-              没人再为「可能的未来」圈地，内部碎片被压缩到最后一块的零头（平均半块，不到 4%）。
-              <strong>查表寻址</strong>：每个请求维护一张 block table，把逻辑块号映射到物理块号 ——
+              prompt 分配刚好够用的块，之后每生成满 16 个 token 才追加一块。
+              没人再为「可能的未来」圈地，内部碎片被压到最后一块的零头（平均半块，不到 4%）。
+              <strong>查表寻址</strong>：每个请求维护一张 block table，把逻辑块号映射到物理块号。
               物理块完全不必连续，外部碎片就此消失：只要池子里还有任何一块空闲，就能分给任何请求。
-              注意力 kernel 也相应改写，让 q 在计算时按表索引、跳着读散落各处的 K、V。
+              注意力 kernel 也相应改写，让 q 在计算时按表索引，跳着读散落各处的 K、V。
             </>,
           )}
         </p>
@@ -476,19 +476,19 @@ export default function Chapter() {
             <>
               The simulator below feeds the same request stream (fixed random seed, identical timing of arrivals, growth,
               and early termination) to both allocators at once. Click the cards above or the segmented switch to toggle
-              the view: the "contiguous pre-allocation" side shows large hatched areas — that's dead memory fenced off
-              for max_len but never occupied by a token; the "PAGED" side is a colorful interlocking patchwork of blocks,
-              nearly all of them full. Stare at the concurrency counts on both sides for a while: same pool, same request
-              stream, and the paged side steadily holds nearly twice as many requests. Click any request's colored
-              blocks and its block table unfolds on the right — the messier the lines, the better it proves that "not
-              being physically contiguous" doesn't matter at all.
+              the view. The "contiguous pre-allocation" side shows large hatched areas: dead memory fenced off for
+              max_len but never occupied by a token. The "PAGED" side is a colorful interlocking patchwork of blocks,
+              nearly all of them full. Watch the concurrency counts on both sides for a while. Same pool, same request
+              stream, and the paged side steadily holds nearly twice as many requests. Click any request's colored blocks
+              and its block table unfolds on the right; the messier the lines, the better it shows that "not physically
+              contiguous" doesn't matter at all.
             </>,
             <>
               下面的模拟器把同一条请求流（固定随机种子，到达、增长、提前结束的时机完全一致）
-              同时喂给两种分配器。点上方卡片或分段开关切换视图：「连续预分配」侧能看到大片斜线 ——
+              同时喂给两种分配器。点上方卡片或分段开关切换视图。「连续预分配」侧能看到大片斜线，
               那是按 max_len 圈下却没有 token 入住的死显存；「PAGED」侧五颜六色的块犬牙交错，
               几乎块块装满。盯着两边的并发数看一会儿：同一个池子、同一条请求流，
-              分页侧稳定容纳的请求数接近翻倍。点击任意请求的色块，右侧会展开它的 block table ——
+              分页侧稳定容纳的请求数接近翻倍。点击任意请求的色块，右侧会展开它的 block table，
               连线越乱，越说明「物理上不连续」根本不碍事。
             </>,
           )}
@@ -497,23 +497,22 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              There are two more things the simulator doesn't draw but production systems can't live without. First,{' '}
-              <strong>prefix sharing</strong>: the same system prompt often appears at the head of tens of thousands of
-              requests, and after paging, these requests' block tables can point directly at the same batch of physical
-              blocks — a thousand requests, one cache. Second, <strong>copy-on-write</strong>: in parallel sampling or
-              beam search, multiple branches share a prefix, and only when a branch is about to write a new token is that
-              block copied out — exactly how the OS's fork plays it. With this toolkit, vLLM compresses memory waste to
-              under 4% and lifts throughput 2–4× over the systems of the day, all without touching a single one of the
-              model's weights.
+              Two more tricks the simulator doesn't draw, and production systems can't live without. One,{' '}
+              <strong>prefix sharing</strong>: the same system prompt often sits at the head of tens of thousands of
+              requests, and once paged, their block tables can all point at the same batch of physical blocks. A thousand
+              requests, one cache. Two, <strong>copy-on-write</strong>: in parallel sampling or beam search, several
+              branches share a prefix, and a block is only copied out when a branch is about to write a new token, which
+              is exactly how the OS's fork plays it. With this toolkit vLLM squeezes memory waste under 4% and lifts
+              throughput 2–4× over the systems of the day, all without touching a single one of the model's weights.
             </>,
             <>
               还有两件模拟器没画、但生产系统离不开的事。其一，<strong>前缀共享（prefix sharing）</strong>：
               同一个系统提示词（system prompt）往往出现在成千上万条请求开头，分页之后，
-              这些请求的 block table 可以直接指向同一批物理块 —— 千份请求，一份缓存。
+              这些请求的 block table 可以直接指向同一批物理块，千份请求，一份缓存。
               其二，<strong>写时复制（copy-on-write）</strong>：并行采样或 beam search
-              中多个分支共享前缀，只有当某个分支要写入新 token 时，才把那一块复制出去 ——
+              里多个分支共享前缀，只有当某个分支要写入新 token 时，才把那一块复制出去，
               和操作系统 fork 的玩法一模一样。靠这一套，vLLM 把显存浪费压到 4% 以下，
-              吞吐相比当时的系统提升 2~4 倍，而这一切没有动模型的任何一个权重。
+              吞吐比当时的系统提升 2~4 倍，而这一切没动模型的任何一个权重。
             </>,
           )}
         </p>
@@ -526,8 +525,8 @@ export default function Chapter() {
                 '减少注意力计算的 FLOPs，让每个 token 算得更快',
               ),
               explain: t(
-                "No. PagedAttention reduces no compute at all — the dot products that must be done are all still done, and reading by jumping around even adds a touch of overhead. What it optimizes is the way memory is occupied.",
-                '不是。PagedAttention 不减少任何计算量 —— 该做的点积一次不少，甚至因为跳着读还略有开销。它优化的是显存的「占用方式」。',
+                "No. PagedAttention reduces no compute at all. Every dot product that has to happen still happens, and jumping around to read even adds a touch of overhead. What it optimizes is how memory gets occupied.",
+                '不是。PagedAttention 一点计算量都不省，该做的点积一次不少，跳着读甚至还略有开销。它优化的是显存的占用方式。',
               ),
             },
             {
@@ -537,8 +536,8 @@ export default function Chapter() {
               ),
               correct: true,
               explain: t(
-                'Exactly. On-demand chunking kills internal fragmentation, table-based addressing kills external fragmentation — the same card can pack in twice as many concurrent requests, and throughput doubles with it. This is a victory of memory management, not of computation.',
-                '正是。按需分块干掉内部碎片，查表寻址干掉外部碎片 —— 同一张卡能塞下两倍以上的并发请求，吞吐随之翻倍。这是内存管理的胜利，不是计算的胜利。',
+                'Right. On-demand chunking kills internal fragmentation, table-based addressing kills external fragmentation, so the same card packs in twice as many concurrent requests and throughput doubles with it. This is a win for memory management, not for computation.',
+                '对。按需分块干掉内部碎片，查表寻址干掉外部碎片，同一张卡能塞下两倍以上的并发请求，吞吐随之翻倍。这是内存管理的胜利，跟计算无关。',
               ),
             },
             {
@@ -557,8 +556,8 @@ export default function Chapter() {
                 '让注意力不再需要读取全部历史 K、V',
               ),
               explain: t(
-                'Wrong — every step of attention still reads all of history, it just jumps around following the block table’s directions. To reduce "how much is read," you take the route of sliding-window attention or GQA.',
-                '不对，每一步注意力依然要读全部历史 —— 只是按 block table 的指引跳着读。想减少「读多少」，要靠滑动窗口注意力或 GQA 那条路。',
+                'Wrong. Every step of attention still reads all of history; it just jumps around following the block table’s directions. To cut down "how much is read," you take the sliding-window-attention or GQA route instead.',
+                '不对。每一步注意力依然要读全部历史，只是按 block table 的指引跳着读。想减少「读多少」，得走滑动窗口注意力或 GQA 那条路。',
               ),
             },
           ]}
@@ -577,13 +576,13 @@ export default function Chapter() {
           <li>
             {t(
               <>
-                <strong>Validity of caching</strong>: under a causal mask, a history token's K and V never change and
-                are queried again every step — compute once, store it, and decode drops from O(S²·d) to O(S·d) per step.
-                Q is used up immediately, so it is not cached.
+                <strong>Validity of caching</strong>: under a causal mask, a history token's K and V never change and get
+                queried again every step. Compute once, store it, and decode drops from O(S²·d) to O(S·d) per step. Q is
+                spent immediately, so it isn't cached.
               </>,
               <>
-                <strong>缓存的合法性</strong>：因果掩码下历史 token 的 K、V 永不改变、且被每一步反复查询 ——
-                算一次存起来，decode 每步从 O(S²·d) 降到 O(S·d)。Q 用完即弃，不缓存。
+                <strong>缓存的合法性</strong>：因果掩码下历史 token 的 K、V 永不改变，又被每一步反复查询，
+                算一次存起来，decode 每步就从 O(S²·d) 降到 O(S·d)。Q 用完即弃，不缓存。
               </>,
             )}
           </li>
@@ -591,12 +590,12 @@ export default function Chapter() {
             {t(
               <>
                 <strong>The memory bill</strong>: bytes = 2·L·n_kv·d_head·2B; LLaMA-7B is 512 KB per token, ~2 GB for one
-                4K request — under long context, the KV cache is memory's largest occupant. GQA cuts n_kv from 32 to 8,
-                shrinking the cache 4×.
+                4K request. Under long context the KV cache is memory's largest occupant. GQA cuts n_kv from 32 to 8 and
+                shrinks the cache 4×.
               </>,
               <>
-                <strong>显存账</strong>：bytes = 2·L·n_kv·d_head·2B，LLaMA-7B 每 token 512KB、4K 一条请求约
-                2GB —— 长上下文下 KV Cache 是显存的最大住户。GQA 把 n_kv 从 32 砍到 8，缓存即缩 4 倍。
+                <strong>显存账</strong>：bytes = 2·L·n_kv·d_head·2B，LLaMA-7B 每 token 512KB，4K 一条请求约
+                2GB。长上下文下 KV Cache 是显存的最大住户。GQA 把 n_kv 从 32 砍到 8，缓存缩 4 倍。
               </>,
             )}
           </li>
@@ -634,8 +633,8 @@ export default function Chapter() {
               Efficient Memory Management for Large Language Model Serving with PagedAttention
             </a>{' '}
             {t(
-              '— the vLLM paper (SOSP 2023); all the data in Sections 4 and 5 of this chapter come from here, and it reads beautifully.',
-              '—— vLLM 论文（SOSP 2023），本章 SEC 4、5 的数据全部出自这里，写得非常好读。',
+              '— the vLLM paper (SOSP 2023); every figure in Sections 4 and 5 of this chapter comes from here, and it reads beautifully.',
+              '—— vLLM 论文（SOSP 2023），本章 SEC 4、5 的数据全部出自这里，而且写得很好读。',
             )}
           </li>
           <li>

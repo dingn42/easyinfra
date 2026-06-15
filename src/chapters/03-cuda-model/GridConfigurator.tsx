@@ -220,17 +220,17 @@ export function GridConfigurator() {
       onReset={reset}
       footer={t(
         <>
-          Try this: pull N up to <span className="font-mono text-ink">1000</span> with blockDim set to{' '}
-          <span className="font-mono text-ink">256</span> — the last block has 24 threads with "nothing to do" (rose
-          cells). Then set N to <span className="font-mono text-ink">16</span> and max out blockDim at{' '}
-          <span className="font-mono text-ink">1024</span> to see just how brutal the waste rate gets. Click any
-          thread cell to see its index derivation.
+          Try this: pull N up to <span className="font-mono text-ink">1000</span> with blockDim at{' '}
+          <span className="font-mono text-ink">256</span>, and the last block ends up with 24 threads that have
+          nothing to do (the rose cells). Then drop N to <span className="font-mono text-ink">16</span> and max
+          blockDim out at <span className="font-mono text-ink">1024</span> to watch the waste rate go through the
+          roof. Click any thread cell to see its index derivation.
         </>,
         <>
-          试试：把 N 拉到 <span className="font-mono text-ink">1000</span>、blockDim 设为{' '}
-          <span className="font-mono text-ink">256</span> —— 最后一个 block 有 24 个线程「无活可干」（rose 色）。再把 N 调到{' '}
-          <span className="font-mono text-ink">16</span>、blockDim 拉满 <span className="font-mono text-ink">1024</span>，看看浪费率有多惨烈。
-          点击任意线程格可查看它的索引推导。
+          试试：把 N 拉到 <span className="font-mono text-ink">1000</span>、blockDim 设成{' '}
+          <span className="font-mono text-ink">256</span>，最后一个 block 就有 24 个线程闲着没活干（rose 色）。再把 N 调到{' '}
+          <span className="font-mono text-ink">16</span>、blockDim 拉满到 <span className="font-mono text-ink">1024</span>，看看浪费率能高到什么地步。
+          点击任意线程格，可以看它的索引推导。
         </>,
       )}
     >

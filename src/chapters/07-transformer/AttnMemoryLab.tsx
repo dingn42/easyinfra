@@ -71,14 +71,14 @@ export function AttnMemoryLab() {
       onReset={reset}
       footer={t(
         <>
-          Pull SEQ LEN to 32K: a single layer&apos;s temporary score matrix already needs{' '}
-          <span className="text-rose">64 GB</span>, nearly devouring the whole 80GB card — and it&apos;s just an
-          intermediate result thrown away the instant it&apos;s computed. How do you avoid materializing this matrix?
-          That&apos;s the entire motivation for FlashAttention in the next chapter.
+          Pull SEQ LEN to 32K and a single layer&apos;s temporary score matrix already needs{' '}
+          <span className="text-rose">64 GB</span>, nearly devouring the whole 80GB card, all for an intermediate result
+          thrown away the instant it&apos;s computed. So how do you avoid materializing this matrix? That question is the
+          entire motivation for FlashAttention in the next chapter.
         </>,
         <>
-          把 SEQ LEN 拉到 32K：单层临时的 score 矩阵就要 <span className="text-rose">64 GB</span>，
-          把整张 80GB 卡几乎吃光——而它只是个算完就丢的中间结果。怎么不物化这个矩阵？这就是下一章
+          把 SEQ LEN 拉到 32K，单层临时的 score 矩阵就要 <span className="text-rose">64 GB</span>，
+          几乎吃光整张 80GB 卡，而它只是个算完就丢的中间结果。那怎么才能不物化这个矩阵？这个问题就是下一章
           FlashAttention 的全部动机。
         </>,
       )}

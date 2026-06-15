@@ -66,14 +66,14 @@ export function MemCounterLab() {
       }}
       footer={t(
         <>
-          Two things to note: (1) at N=4096 naive moves about 512 GB, while A, B, and C together are only 192 MB — the same data gets
-          pulled from HBM thousands of times over; (2) even at T=32, memory time still far exceeds compute time, so shared-memory tiling
-          alone can't reach compute-bound — which is exactly why register tiling shows up later.
+          Two things to notice. At N=4096 naive moves about 512 GB, while A, B, and C together are only 192 MB; the same data gets
+          pulled from HBM thousands of times over. And even at T=32, memory time still far exceeds compute time, so shared-memory tiling
+          alone can't reach compute-bound. That's exactly why register tiling shows up later.
         </>,
         <>
-          注意两件事：① N=4096 时 naive 要搬约 512 GB，而 A、B、C 本身加起来只有 192 MB ——
-          同一份数据被反复从 HBM 拉了上千次；② 即使 T=32，访存时间仍远大于计算时间，
-          光靠 shared memory tiling 到不了 compute-bound，这就是后面寄存器 tiling 的出场理由。
+          有两点值得留意。N=4096 时 naive 要搬约 512 GB，而 A、B、C 本身加起来只有 192 MB，
+          同一份数据被反复从 HBM 拉了上千次。再就是即使 T=32，访存时间仍远大于计算时间，
+          光靠 shared memory tiling 到不了 compute-bound，这正是后面寄存器 tiling 的出场理由。
         </>,
       )}
     >

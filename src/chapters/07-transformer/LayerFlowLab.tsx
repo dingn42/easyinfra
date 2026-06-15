@@ -318,13 +318,13 @@ export function LayerFlowLab() {
       footer={t(
         <>
           Hover / click a node to see its tensor shape, parameter count, and single-token FLOPs (computed for decode,
-          context S=2048). The top color bar marks the node category — notice that almost all of the layer&apos;s
+          context S=2048). The top color bar marks the node category. Notice that almost all of the layer&apos;s
           parameters and FLOPs land on <span className="text-volt">GEMM projections</span>, while the{' '}
           <span className="text-amber">attention core</span> is the only step that grows with S.
         </>,
         <>
           hover / 点击节点查看张量形状、参数量与单 token FLOPs（按 decode、上下文 S=2048 计）。
-          顶部色条标记节点类别——注意整层的参数和 FLOPs 几乎全部落在 <span className="text-volt">GEMM 投影</span> 上，
+          顶部色条标记节点类别。注意整层的参数和 FLOPs 几乎全部落在 <span className="text-volt">GEMM 投影</span> 上，
           <span className="text-amber"> attention 核心</span>是唯一随 S 增长的环节。
         </>,
       )}

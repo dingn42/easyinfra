@@ -111,11 +111,11 @@ export function RingAllReduceLab() {
       footer={tr(
         <>
           Each GPU splits its gradient into N chunks. <span className="text-amber">Amber</span> is the partial sum being accumulated around the ring (reduce-scatter);
-          <span className="text-volt"> green</span> is the finished chunk — fully summed and now flowing back to be broadcast (all-gather). Note: at every instant all N edges transmit simultaneously — bandwidth is fully saturated, and each edge moves only D/N per step.
+          <span className="text-volt"> green</span> is the finished chunk, fully summed and now flowing back to be broadcast (all-gather). At every instant all N edges transmit at once: bandwidth is fully saturated, and each edge moves only D/N per step.
         </>,
         <>
-          每张卡把自己的梯度切成 N 块。<span className="text-amber">琥珀色</span>是正在沿环累加的部分和（reduce-scatter），
-          <span className="text-volt"> 荧光绿</span>是已完成全量求和、正在回流广播的成品块（all-gather）。注意：任意时刻所有 N 条边都在同时传输 —— 带宽被完全用满，且每条边每步只传 D/N。
+          每张卡把自己的梯度切成 N 块。<span className="text-amber">琥珀色</span>是正沿环累加的部分和（reduce-scatter），
+          <span className="text-volt"> 荧光绿</span>是已完成全量求和、正在回流广播的成品块（all-gather）。任意时刻所有 N 条边都在同时传输：带宽被完全用满，每条边每步只传 D/N。
         </>,
       )}
     >
