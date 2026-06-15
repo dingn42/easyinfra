@@ -528,20 +528,20 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              Three details in this pseudocode are worth fixing on. The <code>Sij</code> line (highlighted)
+              Three details in this pseudocode are worth a closer look. The <code>Sij</code> line (highlighted)
               is the soul of the whole algorithm: the score block is computed and immediately consumed, its
               lifetime never exceeding a single inner iteration. The rescale factor <code>alpha</code> acts on
               both l and Oi, since they must change basis with the same factor; this is the multiply the amber
               flash in LAB 01 corresponds to. And write-back happens only at the end of a row: each O block
-              enters and leaves HBM once, each K/V block is read once per Q row. All the traffic is the O(S·d)
-              small fry, with no O(S²) term anywhere.
+              enters and leaves HBM once, each K/V block is read once per Q row. All the traffic stays O(S·d),
+              with no O(S²) term anywhere.
             </>,
             <>
               读这段伪代码，有三个细节值得盯住。<code>Sij</code> 那一行（高亮）是全算法的灵魂：score
               块算完立刻被消费，生命周期不超过一次内层迭代。修正因子 <code>alpha</code>{' '}
               同时作用在 l 和 Oi 上，因为它们必须用同一个基准换底，这正是 LAB 01 里 amber
               闪烁对应的那次乘法。写回则只发生在行尾：每个 O 块进出 HBM 各一次，每个 K/V
-              块每个 Q 行读一次。所有流量都是 O(S·d) 级的小头，没有任何 O(S²) 项。
+              块每个 Q 行读一次。所有流量都停在 O(S·d) 级，没有任何 O(S²) 项。
             </>,
           )}
         </p>
@@ -685,8 +685,8 @@ export default function Chapter() {
               group's matmul, hiding those sluggish softmax exponentials in the shadow of the Tensor Cores.
               Add block-wise quantized FP8 support and fp16 reaches about 740 TFLOPS (about 75% utilization),
               with FP8 approaching 1.2 PFLOPS. The Blackwell generation (B200/GB200) extends the same playbook
-              with still higher bandwidth and faster low-precision matmul, so the async-pipeline ideas stay
-              the lever even as the numbers move. Across three generations the line holds: the algorithm is
+              with still higher bandwidth and faster low-precision matmul, so the async-pipeline ideas keep
+              doing the work even as the numbers move. Across three generations the line holds: the algorithm is
               unchanged, and each version kills whichever bottleneck is most in the way on the hardware of the
               day.
             </>,
@@ -698,7 +698,7 @@ export default function Chapter() {
               把 softmax 里那些慢吞吞的指数运算藏进了 Tensor Core 的阴影里。再加上块级量化的 FP8
               支持，fp16 达到约 740 TFLOPS（约 75% 利用率），FP8 接近 1.2 PFLOPS。
               到了 Blackwell 一代（B200/GB200），同一套打法靠更高的带宽和更快的低精度 matmul 继续走，
-              数字在变，异步流水的思路依然是那根杠杆。三代下来路线一致：算法不变，每一代都把当下硬件上最碍事的那个瓶颈打掉。
+              数字在变，异步流水的思路依然管用。三代下来路线一致：算法不变，每一代都把当下硬件上最碍事的那个瓶颈打掉。
             </>,
           )}
         </p>

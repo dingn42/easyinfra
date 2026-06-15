@@ -450,7 +450,7 @@ export default function Chapter() {
                 空了就扔一个过去。同一份编译产物，在 10 个 SM 的笔记本 GPU 上跑，硬件一次摆 10 个 block；
                 在 132 个 SM 的 H100 上跑，一次摆 132 个。源码一行不改，性能就随 SM 数量自动伸缩。
                 CUDA 把这叫「透明可扩展性（transparent scalability）」：你描述有哪些独立的工作，
-                硬件决定怎么铺开。更新的 Blackwell 代用更多 SM、更高带宽把这套思路推得更远，编译产物照样不用改。
+                硬件决定怎么铺开。更新一代的 Blackwell 用更多 SM、更高带宽把这套思路推得更远，编译产物照样不用改。
                 可一旦你偷偷假设了 block 间的执行顺序，麻烦就来了：让 block 1 去等 block 0 写好的数据，
                 程序就会在某些卡上死锁或算错。独立性是你和硬件之间的契约。
               </>,
@@ -575,7 +575,7 @@ export default function Chapter() {
               harmless. At N=16, blockDim=1024 the waste hits 98%: the whole card has 16 threads doing real work.
               That's why a job with too little data isn't worth shipping to the GPU. No launch configuration rescues
               a problem that can't keep the machine fed. A second intuition: bigger blockDim isn't always better. It
-              moves the scope of cooperation and occupancy (covered in <ChapterLink n={5} />), but it has no bearing
+              shifts the scope of cooperation and occupancy (covered in <ChapterLink n={5} />), but it has no bearing
               on whether the result is correct. Correctness comes from the index formula and the bounds check.
             </>,
             <>
@@ -659,14 +659,13 @@ export default function Chapter() {
               from the previous section made visible. Each element is touched exactly once by its own thread, no
               thread depends on another, so the schedule order doesn't matter. On a real GPU this reordering happens
               constantly: whichever SM frees up first grabs the next block.{' '}
-              <strong>Never assume an execution order between blocks</strong>, a line worth repeating to yourself
-              three times.
+              <strong>Never assume an execution order between blocks</strong> — burn that one into memory.
             </>,
             <>
               值得一玩的是「乱序调度」按钮：它把 3 个 block 的执行顺序随机打乱再重放一遍。block 2 先跑、block 0
               垫底？C 的结果分毫不差。这就是上一节那条契约的可视化：每个元素只被「自己的」那个线程碰一次，
               线程之间没有数据依赖，所以调度顺序无关紧要。真实 GPU 上这种乱序时刻都在发生：哪个 SM 先空出来，
-              哪个 block 就先上。<strong>永远不要假设 block 间的执行顺序</strong>，这句话值得在心里默念三遍。
+              哪个 block 就先上。<strong>永远不要假设 block 间的执行顺序</strong>——这一条得刻在脑子里。
             </>,
           )}
         </p>

@@ -158,7 +158,7 @@ export default function Chapter() {
           <>
             H100 的规格表上写着 16896 个 FP32 核心，是顶级服务器 CPU 核数的一百多倍。可要是你把它想成 16896
             个能各干各事的小 CPU，那从第一行 CUDA 代码开始就要犯迷糊：为什么一个 <code>if</code>{' '}
-            语句能让性能掉一半？为什么线程数要开到核心数的几十倍才能把芯片喂饱？这一切都取决于硬件是怎么接线的。
+            语句能让性能掉一半？为什么线程数要开到核心数的几十倍才能把芯片喂饱？这一切都取决于硬件是怎么组织的。
             这些核心以 32 个为一组<strong>锁步（lockstep）行动</strong>，共享取指和调度。这一章我们把一块 H100
             拆开，从硅片一路看到执行单元，弄清这台机器究竟按什么规则运转。后面每一章的性能直觉，根子都在这里。
           </>,
@@ -268,12 +268,12 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              A tour leaves you with three things to take away. The first: <strong>an SM is copy-pasted</strong>. NVIDIA designs
+              Three things are worth taking away from the tour. First, <strong>an SM is copy-pasted</strong>. NVIDIA designs
               one SM and stamps out 144 of them to tile the die, which is why a GPU's generational upgrade is largely
               "stronger SMs plus more SMs," and why your program, to saturate the hardware, has to split into enough
-              independent chunks to feed every SM. The second: <strong>the gray cells are real</strong>. Yield on a chip
+              independent chunks to feed every SM. Second, <strong>the gray cells are real</strong>. Yield on a chip
               this large is limited, fusing off defective SMs at the factory is industry standard, and the same GH100 die
-              is binned and sold by how many are disabled. The third: look inside an SM and notice that each partition has
+              is binned and sold by how many are disabled. And third, look inside an SM and notice that each partition has
               exactly 32 FP32 cores. That number is about to become the protagonist.
             </>,
             <>

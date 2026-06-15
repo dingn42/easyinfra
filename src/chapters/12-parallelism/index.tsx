@@ -196,10 +196,10 @@ export default function Chapter() {
           <li>
             {t(
               <>
-                <strong>ZeRO-3</strong>: shard the weights as well. Whatever layer a forward or backward needs, you AllGather it on the fly and throw it away after. Memory approaches the theoretical floor of 16Ψ/N, but communication rises to about 1.5× and the AllGather sits on the critical path. That's the sticker price of trading bandwidth for memory.
+                <strong>ZeRO-3</strong>: shard the weights as well. Whatever layer a forward or backward needs, you AllGather it on the fly and throw it away after. Memory approaches the theoretical floor of 16Ψ/N, but communication rises to about 1.5× and the AllGather sits on the critical path. That's the price you pay to trade bandwidth for memory.
               </>,
               <>
-                <strong>ZeRO-3</strong>：连权重一起切。前向或反向用到哪层，就临时 AllGather 哪层，用完即扔。显存逼近 16Ψ/N 的理论下限，但通信量涨到约 1.5 倍，而且 AllGather 在关键路径上。这就是用带宽换显存的明码标价。
+                <strong>ZeRO-3</strong>：连权重一起切。前向或反向用到哪层，就临时 AllGather 哪层，用完即扔。显存逼近 16Ψ/N 的理论下限，但通信量涨到约 1.5 倍，而且 AllGather 在关键路径上。这就是用带宽换显存要付的代价。
               </>,
             )}
           </li>
@@ -304,7 +304,7 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              Take the Transformer's MLP: <MathTex tex="Y = \mathrm{GeLU}(XW_1)W_2" />. <strong>Split W<sub>1</sub> by column</strong> into two halves on two GPUs and each computes a different <em>column</em> set of GeLU(XW<sub>1</sub>); since GeLU is element-wise, the two activation halves don't depend on each other, so no communication. Then <strong>split W<sub>2</sub> by row</strong>: each GPU's half-activation from the previous step lines up exactly with W<sub>2</sub>'s half-rows, and each GPU produces a <strong>partial sum</strong> of the full Y. Across both layers you need a single AllReduce at the very end to add the partial sums. Column-split paired with row-split, nothing communicated in between. The design is surgical.
+              Take the Transformer's MLP: <MathTex tex="Y = \mathrm{GeLU}(XW_1)W_2" />. <strong>Split W<sub>1</sub> by column</strong> into two halves on two GPUs and each computes a different <em>column</em> set of GeLU(XW<sub>1</sub>); since GeLU is element-wise, the two activation halves don't depend on each other, so no communication. Then <strong>split W<sub>2</sub> by row</strong>: each GPU's half-activation from the previous step lines up exactly with W<sub>2</sub>'s half-rows, and each GPU produces a <strong>partial sum</strong> of the full Y. Across both layers you need a single AllReduce at the very end to add the partial sums. Column-split paired with row-split, nothing communicated in between. The split is surgically precise.
             </>,
             <>
               看 Transformer 的 MLP：<MathTex tex="Y = \mathrm{GeLU}(XW_1)W_2" />。把 W<sub>1</sub> <strong>按列切</strong>成两半放到两张卡，每张卡算出 GeLU(XW<sub>1</sub>) 的不同<em>列</em>；GeLU 逐元素，这两半激活互不依赖，不用通信。接着把 W<sub>2</sub> <strong>按行切</strong>：上一步每张卡手里的半截激活，恰好对着 W<sub>2</sub> 的半截行，各卡算出的是完整 Y 的一个<strong>部分和（partial sum）</strong>。整个两层只需在最后做一次 AllReduce 把部分和加起来。列切配行切，中间什么都不传。这个设计精准得像手术刀。
@@ -526,7 +526,7 @@ export default function Chapter() {
       </Section>
 
       <Section index={8} title={t('Summary and further reading', '总结与延伸阅读')}>
-        <p>{t('The core ledgers and blades of this chapter, in a few lines:', '这一章的核心账目和刀法，几条话讲完：')}</p>
+        <p>{t('The core ledgers and blades of this chapter, in a few lines:', '这一章的核心账目和刀法，浓缩成几条：')}</p>
         <ul>
           <li>
             {t(
@@ -534,7 +534,7 @@ export default function Chapter() {
                 Mixed-precision training is about <strong>16 bytes per parameter</strong> (2+2+4+4+4), so a 7B model's training state starts at 112GB. Not fitting on one card is the first reason distributed training exists. Inference needs only 2B/param + KV.
               </>,
               <>
-                混合精度训练每参数约 <strong>16 字节</strong>（2+2+4+4+4），7B 模型训练态 112GB 起步。单卡装不下，是分布式训练存在的第一个理由。推理只要 2B/参数 + KV。
+                混合精度训练每参数约 <strong>16 字节</strong>（2+2+4+4+4），7B 模型训练态 112GB 起步。单卡装不下，正是分布式训练存在的第一个理由。推理只要 2B/参数 + KV。
               </>,
             )}
           </li>

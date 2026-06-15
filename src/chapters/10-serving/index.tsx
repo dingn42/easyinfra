@@ -54,7 +54,7 @@ export default function Chapter() {
                 )}
               </Term>
               : the hundreds or thousands of tokens in the prompt are <em>already known</em>, so they pack into
-              one big matrix and compute in a single forward pass. This is a fat matmul. Arithmetic intensity
+              one big matrix and compute in a single forward pass. This is one big matmul. Arithmetic intensity
               climbs linearly with prompt length, the tensor cores stay well fed, and effective compute
               utilization can reach 60%–70%.
             </>,
@@ -64,7 +64,7 @@ export default function Chapter() {
                 把整段 prompt 一次性送进模型，并行计算出所有位置的 KV cache 和第一个输出 token。
               </Term>
               ：prompt 里的几百上千个 token 都是<em>已知的</em>，能拼成一个大矩阵、一次前向全部算完。
-              这是一记酣畅的大矩阵乘：算术强度（arithmetic intensity）随 prompt 长度线性上涨，张量核心
+              这是一次实打实的大矩阵乘：算术强度（arithmetic intensity）随 prompt 长度线性上涨，张量核心
               被喂得很饱，有效算力利用率能到 60%~70%。
             </>,
           )}
@@ -456,7 +456,7 @@ export default function Chapter() {
               <em>one</em> parallel forward pass, in a way that is provably identical in distribution to the big
               model sampling them one at a time. Hit 3 of them and you&apos;ve produced 4 tokens (including the
               correction) in a single &quot;big-model time.&quot; You&apos;ve converted serial decode into
-              parallel verification, running decode&apos;s work with prefill&apos;s posture. The more accurate
+              parallel verification, doing decode&apos;s work in prefill&apos;s compute-bound mode. The more accurate
               the draft, the bigger the win. The cost is keeping an extra small model around, or, like
               EAGLE/Medusa, growing a draft head off the big model itself.
             </>,
@@ -465,7 +465,7 @@ export default function Chapter() {
               「串行」本身去。找一个小得多的草稿模型（draft model）先串行猜 k 个 token；它小，猜得快。
               然后让大模型<em>一次前向</em>并行验证这 k 个位置，数学上能做到与大模型逐个采样完全同分布。
               命中 3 个，就等于用一次「大模型时间」生产了 4 个 token（含修正）。这就把串行 decode 变成了
-              并行验证，用 prefill 的姿势干 decode 的活。草稿越准，收益越大。代价是多养一个小模型，或者像
+              并行验证，让 decode 的活跑在 prefill 那种 compute-bound 的模式里。草稿越准，收益越大。代价是多养一个小模型，或者像
               EAGLE/Medusa 那样在大模型头上长出草稿头。
             </>,
           )}

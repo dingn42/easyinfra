@@ -38,7 +38,7 @@ export default function Chapter() {
             Picture a chatbot with no cache at all. By the time it has produced its 1000th token, emitting the 1001st
             means re-running all 1000 prior tokens <em>through the model from scratch</em>, and it does this again for
             every single character it speaks. That is not hyperbole. It is the most naive form of autoregressive
-            generation, and it is unusable. The KV cache fixes it: history is computed once, and after that you just look
+            generation, and it simply does not scale. The KV cache fixes it: history is computed once, and after that you just look
             it up. The catch is that the compute you save turns into a memory hog. On an 80&nbsp;GB A100 the model weights
             claim one slice and almost all of the rest belongs to the KV cache. How well you manage that territory decides
             whether one inference server handles 5 users at once or 50. This chapter pins down two things: why the KV
@@ -47,8 +47,8 @@ export default function Chapter() {
           <>
             想象一个完全不带缓存的聊天机器人。它回答到第 1000 个 token 时，为了吐出第 1001 个，
             要把前面 1000 个 token <em>从头到尾重新算一遍</em>，而且每吐一个字都要重来一次。
-            这不是夸张，这就是 Transformer 自回归生成最朴素的样子，而它根本没法用。KV Cache 把它修好了：
-            历史只算一次，之后查表即可。代价是，省下的计算变成了吃显存的大户。
+            这不是夸张，这就是 Transformer 自回归生成最朴素的样子，而它根本撑不起来。KV Cache 把它修好了：
+            历史只算一次，之后查表即可。代价是，省下的计算转头就吃光了显存。
             一张 80GB 的 A100，模型权重占掉一块，剩下的几乎全是 KV Cache 的地盘。
             这块地盘管得好不好，直接决定一台推理服务器能同时扛 5 个用户还是 50 个。
             本章讲清两件事：KV Cache 凭什么成立，以及 vLLM 的 PagedAttention 怎么把这块显存压到极致。
@@ -633,7 +633,7 @@ export default function Chapter() {
               Efficient Memory Management for Large Language Model Serving with PagedAttention
             </a>{' '}
             {t(
-              '— the vLLM paper (SOSP 2023); every figure in Sections 4 and 5 of this chapter comes from here, and it reads beautifully.',
+              '— the vLLM paper (SOSP 2023); all the numbers in Sections 4 and 5 of this chapter come from here, and it reads beautifully.',
               '—— vLLM 论文（SOSP 2023），本章 SEC 4、5 的数据全部出自这里，而且写得很好读。',
             )}
           </li>

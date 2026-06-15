@@ -163,7 +163,7 @@ export default function Home() {
             <p className="mt-4 max-w-[600px] text-[15px] leading-[1.75] text-ink2">
               {t(
                 'Take a GPU apart, write CUDA, and build an inference system, all in your browser. The simulator actually runs your code, so you can work out how a frontier large language model is served without installing a thing.',
-                '在浏览器里拆开 GPU、写 CUDA、搭一套推理系统。模拟器会真的跑你的代码，不用装任何环境，就能搞懂今天最大的模型是怎么跑起来的。',
+                '在浏览器里拆开 GPU、写 CUDA、搭一套推理系统。模拟器会真的跑你的代码，不用装任何环境，就能搞懂前沿大模型是怎么跑起来的。',
               )}
             </p>
 

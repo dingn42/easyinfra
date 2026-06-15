@@ -16,18 +16,18 @@ export default function Chapter() {
             operations does it actually burn to produce one token? And why, as the sequence grows, does memory blow up
             before compute does? These sound like questions for a paper-reading session. You can answer all three in
             your head. A Transformer is almost embarrassingly simple under the hood: peel back the architecture and it
-            is one operation repeated, matrix multiply, with a thin layer of seasoning on top. The same shape powers
+            is one operation repeated, matrix multiply, with a thin layer of trim on top. The same shape powers
             every model people actually run today, from Llama to DeepSeek-V3 to the frontier systems behind chat
             assistants. In this chapter we crack open a single layer and bookkeep it term by term. You walk away with a
-            few back-of-the-envelope formulas you can rederive on a whiteboard in thirty seconds, and they turn out to
-            be the shared abacus behind everything that follows: FlashAttention, KV cache, inference serving,
+            few back-of-the-envelope formulas you can rederive on a whiteboard in thirty seconds, and they are the
+            shared abacus behind everything that follows: FlashAttention, KV cache, inference serving,
             quantization.
           </>,
           <>
             打开 LLaMA-7B 的 config.json，里面只有几个不起眼的数字：hidden_size 4096、32 层、FFN 11008、32 个
             head。但「7B」这个名字是怎么从这几个数里长出来的？生成一个 token 到底要烧多少次浮点运算？为什么序列一长，
             显存会先于算力爆炸？这些问题听起来得翻论文，但三个都能心算出来。Transformer 拆开看简单得有点过分：剥掉外壳，
-            它就是一种运算的反复堆叠——矩阵乘法，外面再裹一层薄薄的调味。今天大家真正在跑的模型几乎都是这个形状，从
+            它就是一种运算的反复堆叠——矩阵乘法，外面再裹薄薄一层配料。今天大家真正在跑的模型几乎都是这个形状，从
             Llama 到 DeepSeek-V3，再到聊天助手背后的前沿系统。这一章我们把一层拆开，逐项记账，最后你会得到几条能在
             白板上三十秒推完的经验公式。它们是后面所有章节共同的算盘：FlashAttention、KV cache、推理服务、量化。
           </>,
@@ -625,7 +625,7 @@ export default function Chapter() {
               text: t('About 4×10²⁴ FLOPs', '约 4×10²⁴ FLOPs'),
               explain: t(
                 "100× too large, getting into the range estimated for frontier-scale training runs. 7B × 1T tokens by 6PT is 4×10²².",
-                '多了 100 倍，已经进到外界估计的前沿规模训练量级了。7B × 1T token 按 6PT 算是 4×10²²。',
+                '多了 100 倍，已经够得上前沿规模训练的量级了。7B × 1T token 按 6PT 算是 4×10²²。',
               ),
             },
             {

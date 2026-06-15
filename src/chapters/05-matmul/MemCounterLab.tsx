@@ -72,7 +72,7 @@ export function MemCounterLab() {
         </>,
         <>
           有两点值得留意。N=4096 时 naive 要搬约 512 GB，而 A、B、C 本身加起来只有 192 MB，
-          同一份数据被反复从 HBM 拉了上千次。再就是即使 T=32，访存时间仍远大于计算时间，
+          同一份数据被反复从 HBM 拉了上千次。其次，即使 T=32，访存时间仍远大于计算时间，
           光靠 shared memory tiling 到不了 compute-bound，这正是后面寄存器 tiling 的出场理由。
         </>,
       )}

@@ -118,7 +118,7 @@ export default function Chapter() {
               control logic and cache area it saved is converted into ALUs. A task on a single GPU core might take
               eight times as long as on a single CPU core, but once there are enough tasks, two thousand slow
               workers against eight fast ones is still a rout. (The Blackwell generation pushes this further still,
-              with even more low-precision throughput per chip; the lopsided bargain is the same.)
+              with even more low-precision throughput per chip; the trade-off is the same.)
             </>,
             <>
               GPU 的答卷正好反过来：它要的是<strong>单位时间内完成的任务总量最大</strong>，也就是吞吐
@@ -126,7 +126,7 @@ export default function Chapter() {
               但要多。一颗 H100 上有 16896 个 FP32 核心，分布在 132 个 SM（Streaming Multiprocessor，
               流式多处理器）里；省下来的控制逻辑和缓存面积，全部换成了 ALU。一个任务在 GPU 单核上可能要花
               CPU 单核八倍的时间，但只要任务足够多，两千个慢工人对八个快工人，依然是碾压。（到了 Blackwell
-              这一代，单芯片的低精度吞吐更高，但这笔失衡的交易本质没变。）
+              这一代，单芯片的低精度吞吐更高，但这套取舍没变。）
             </>,
           )}
         </p>
@@ -206,7 +206,7 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              Three things should jump out. When tasks are few, the CPU wins: 64 tasks take it 8 µs to finish,
+              Three things are worth noticing. When tasks are few, the CPU wins: 64 tasks take it 8 µs to finish,
               while the GPU spends 20 µs just on launch. It&apos;s a sledgehammer brought to crack a nut, and the
               nut is cracked before you&apos;ve even raised the hammer. When tasks are plentiful the GPU dominates,
               and the more tasks there are, the closer the speedup creeps toward its theoretical limit
@@ -215,7 +215,7 @@ export default function Chapter() {
               formally in <ChapterLink n={2} /> as the wave/warp.
             </>,
             <>
-              有三件事会跳出来。任务很少时 CPU 赢：64 个任务它 8 µs 就干完了，GPU 光启动就要
+              这里有三件事值得注意。任务很少时 CPU 赢：64 个任务它 8 µs 就干完了，GPU 光启动就要
               20 µs，杀鸡用牛刀，牛刀抬起来的功夫鸡已经杀完了。任务足够多时 GPU 碾压，而且任务越多，
               加速比越往理论极限（2048 ÷ 8 ÷ 慢倍数）逼近。还要留意 GPU 的进度条是一格一格跳的：2048
               个核同时开工、同时交活，一「波」一波地推进。这个「波」的概念会在<ChapterLink n={2} />里以 wave/warp

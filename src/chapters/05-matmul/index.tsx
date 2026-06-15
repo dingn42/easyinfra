@@ -153,16 +153,16 @@ export default function Chapter() {
               Every element of A gets re-read verbatim thousands of times. It was supposed to be reused N times (one row of
               A feeds N output elements), but naive turns each of those reuses into a fresh HBM round trip. Divide 512 GB by the A100's
               1.9 TB/s bandwidth and the data movement alone costs about 290 ms; the arithmetic itself finishes in under 1 ms on the Tensor
-              Cores. <ChapterLink n={4} /> said "memory is king," and matmul is where that bites hardest:{' '}
+              Cores. <ChapterLink n={4} /> said "memory is king," and matmul is where that hits hardest:{' '}
               <strong>the compute is O(N³), the data is O(N²), and that extra factor of N is pure reuse opportunity</strong>. Kernels that land
-              that reuse on-chip fly; the ones that can't spend their lives queued behind HBM.
+              that reuse on-chip fly; the ones that can't just sit queued behind HBM.
             </>,
             <>
               代入 N=4096：naive 要从 HBM 搬 2×4096³×4 B = <strong>512 GB</strong>，
               而三个矩阵总共只有 192 MB。A 的每个元素都被原封不动地重读了几千次。
               它本该被复用 N 次（A 的一行参与 N 个输出点的计算），可 naive 把每一次复用都变成了一次 HBM 往返。
               512 GB 除以 A100 的 1.9 TB/s 带宽，光搬数据就要约 290 ms；而这点计算量在 Tensor Core
-              上不到 1 ms 就算完了。<ChapterLink n={4} />说「访存为王」，矩阵乘法正是这句话咬得最狠的地方：
+              上不到 1 ms 就算完了。<ChapterLink n={4} />说「访存为王」，矩阵乘法正是这句话体现得最明显的地方：
               <strong>计算量是 O(N³)，数据量是 O(N²)，这多出来的一个 N 全是复用的机会</strong>。
               能把复用做到芯片上的 kernel 跑得飞快，做不到的就只能一直排队等 HBM。
             </>,
@@ -320,14 +320,14 @@ export default function Chapter() {
                 Roofline model in Chapter 6.</Term> of just 0.25 FLOP/B. Tiled T=32 lifts it to 16 FLOP/B. The A100's break-even point is
                 312 TFLOPS ÷ 1.9 TB/s ≈ 164 FLOP/B; below that number, the math units sit there waiting on data. Every later optimization (register
                 tiling, vectorization, Tensor Cores) is doing the same one thing: amortizing each fetched byte across more compute.
-                Keep this number game in your head. <ChapterLink n={6} />'s Roofline turns it into a picture.
+                Keep this FLOP/B arithmetic in your head. <ChapterLink n={6} />'s Roofline turns it into a picture.
               </>,
               <>
                 naive 每从 HBM 读 8 个字节只做 2 个 FLOP，<Term t="算术强度（arithmetic intensity）">
                 计算量与访存量之比，单位 FLOP/Byte，第 6 章 Roofline 模型的横轴。</Term>只有 0.25 FLOP/B；
                 tiled T=32 把它抬到 16 FLOP/B。而 A100 的收支平衡点是 312 TFLOPS ÷ 1.9 TB/s ≈ 164 FLOP/B，
                 低于这个数，算力就只能干等数据。之后的每一级优化（寄存器 tiling、向量化、Tensor Core）
-                干的都是同一件事：让每个搬进来的字节被更多计算摊薄。把这个数字游戏记在脑子里，
+                干的都是同一件事：让每个搬进来的字节被更多计算摊薄。把这笔 FLOP/B 账记在脑子里，
                 <ChapterLink n={6} />的 Roofline 会把它画成一张图。
               </>,
             )}

@@ -167,7 +167,7 @@ export default function Chapter() {
               conversion is plain truncation and any FP32 tensor becomes BF16 without ever overflowing. In
               training, the dynamic range of gradients matters far more than precision, and FP16's 65504
               ceiling really does get smashed through mid-run, which is how BF16 became the default training
-              format. FP8's two variants replay the same trade-off down at 8 bits: E4M3 has the finer grid and
+              format. FP8's two variants make the same trade-off at 8 bits: E4M3 has the finer grid and
               suits forward-pass weights and activations, while E5M2 has the wider range and suits the wildly
               swinging backward gradients.
             </>,
@@ -466,7 +466,7 @@ export default function Chapter() {
               <MathTex tex="Y=(X\,\mathrm{diag}(s)^{-1})\,(\mathrm{diag}(s)\,W)" />: divide the activations
               channel-wise by a smoothing factor and fold that same factor into the weights,{' '}
               <strong>migrating the quantization difficulty from activations onto weights</strong>. Once both
-              sides are equally unremarkable, W8A8 runs integer matmul end to end and its throughput rides
+              sides are equally unremarkable, W8A8 runs integer matmul end to end and its throughput comes
               straight off the INT8 Tensor Cores.
             </>,
             <>
@@ -528,7 +528,7 @@ export default function Chapter() {
               算术强度 1~2 FLOPs/Byte。这离 A100 约 100 的脊点（ridge point）差了两个数量级，
               GPU 的算力利用率常常不到 5%。<strong>此时性能公式坍缩成：tok/s ≈ 带宽 ÷ 权重字节数。</strong>
               分母砍半，速度翻倍，这就是 INT8 ≈ 2×、INT4 ≈ 4× 的全部来源。
-              主流的 W4A16 方案（GPTQ、AWQ 都算）把权重以 INT4 存放，kernel 一把权重块搬进片上就
+              主流的 W4A16 方案（GPTQ、AWQ 都算）把权重以 INT4 存放，kernel 把权重块搬进片上后立刻
               <strong>就地反量化回 FP16</strong>，乘加照样走 FP16 Tensor Core。HBM 流量按 INT4 计，
               数学精度按 FP16 算，两头都占便宜。
             </>,

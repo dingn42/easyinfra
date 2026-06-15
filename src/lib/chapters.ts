@@ -60,7 +60,7 @@ export const PARTS: PartMeta[] = [
     titleEn: 'LLM INFERENCE SYSTEMS',
     blurb: {
       en: 'FlashAttention, the KV cache, continuous batching, quantization, distributed parallelism. The core ideas that keep today’s largest models, dense and Mixture-of-Experts alike, served in production.',
-      zh: 'FlashAttention、KV Cache、连续批处理、量化、分布式并行。这些核心思想撑起了今天最大的模型在生产环境里的服务，无论稠密还是 MoE。',
+      zh: 'FlashAttention、KV Cache、连续批处理、量化、分布式并行。正是这些核心思想，让今天最大的模型能在生产环境里跑起来，无论稠密还是 MoE。',
     },
   },
 ]
@@ -266,7 +266,7 @@ export const CHAPTERS: ChapterMeta[] = [
     titleEn: 'PARALLELISM',
     tagline: { en: 'What to do when one card isn’t enough', zh: '一张卡放不下，怎么办' },
     summary: {
-      en: 'Data, tensor, and pipeline parallelism plus ZeRO: how you slice a model too big for any single card across hundreds of GPUs.',
+      en: 'Data, tensor, and pipeline parallelism plus ZeRO: how you slice a model too big for any single card across hundreds, sometimes thousands of GPUs.',
       zh: '数据并行、张量并行、流水线并行与 ZeRO：当一个模型大到放不进任何单卡时，如何把它切到成百上千张 GPU 上。',
     },
     minutes: 35,

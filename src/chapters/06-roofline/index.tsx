@@ -231,7 +231,7 @@ export default function Chapter() {
               Take the case that matters most, GEMM (general matrix multiply, M×K times K×N). Each output element does K
               multiply-adds, for 2MNK FLOPs total. In the ideal case the three matrices each cross memory once, so the
               byte count is (MN + MK + KN)·b, where b is the bytes per element (2 for BF16). Tidy it up and you get a form
-              with some character to it:
+              worth a closer look:
             </>,
             <>
               拿最要紧的 GEMM（通用矩阵乘，M×K 乘 K×N）来说：每个输出元素要做 K 次乘加，共 2MNK 个 FLOPs；理想情况下三个
@@ -383,7 +383,7 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              Two things here reward a second look. First, four of the five preset points cluster to the left of the
+              Two things here are worth a second look. First, four of the five preset points cluster to the left of the
               ridge. Among everyday kernels, compute-bound is the rare species and "starved for data" is the norm. Second,
               switch to the H100: bandwidth grew about 1.76× over the A100 while compute grew about 3.2×, pushing the
               ridge from 164 right to about 295.{' '}
@@ -415,7 +415,7 @@ export default function Chapter() {
             <>
               When the point hugs the <strong className="text-amber">bandwidth slope</strong> (memory-bound and near the
               roof), cranking the clock, piling on SMs, or swapping in a card with more compute all do nothing. That
-              stretch of roof equals AI × BW and has nothing to do with peak compute. Two roads go faster. One is to{' '}
+              stretch of roof equals AI × BW and has nothing to do with peak compute. There are two ways to go faster. One is to{' '}
               <strong>move right (raise AI)</strong>: (1)<strong> kernel fusion</strong>, collapsing a chain like add →
               mul → GELU into one kernel so intermediate results stay in registers and never hit DRAM, slashing the DRAM
               byte count by two-thirds; (2) <strong>tiling for reuse</strong>, last chapter's GEMM shared-memory blocking,

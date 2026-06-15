@@ -243,15 +243,15 @@ export default function Chapter() {
               sector: 32 transactions fetch 1024 B, only 128 B of which is useful. That's 12.5% utilization, rock
               bottom. Random access (gather) ends up similar, addresses scattering wherever they land, worst case
               again one transaction per thread. There's the entire secret behind the 10x gap from the opening.
-              Kernel B drives a 1.9 TB/s bus at 12.5% efficiency, so its <em>effective</em> bandwidth is barely
-              two hundred-some GB/s.
+              Kernel B drives a 1.9 TB/s bus at 12.5% efficiency, so its <em>effective</em> bandwidth is just
+              over two hundred GB/s.
             </>,
             <>
               现在把下标改成 <code>a[i * 2]</code>（跨步 stride=2）。32 个线程铺开在 256 B 的范围上，触及 8 个段，
               8 个事务搬回 256 B，但你要的还是那 128 B，利用率掉到 50%。继续加大步长，到 <code>a[i * 8]</code>{' '}
               时每个 float 都独占一个 32 B 段，32 个事务搬回 1024 B，只有 128 B 有用，利用率 12.5%，触底。随机
               访问（gather）的下场类似，地址散到哪算哪，最坏同样是一人一个事务。这就是开头那个 10 倍差距的全部
-              秘密：kernel B 用 12.5% 的效率使用一条 1.9 TB/s 的内存总线，<em>有效</em>带宽只剩两百多 GB/s。
+              秘密：kernel B 用 12.5% 的效率使用一条 1.9 TB/s 的内存总线，<em>有效</em>带宽刚过两百 GB/s。
             </>,
           )}
         </p>

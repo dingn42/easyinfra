@@ -161,7 +161,7 @@ export function RooflineChart() {
   const advice = memSide
     ? nearRoof
       ? t(
-          'Already running flat-out against the bandwidth slope. Two roads go faster: move right by raising AI (kernel fusion, tiling reuse, quantization to cut bytes), or swap in a card with higher bandwidth. More compute or a higher clock is pointless in this region.',
+          'Already running flat-out against the bandwidth slope. Two ways to go faster: move right by raising AI (kernel fusion, tiling reuse, quantization to cut bytes), or swap in a card with higher bandwidth. More compute or a higher clock is pointless in this region.',
           '已经贴着带宽斜线跑满了。想更快只有两条路：向右提高 AI（kernel 融合、tiling 复用、量化减字节），或者换带宽更高的卡。多堆算力、拉频率在这个区域毫无意义。',
         )
       : t(
