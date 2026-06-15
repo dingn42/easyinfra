@@ -129,18 +129,27 @@ export default function Home() {
     <div>
       {/* ───────────── HERO ───────────── */}
       <section className="relative overflow-hidden border-b border-line">
-        <div className="bg-dots pointer-events-none absolute inset-0 opacity-60" />
-        <div className="relative mx-auto grid max-w-[1000px] grid-cols-1 gap-x-12 gap-y-7 px-6 pb-0 pt-14 lg:grid-cols-[1fr_minmax(0,330px)] lg:px-8 lg:pt-16">
-          {/* ── left: text readout ── */}
-          <div className="flex flex-col justify-center lg:pb-2">
+        {/* full-width DieGrid strip across the very top — the page's "status display" */}
+        <div className="relative h-[96px] overflow-hidden border-b border-line bg-bg2 sm:h-[120px]">
+          <DieGrid />
+          {/* dissolve the cells toward the bottom and the right edge */}
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,transparent_25%,color-mix(in_srgb,var(--color-bg)_88%,transparent)_100%)]" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-40 bg-[linear-gradient(to_right,transparent,var(--color-bg2))]" />
+          <div className="microlabel absolute left-6 top-3.5 flex items-center gap-1.5 text-ink3/85 lg:left-8">
+            <span className="inline-block size-1 animate-pulse rounded-full bg-volt" />
+            SM ARRAY · LIVE
+          </div>
+        </div>
+
+        <div className="bg-dots relative">
+          <div className="relative mx-auto max-w-[1000px] px-6 pb-0 pt-9 lg:px-8 lg:pt-10">
             <div className="microlabel flex items-center gap-2">
-              <span className="inline-block size-1.5 animate-pulse rounded-full bg-volt" />
               <span>INTERACTIVE COURSE</span>
               <span className="text-line2">/</span>
               <span>GPU · CUDA · LLM INFRA</span>
             </div>
 
-            <h1 className="mt-4 font-display text-[28px] font-bold leading-[1.15] text-ink sm:text-[36px]">
+            <h1 className="mt-3.5 max-w-[760px] font-display text-[28px] font-bold leading-[1.15] text-ink sm:text-[36px]">
               {t(
                 <>
                   From one thread, to a <span className="text-volt">GPU cluster</span>.
@@ -151,60 +160,46 @@ export default function Home() {
               )}
             </h1>
 
-            <p className="mt-4 max-w-[540px] text-[15px] leading-[1.75] text-ink2">
+            <p className="mt-4 max-w-[600px] text-[15px] leading-[1.75] text-ink2">
               {t(
                 'Take a GPU apart, write CUDA, and build an inference system — entirely in your browser. A simulator that actually runs code, so you grasp modern large-model infrastructure without installing a thing.',
                 '在浏览器里拆开 GPU、写 CUDA、搭推理系统。一个能真正跑代码的模拟器 —— 不装任何环境，把现代大模型基础设施的底层逻辑一次讲透。',
               )}
             </p>
-          </div>
 
-          {/* ── right: DieGrid instrument panel with corner ticks ── */}
-          <div className="relative hidden self-stretch overflow-hidden rounded-[10px] border border-line bg-panel lift lg:block">
-            <DieGrid />
-            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(105deg,var(--color-panel)_0%,transparent_42%,transparent_72%,color-mix(in_srgb,var(--color-panel)_55%,transparent)_100%)]" />
-            <span className="pointer-events-none absolute left-2 top-2 size-3 border-l border-t border-ink3/35" />
-            <span className="pointer-events-none absolute right-2 top-2 size-3 border-r border-t border-ink3/35" />
-            <span className="pointer-events-none absolute bottom-2 left-2 size-3 border-b border-l border-ink3/35" />
-            <span className="pointer-events-none absolute bottom-2 right-2 size-3 border-b border-r border-ink3/35" />
-            <div className="microlabel absolute left-3 top-3 flex items-center gap-1.5 text-ink3/80">
-              <span className="inline-block size-1 animate-pulse rounded-full bg-volt" />
-              SM ARRAY · LIVE
+            {/* instrument bar: CTAs + stat readout under a 1px rule */}
+            <div className="mt-7 flex flex-col gap-4 border-t border-line py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap items-center gap-3">
+                <Link
+                  to={`/learn/${continueCh.id}`}
+                  className="rounded-md border border-volt/45 bg-volt/10 px-5 py-2.5 font-mono text-sm font-medium tracking-wide text-volt transition-all hover:bg-volt/18 hover:glow-volt"
+                >
+                  {visited.size > 0 ? t('Continue learning', '继续学习') : t('Start chapter one', '开始第一章')} →
+                </Link>
+                <Link
+                  to="/playground"
+                  className="rounded-md border border-line2 bg-panel px-5 py-2.5 font-mono text-sm tracking-wide text-ink2 transition-colors hover:border-ink3 hover:text-ink"
+                >
+                  ▶ {t('Open the CUDA simulator', '打开 CUDA 模拟器')}
+                </Link>
+              </div>
+              <dl className="flex flex-wrap items-baseline gap-x-7 gap-y-2 font-mono text-xs tracking-wider text-ink3">
+                <div className="flex items-baseline gap-1.5">
+                  <dt className="text-[15px] tabular-nums text-ink">12</dt>
+                  <dd>CHAPTERS</dd>
+                </div>
+                <span className="hidden h-3 w-px bg-line2 sm:inline-block" aria-hidden />
+                <div className="flex items-baseline gap-1.5">
+                  <dt className="text-[15px] tabular-nums text-ink">30+</dt>
+                  <dd>LABS</dd>
+                </div>
+                <span className="hidden h-3 w-px bg-line2 sm:inline-block" aria-hidden />
+                <div className="flex items-baseline gap-1.5">
+                  <dt className="text-[15px] tabular-nums text-volt">0</dt>
+                  <dd>SETUP</dd>
+                </div>
+              </dl>
             </div>
-          </div>
-
-          {/* ── instrument bar: CTAs + stat readout, 1px top rule, full width ── */}
-          <div className="flex flex-col gap-4 border-t border-line py-4 sm:flex-row sm:items-center sm:justify-between lg:col-span-2">
-            <div className="flex flex-wrap items-center gap-3">
-              <Link
-                to={`/learn/${continueCh.id}`}
-                className="rounded-md border border-volt/45 bg-volt/10 px-5 py-2.5 font-mono text-sm font-medium tracking-wide text-volt transition-all hover:bg-volt/18 hover:glow-volt"
-              >
-                {visited.size > 0 ? t('Continue learning', '继续学习') : t('Start chapter one', '开始第一章')} →
-              </Link>
-              <Link
-                to="/playground"
-                className="rounded-md border border-line2 bg-panel px-5 py-2.5 font-mono text-sm tracking-wide text-ink2 transition-colors hover:border-ink3 hover:text-ink"
-              >
-                ▶ {t('Open the CUDA simulator', '打开 CUDA 模拟器')}
-              </Link>
-            </div>
-            <dl className="flex flex-wrap items-baseline gap-x-7 gap-y-2 font-mono text-xs tracking-wider text-ink3">
-              <div className="flex items-baseline gap-1.5">
-                <dt className="text-[15px] tabular-nums text-ink">12</dt>
-                <dd>CHAPTERS</dd>
-              </div>
-              <span className="hidden h-3 w-px bg-line2 sm:inline-block" aria-hidden />
-              <div className="flex items-baseline gap-1.5">
-                <dt className="text-[15px] tabular-nums text-ink">30+</dt>
-                <dd>LABS</dd>
-              </div>
-              <span className="hidden h-3 w-px bg-line2 sm:inline-block" aria-hidden />
-              <div className="flex items-baseline gap-1.5">
-                <dt className="text-[15px] tabular-nums text-volt">0</dt>
-                <dd>SETUP</dd>
-              </div>
-            </dl>
           </div>
         </div>
       </section>
