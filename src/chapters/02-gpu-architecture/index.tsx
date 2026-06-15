@@ -1,4 +1,4 @@
-import { Callout, CodeBlock, Figure, Quiz, Section, Term } from '@/components/ui'
+import { Callout, ChapterLink, CodeBlock, Figure, HardwareBaseline, Quiz, Section, Term } from '@/components/ui'
 import { useT, useLocale, pick, type Loc } from '@/lib/i18n'
 import { AnatomyLab } from './AnatomyLab'
 import { WarpLatencyLab } from './WarpLatencyLab'
@@ -165,6 +165,8 @@ export default function Chapter() {
           </>,
         )}
       </p>
+
+      <HardwareBaseline ids={['h100']} />
 
       <Section
         index={1}
@@ -480,15 +482,15 @@ export default function Chapter() {
               <code>C+1</code> instructions per round and then goes silent for <code>L</code> cycles, so utilization is
               roughly <code>W×(C+1) / (C+1+L)</code>, capped at 100%. It points to two ways to raise utilization:{' '}
               <strong>increase W</strong> (more resident warps, i.e. higher occupancy) or <strong>increase C</strong> (more
-              compute between each memory access, i.e. a higher compute-to-memory ratio). The optimization stories of
-              chapters 5 and 6 all turn on these two dials.
+              compute between each memory access, i.e. a higher compute-to-memory ratio). The optimization stories of{' '}
+              <ChapterLink n={5} /> and <ChapterLink n={6} /> all turn on these two dials.
             </>,
             <>
               这个玩具模型背后有一条可以写在墙上的公式：要把延迟为 <code>L</code> 的访存完全藏住，期间就得有别的指令
               可发。每个 warp 每轮贡献约 <code>C+1</code> 条指令、随后沉默 <code>L</code> 个周期，所以利用率约为{' '}
               <code>W×(C+1) / (C+1+L)</code>，封顶 100%。它告诉你两条提高利用率的路：<strong>加 W</strong>
               （更多驻留 warp，即更高 occupancy）或者<strong>加 C</strong>（每次访存之间做更多计算，
-              即更高的计算访存比）。第 5、6 章的优化故事，全部是围绕这两个旋钮展开的。
+              即更高的计算访存比）。<ChapterLink n={5} />、<ChapterLink n={6} />的优化故事，全部是围绕这两个旋钮展开的。
             </>,
           )}
         </p>
@@ -578,7 +580,7 @@ export default function Chapter() {
             <>
               This table rewards repeated chewing. <strong>Registers</strong> sit right at the execution units, almost free
               to read and write, but capped at 255 per thread — exceed that and they "spill" to memory (a pitfall you'll hit
-              in chapter 5). <strong>Shared memory and L1</strong> are actually two uses of the same on-chip SRAM: L1 is
+              in <ChapterLink n={5} />). <strong>Shared memory and L1</strong> are actually two uses of the same on-chip SRAM: L1 is
               hardware-managed, while shared memory is a programmer-controlled scratchpad — threads within one block use it to
               exchange data at ~30 cycles, more than an order of magnitude cheaper than going to memory. <strong>L2</strong> is
               a chip-wide relay shared by all 132 SMs; 50 MB sounds generous, but spread across tens of thousands of concurrent
@@ -587,7 +589,7 @@ export default function Chapter() {
             </>,
             <>
               这张表值得反复咀嚼。<strong>寄存器</strong>就在执行单元手边，读写几乎免费，但每个线程最多 255 个，
-              用超了就会「溢出」到显存（第 5 章会撞上这个坑）。<strong>共享内存和 L1</strong> 其实是同一块片上
+              用超了就会「溢出」到显存（<ChapterLink n={5} />会撞上这个坑）。<strong>共享内存和 L1</strong> 其实是同一块片上
               SRAM 的两种用法：L1 由硬件自动管理，共享内存则是程序员显式控制的便笺纸 —— 同一个线程块内的线程
               用它交换数据，延迟约 30 个周期，比走显存便宜一个数量级以上。<strong>L2</strong> 是全片 132 个 SM
               共享的中转站，50 MB 听起来不小，但被几万个并发线程一摊就很紧张了。最底层的 <strong>HBM3</strong>{' '}
@@ -616,13 +618,13 @@ export default function Chapter() {
               While you're at it, recalibrate one intuition: HBM's <strong>bandwidth</strong> (3.35 TB/s) is tens of times that
               of CPU memory, but its <strong>latency</strong> is no better than CPU memory — arguably worse. The GPU memory
               system is a truck convoy built for throughput, not a sports car built for latency — so "batch up data and move it
-              in one shot" beats "fetch piecemeal on demand" by a wide margin, a principle that runs through coalesced access in
-              chapter 4 and FlashAttention in chapter 8.
+              in one shot" beats "fetch piecemeal on demand" by a wide margin, a principle that runs through coalesced access in{' '}
+              <ChapterLink n={4} /> and FlashAttention in <ChapterLink n={8} />.
             </>,
             <>
               顺带校准一个直觉：HBM 的<strong>带宽</strong>（3.35 TB/s）是 CPU 内存的几十倍，但<strong>延迟</strong>
               并不比 CPU 内存好，甚至更差。GPU 的显存系统是为吞吐设计的卡车车队，不是为延迟设计的跑车 ——
-              所以「攒一批数据一次搬运」远胜「零碎地按需取用」，这个原则会贯穿第 4 章的合并访存和第 8 章的
+              所以「攒一批数据一次搬运」远胜「零碎地按需取用」，这个原则会贯穿<ChapterLink n={4} />的合并访存和<ChapterLink n={8} />的
               FlashAttention。
             </>,
           )}
@@ -673,14 +675,14 @@ export default function Chapter() {
               one. Add deep learning's tolerance for low precision — BF16 training and FP8 inference are now routine — and each
               halving of precision doubles throughput for the same silicon area and bandwidth. That is why Tensor Cores became
               the undisputed star of the LLM era: by FLOP count, 95%+ of a Transformer's forward and backward passes are matrix
-              multiplies (chapter 7 does the arithmetic).
+              multiplies (<ChapterLink n={7} /> does the arithmetic).
             </>,
             <>
               为什么专用电路能快这么多？因为矩阵乘有极强的结构性：一块 16×16 的数据片内部有大量操作数复用，
               专用电路可以把取指、译码、操作数搬运的开销摊薄到几百次乘加上，而标量核心每做一次乘加都要付一遍这些
               「行政成本」。再加上深度学习对低精度的宽容 —— BF16 训练、FP8 推理已是常态 —— 精度每砍一半，
               同样的硅片面积和带宽就能再翻一倍吞吐。这就是大模型时代 Tensor Core 成为绝对主角的原因：
-              Transformer 的前向反向，按 FLOPs 算 95% 以上是矩阵乘（第 7 章会算这笔账）。
+              Transformer 的前向反向，按 FLOPs 算 95% 以上是矩阵乘（<ChapterLink n={7} />会算这笔账）。
             </>,
           )}
         </p>
@@ -691,14 +693,14 @@ export default function Chapter() {
               cuBLAS and cuDNN select them automatically, and PyTorch's <code>torch.matmul</code> routes through Tensor Cores by
               default in half precision. The bad news is that it raises the bar on "feeding data" by an order of magnitude — the
               faster it computes, the easier it starves. A starved Tensor Core is no different from having no Tensor Core at all,
-              which is the central tension of the Roofline model in chapter 6 and the entire reason FlashAttention exists in
-              chapter 8.
+              which is the central tension of the Roofline model in <ChapterLink n={6} /> and the entire reason FlashAttention exists in{' '}
+              <ChapterLink n={8} />.
             </>,
             <>
               好消息是你几乎不需要直接编写 Tensor Core 指令：cuBLAS、cuDNN 这些 NVIDIA 官方库会自动选用它，
               PyTorch 的 <code>torch.matmul</code> 在半精度下默认走 Tensor Core。坏消息是它把对「喂数据」的要求
               抬高了一个数量级 —— 算得越快，越容易饿。一颗吃不饱的 Tensor Core 和没有 Tensor Core 没什么区别，
-              这是第 6 章 Roofline 模型要讲的核心矛盾，也是第 8 章 FlashAttention 存在的全部理由。
+              这是<ChapterLink n={6} /> Roofline 模型要讲的核心矛盾，也是<ChapterLink n={8} /> FlashAttention 存在的全部理由。
             </>,
           )}
         </p>

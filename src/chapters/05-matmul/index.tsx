@@ -1,4 +1,4 @@
-import { Callout, CodeBlock, MathTex, Quiz, Section, Term } from '@/components/ui'
+import { Callout, ChapterLink, CodeBlock, HardwareBaseline, MathTex, Quiz, Section, Term } from '@/components/ui'
 import { useT } from '@/lib/i18n'
 import { MemCounterLab } from './MemCounterLab'
 import { OccupancyLab } from './OccupancyLab'
@@ -84,7 +84,7 @@ export default function Chapter() {
       <p>
         {t(
           <>
-            Write a matmul kernel the way Chapter 3 taught you — one thread per output element — and run a
+            Write a matmul kernel the way <ChapterLink n={3} /> taught you — one thread per output element — and run a
             4096×4096 FP32 multiply on an A100. You will measure roughly 2% of cuBLAS. Same silicon, same
             floating-point units, same theoretical throughput: a 50× gap. This chapter closes that gap without
             touching the hardware or the algorithmic complexity — purely by rewriting the kernel. The ammunition
@@ -92,7 +92,7 @@ export default function Chapter() {
             you will find that every optimization points back to one sentence: <strong>move less data out of HBM</strong>.
           </>,
           <>
-            照着第 3 章的套路写一个矩阵乘法 kernel —— 每个线程负责一个输出点 ——
+            照着<ChapterLink n={3} />的套路写一个矩阵乘法 kernel —— 每个线程负责一个输出点 ——
             在 A100 上跑 4096×4096 的 FP32 矩阵乘，实测大约只有 cuBLAS 的 2%。同一块芯片、
             同样的浮点单元、同样的理论算力，差了 50 倍。这一章我们不换硬件、不改算法复杂度，
             只靠重写 kernel 把这 50 倍一点点追回来。需要的弹药前两章都已经备好：合并访存、shared
@@ -100,6 +100,8 @@ export default function Chapter() {
           </>,
         )}
       </p>
+
+      <HardwareBaseline ids={['a100']} />
 
       <Section
         index={1}
@@ -150,7 +152,7 @@ export default function Chapter() {
               In other words, every element of A is re-read verbatim thousands of times — it was supposed to be reused N times (one row of
               A feeds N output elements), but naive turns every one of those reuses into a fresh HBM round trip. Divide 512 GB by the A100's
               1.9 TB/s bandwidth and the data movement alone takes about 290 ms; the actual arithmetic finishes in under 1 ms on the Tensor
-              Cores. Chapter 4 said "memory is king" — matmul is the most extreme illustration of it:{' '}
+              Cores. <ChapterLink n={4} /> said "memory is king" — matmul is the most extreme illustration of it:{' '}
               <strong>the compute is O(N³), the data is O(N²), and that extra factor of N is pure reuse opportunity</strong>. Kernels that land
               that reuse on-chip run like lightning; the ones that can't just queue up behind HBM.
             </>,
@@ -159,7 +161,7 @@ export default function Chapter() {
               而三个矩阵总共只有 192 MB。也就是说，A 的每个元素被原封不动地重读了几千次 ——
               它本来就该被复用 N 次（A 的一行参与 N 个输出点的计算），但 naive 把每一次复用都变成了一次 HBM 往返。
               512 GB 除以 A100 的 1.9 TB/s 带宽，光搬数据就要约 290 ms；而这点计算量在 Tensor Core
-              上不到 1 ms 就能算完。第 4 章说「访存为王」，矩阵乘法是最极端的例证：
+              上不到 1 ms 就能算完。<ChapterLink n={4} />说「访存为王」，矩阵乘法是最极端的例证：
               <strong>计算量是 O(N³)，数据量是 O(N²)，这多出来的一个 N 全是复用的机会</strong>。
               能把复用做到芯片上的 kernel 快如闪电，做不到的就只能排队等 HBM。
             </>,
@@ -236,7 +238,7 @@ export default function Chapter() {
           {t(
             <>
               The reuse opportunity is sitting right there; the question is <em>where</em> to reuse. Registers are private to each thread and
-              can't hold data that other threads need; HBM is too far away. The answer is Chapter 4's{' '}
+              can't hold data that other threads need; HBM is too far away. The answer is <ChapterLink n={4} />'s{' '}
               <Term t="shared memory">An on-chip cache shared within a block — up to 164 KB per SM on the A100, roughly 1/10 the latency of
               global memory and more than an order of magnitude more bandwidth.</Term> — shared by every thread in a block, with latency and
               bandwidth close to L1. That gives us{' '}
@@ -245,7 +247,7 @@ export default function Chapter() {
             </>,
             <>
               复用机会摆在那里，问题是去哪复用。寄存器是每线程私有的，装不下别人要的数据；HBM
-              太远；答案是第 4 章的 <Term t="shared memory">块内共享的片上缓存，A100 上每 SM 最多 164KB，
+              太远；答案是<ChapterLink n={4} />的 <Term t="shared memory">块内共享的片上缓存，A100 上每 SM 最多 164KB，
               延迟约为全局内存的 1/10，带宽高一个数量级以上。</Term> —— 一个 block 内所有线程共享，
               延迟和带宽都接近 L1。于是有了 <Term t="tiling（分块）">把大矩阵切成小瓦片（tile），
               让每个瓦片在片上缓存里被充分复用后再丢弃的循环重组技术，CPU 上对应 cache blocking。</Term>：
@@ -317,7 +319,7 @@ export default function Chapter() {
                 Roofline model in Chapter 6.</Term> of just 0.25 FLOP/B. Tiled T=32 lifts it to 16 FLOP/B. The A100's "break-even point" is
                 312 TFLOPS ÷ 1.9 TB/s ≈ 164 FLOP/B — below that number, the math units are waiting on data. Every later optimization (register
                 tiling, vectorization, Tensor Cores) is fundamentally doing the same thing: amortizing each fetched byte across more compute.
-                Hold onto this number game — Chapter 6's Roofline turns it into a picture.
+                Hold onto this number game — <ChapterLink n={6} />'s Roofline turns it into a picture.
               </>,
               <>
                 naive 每从 HBM 读 8 个字节只做 2 个 FLOP —— <Term t="算术强度（arithmetic intensity）">
@@ -325,7 +327,7 @@ export default function Chapter() {
                 tiled T=32 把它抬到 16 FLOP/B。而 A100 的「收支平衡点」是 312 TFLOPS ÷ 1.9 TB/s ≈ 164 FLOP/B
                 ——低于这个数，算力就在等数据。之后的每一级优化（寄存器 tiling、向量化、Tensor Core）
                 本质上都在干同一件事：让每个搬进来的字节被更多计算摊薄。记住这个数字游戏，
-                第 6 章的 Roofline 会把它变成一张图。
+                <ChapterLink n={6} />的 Roofline 会把它变成一张图。
               </>,
             )}
           </p>
@@ -439,12 +441,12 @@ export default function Chapter() {
           {t(
             <>
               <strong>Coalesced access (2% → ~8%)</strong>: not a single line of the algorithm changes — you only adjust how threads map to rows
-              and columns, so the 32 threads of a warp read contiguous addresses each iteration. This is Chapter 4's material, and it's the best
+              and columns, so the 32 threads of a warp read contiguous addresses each iteration. This is <ChapterLink n={4} />'s material, and it's the best
               bang for the buck: a 4× win for a few lines of code. It fixes "access efficiency" without touching "total traffic" yet.
             </>,
             <>
               <strong>合并访存（2% → ~8%）</strong>：不改一行算法，只调整线程到行列的映射，
-              让同一 warp 的 32 个线程在每次迭代里读连续地址。这是第 4 章的内容，也是性价比最高的一步 ——
+              让同一 warp 的 32 个线程在每次迭代里读连续地址。这是<ChapterLink n={4} />的内容，也是性价比最高的一步 ——
               几行代码换 4 倍。它解决的是「访存效率」，还没动「访存总量」。
             </>,
           )}
@@ -547,7 +549,7 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              Chapter 2 explained that GPUs hide latency by "keeping many warps resident and switching among them at will."{' '}
+              <ChapterLink n={2} /> explained that GPUs hide latency by "keeping many warps resident and switching among them at will."{' '}
               <Term t="occupancy">The ratio of warps actually resident on an SM to the hardware ceiling (64 warps on the A100); it measures the
               "ammunition reserve" available for hiding latency.</Term> is the quantification of that ability. An SM's resources are fixed: on the
               A100 that's 65,536 registers, 164 KB of shared memory, 2,048 threads, and a residency ceiling of 32 blocks. Each block draws from
@@ -556,7 +558,7 @@ export default function Chapter() {
               first one to bottom out. Drag the sliders below to watch the bottleneck change hands:
             </>,
             <>
-              第 2 章讲过，GPU 靠「驻留大量 warp、随时切换」来隐藏延迟，
+              <ChapterLink n={2} />讲过，GPU 靠「驻留大量 warp、随时切换」来隐藏延迟，
               <Term t="occupancy（占用率）">SM 上实际驻留的 warp 数与硬件上限（A100 为 64 个 warp）之比，
               衡量延迟隐藏的「弹药储备」。</Term>就是这个能力的量化。一个 SM 的资源是死的：A100 上是 65536
               个寄存器、164 KB shared memory、2048 个线程、32 个 block 的驻留上限。

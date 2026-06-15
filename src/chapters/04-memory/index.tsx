@@ -1,4 +1,4 @@
-import { Callout, CodeBlock, Figure, MathTex, Quiz, Section, Term } from '@/components/ui'
+import { Callout, ChapterLink, CodeBlock, Figure, MathTex, Quiz, Section, Term } from '@/components/ui'
 import { pick, useLocale, useT, type Loc } from '@/lib/i18n'
 import { CoalescingLab } from './CoalescingLab'
 import { AosSoaLab } from './AosSoaLab'
@@ -149,7 +149,7 @@ export default function Chapter() {
             Start with a fact that genuinely hurts: two kernels, identical instruction count, identical
             floating-point work, differing in one thing only — the array index. One writes <code>a[i]</code>,
             the other <code>a[i * 8]</code>. Run them, and the first is nearly 10x faster. If you're still
-            reasoning in chapter 3's "thread grid" model, this makes no sense: same number of threads, same
+            reasoning in <ChapterLink n={3} />'s "thread grid" model, this makes no sense: same number of threads, same
             number of multiply-adds — where does an order of magnitude come from? The answer lives on the road
             between the moment a thread computes its index and the moment the data actually lands in a register.
             This chapter stares at that road: how global memory bills you by the <em>transaction</em>, how a
@@ -161,7 +161,7 @@ export default function Chapter() {
           <>
             先看一个真实得让人心碎的现象：两个 kernel，指令数完全一样，浮点运算量完全一样，唯一的区别是数组下标——
             一个写 <code>a[i]</code>，另一个写 <code>a[i * 8]</code>。跑出来，前者比后者快接近 10 倍。如果你还停留在
-            第三章的「线程网格」视角，这完全说不通：同样多的线程、同样多的乘加，凭什么差出一个数量级？答案藏在
+            <ChapterLink n={3} />的「线程网格」视角，这完全说不通：同样多的线程、同样多的乘加，凭什么差出一个数量级？答案藏在
             线程算出下标之后、数据真正抵达寄存器之前的那段路上。这一章我们就盯着这段路看：全局内存如何按「事务」
             收费、warp 的访问模式怎样决定你浪费掉多少带宽、以及片上那块小而快的 shared memory 怎么把烂访问模式
             洗成好的。先把结论放在这里——<strong>大多数 kernel 的瓶颈不是计算，是访存</strong>。学会看访存，你就掌握了

@@ -1,4 +1,4 @@
-import { Callout, CodeBlock, MathTex, Quiz, Section, Term } from '@/components/ui'
+import { Callout, ChapterLink, CodeBlock, HardwareBaseline, MathTex, Quiz, Section, Term } from '@/components/ui'
 import { useT } from '@/lib/i18n'
 import { OnlineSoftmaxLab } from './OnlineSoftmaxLab'
 import { TiledAttentionLab } from './TiledAttentionLab'
@@ -56,7 +56,8 @@ export default function Chapter() {
             with memory dropping from quadratic to linear — it sounds like cheating, but that is exactly
             what FlashAttention does. No approximation, no pruning, no precision loss: its output is
             mathematically identical to standard attention. What it optimizes is not the arithmetic but the{' '}
-            <strong>movement</strong> of data. The roofline model from Chapter 6 told us that when a
+            <strong>movement</strong> of data. The roofline model from <ChapterLink n={6} /> told us that
+            when a
             kernel's arithmetic intensity sits on the memory-bound side of the wall, speed is decided not
             by how much you compute, but by how many bytes you shuttle between HBM and the chip. Naive
             attention is a data-movement disaster — and the culprit is that S×S intermediate matrix nobody
@@ -66,13 +67,21 @@ export default function Chapter() {
             把一个算法的每一次浮点乘加都原封不动地照做，却让它快上 2~4 倍、显存占用从平方级降到线性
             —— 这听起来像作弊，但 FlashAttention 干的就是这件事。它没有近似、没有剪枝、没有降低精度，
             输出和标准 attention 在数学上完全一致。它优化的根本不是计算，而是<strong>搬运</strong>：
-            第六章的 roofline 模型告诉我们，当一个 kernel 的算术强度（arithmetic
+            <ChapterLink n={6} />的 roofline 模型告诉我们，当一个 kernel 的算术强度（arithmetic
             intensity）落在内存墙左侧时，决定速度的不是你算了多少，而是你在 HBM
             和芯片之间搬了多少字节。naive attention 恰好是个搬运灾难 ——
             而这场灾难的元凶，是那个从来没人真正想「看到」的 S×S 中间矩阵。
           </>,
         )}
       </p>
+
+      <HardwareBaseline
+        ids={['a100', 'h100']}
+        note={t(
+          'SRAM/bandwidth figures cite both A100 and H100.',
+          'SRAM/带宽数字同时引用 A100 与 H100。',
+        )}
+      />
 
       <Section
         index={1}
@@ -82,7 +91,16 @@ export default function Chapter() {
           '问题不在两个 matmul，而在它们中间那块从未被需要、却被完整写出来的平方级矩阵。',
         )}
       >
-        <p>{t('First, the formula from Chapter 7. Single-head attention computes:', '先把第七章的公式摆出来。单头 attention 做的事是：')}</p>
+        <p>
+          {t(
+            <>
+              First, the formula from <ChapterLink n={7} />. Single-head attention computes:
+            </>,
+            <>
+              先把<ChapterLink n={7} />的公式摆出来。单头 attention 做的事是：
+            </>,
+          )}
+        </p>
         <MathTex block tex="\mathrm{Attention}(Q,K,V)=\mathrm{softmax}\!\left(\frac{QK^{\top}}{\sqrt{d}}\right)V" />
         <p>
           {t(
@@ -189,14 +207,15 @@ export default function Chapter() {
           {t(
             <>
               Once you see this, the optimization goal is clear: <strong>can we avoid writing S out at
-              all?</strong> The two matmuls are easy to please — Chapter 5 showed how tiling lets a matmul
+              all?</strong> The two matmuls are easy to please — <ChapterLink n={5} /> showed how tiling
+              lets a matmul
               saturate the hardware. The real holdout is the softmax wedged in between: it normalizes over
               an <strong>entire row</strong>, so it seems to inherently need a complete row of scores before
               it can move. Untying that knot is the next section's job.
             </>,
             <>
               看清这一点，优化目标就明确了：<strong>能不能根本不把 S 写出来？</strong>
-              两个 matmul 是好伺候的 —— 第五章讲过分块（tiling）可以让 matmul 吃满算力。
+              两个 matmul 是好伺候的 —— <ChapterLink n={5} />讲过分块（tiling）可以让 matmul 吃满算力。
               真正的钉子户是夹在中间的 softmax：它要对<strong>整行</strong>做归一化，
               看起来天生需要先拿到完整的一行 score 才能动手。解开这个结，是下一节的事。
             </>,
@@ -462,7 +481,7 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              Recall the memory hierarchy from Chapter 4: HBM is "off the island," 3.35TB/s (H100);{' '}
+              Recall the memory hierarchy from <ChapterLink n={4} />: HBM is "off the island," 3.35TB/s (H100);{' '}
               <Term t="SRAM">
                 here meaning the SM's on-chip shared memory / L1, about 228KB per SM (H100). Small in
                 capacity, but its aggregate bandwidth is an order of magnitude higher than HBM (about 19TB/s
@@ -474,7 +493,7 @@ export default function Chapter() {
               size set precisely by the SRAM capacity M (on the order of M/4d). Then:
             </>,
             <>
-              回忆第四章的存储层级：HBM 在「岛外」，3.35TB/s（H100）；
+              回忆<ChapterLink n={4} />的存储层级：HBM 在「岛外」，3.35TB/s（H100）；
               <Term t="SRAM">这里指 SM 片上的 shared memory / L1，每个 SM 约 228KB（H100）。容量小，
               但聚合带宽比 HBM 高一个数量级（A100 上约 19TB/s vs 1.9TB/s），延迟也低得多。</Term>
               在「岛内」，快一个数量级但每个 SM 只有 228KB。FlashAttention 的全部工程就是把
@@ -538,15 +557,15 @@ export default function Chapter() {
               <MathTex tex="\Theta(S^2 d^2 / M)" /> — note the SRAM capacity M in the denominator. As long as
               M is much larger than d² (which it is in reality: 228KB vs 128²×2B=32KB), it stays far below
               naive's <MathTex tex="\Theta(S^2)" />. In other words: <strong>the bigger the SRAM, the less
-              K/V gets re-read</strong> — the exact same shape of trade-off we saw in Chapter 5's matmul
-              tiling.
+              K/V gets re-read</strong> — the exact same shape of trade-off we saw in <ChapterLink n={5} />'s
+              matmul tiling.
             </>,
             <>
               代价呢？K/V 要被每个 Q 块行重读一遍，所以 flash 的 HBM 访问量精确说是{' '}
               <MathTex tex="\Theta(S^2 d^2 / M)" /> —— 注意分母上的 SRAM 容量
               M。只要 M 远大于 d²（现实如此：228KB vs 128²×2B=32KB），它就远小于 naive 的{' '}
               <MathTex tex="\Theta(S^2)" />。换句话说：<strong>SRAM 越大，K/V 重读得越少</strong>，
-              这个权衡我们在第五章 matmul tiling 里见过一模一样的形状。
+              这个权衡我们在<ChapterLink n={5} /> matmul tiling 里见过一模一样的形状。
             </>,
           )}
         </p>

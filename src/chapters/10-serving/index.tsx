@@ -1,4 +1,4 @@
-import { Callout, Quiz, Section, Term } from '@/components/ui'
+import { Callout, ChapterLink, HardwareBaseline, Quiz, Section, Term } from '@/components/ui'
 import { useT } from '@/lib/i18n'
 import { PrefillDecodeLab } from './PrefillDecodeLab'
 import { BatchingCurves } from './BatchingCurves'
@@ -32,6 +32,8 @@ export default function Chapter() {
           </>,
         )}
       </p>
+
+      <HardwareBaseline ids={['h100']} />
 
       <Section
         index={1}
@@ -80,7 +82,8 @@ export default function Chapter() {
               </Term>
               , and the mood turns grim. Autoregressive generation is serial by nature: token N+1 can&apos;t be
               computed until token N is out. So each forward pass processes <em>one</em> token — yet not a
-              single byte of the model&apos;s weights can be skipped. Recall the arithmetic from Chapter 9: a
+              single byte of the model&apos;s weights can be skipped. Recall the arithmetic from{' '}
+              <ChapterLink n={9} />: a
               70B model in FP16 is 140 GB of weights, the H100&apos;s HBM bandwidth is 3.35 TB/s, so just
               streaming the weights once takes about 42 ms; meanwhile the real compute for that step is only
               about 140 GFLOPs, a drop in the bucket against 989 TFLOPS of peak — effective utilization falls
@@ -92,7 +95,7 @@ export default function Chapter() {
                 自回归生成阶段：每次前向只处理一个新 token，算完采样出下一个，再喂回去。
               </Term>
               ，画风急转直下。自回归（autoregressive）生成天生串行：第 N+1 个 token 必须等第 N 个出来才能算。
-              于是每一步前向只处理<em>一个</em> token —— 但模型的全部权重一个字节都不能少读。回忆第 9 章的账：
+              于是每一步前向只处理<em>一个</em> token —— 但模型的全部权重一个字节都不能少读。回忆<ChapterLink n={9} />的账：
               70B 模型 FP16 权重 140 GB，H100 的 HBM 带宽 3.35 TB/s，光把权重过一遍就要约 42 ms；
               而这一步真正的计算量只有约 140 GFLOPs，对 989 TFLOPS 的峰值算力来说是九牛一毛 ——
               有效利用率掉到 1% 以下。同一张卡，从满载的炼钢炉变成了几乎空转的传送带。
@@ -202,14 +205,14 @@ export default function Chapter() {
           {t(
             <>
               Of course the free lunch has a limit. Grow the batch far enough and compute time catches up with
-              memory time — exactly the ridge point from the Chapter 6 roofline. Cross it and decode flips from
+              memory time — exactly the ridge point from the <ChapterLink n={6} /> roofline. Cross it and decode flips from
               memory-bound to compute-bound: throughput stops climbing, per-step latency starts growing
               linearly with batch, and TPOT visibly degrades. The curves below plot both lines together; switch
               hardware to watch the knee move — a higher-bandwidth card (H200) hits the same throughput ceiling
               sooner, so a smaller batch already saturates it.
             </>,
             <>
-              免费午餐当然有边界。batch 大到一定程度，计算时间追上了访存时间 —— 这正是第 6 章 roofline 的
+              免费午餐当然有边界。batch 大到一定程度，计算时间追上了访存时间 —— 这正是<ChapterLink n={6} /> roofline 的
               ridge point。越过它，decode 从 memory-bound 翻身成 compute-bound：吞吐不再涨，单步时延开始随
               batch 线性变长，TPOT 肉眼可见地变差。下面的曲线图把这两条线画在一起，切换硬件看拐点怎么动：
               带宽越大的卡（H200），同样的吞吐上限来得越早 —— 用更小的 batch 就能喂饱。
@@ -477,8 +480,8 @@ export default function Chapter() {
               four layers. At the top the Router load-balances across multiple engine replicas and routes by
               prefix affinity (steering a session toward the replica that already cached its KV); the Scheduler
               is this chapter&apos;s star — continuous batching, chunked prefill, preemption; the Engine manages
-              the paging and reuse of the KV cache (Chapter 9&apos;s PagedAttention lives here); and at the
-              bottom sit the Kernels — FlashAttention, fused GEMM, the heroes of Chapter 8. More radical
+              the paging and reuse of the KV cache (<ChapterLink n={9} />&apos;s PagedAttention lives here); and at the
+              bottom sit the Kernels — FlashAttention, fused GEMM, the heroes of <ChapterLink n={8} />. More radical
               architectures like DistServe go further and split prefill and decode into separate GPU pools
               (disaggregation), letting the compute-bound and memory-bound lives each find their best-fit
               hardware ratio.
@@ -486,8 +489,8 @@ export default function Chapter() {
             <>
               把这些零件装回整机：一个生产级推理栈大致分四层。最上面的 Router 在多个引擎副本之间做负载均衡、
               按 prefix 亲和性路由（同一会话尽量打到缓存了它 KV 的副本）；Scheduler 做本章的主角 ——
-              连续批处理、chunked prefill、抢占；Engine 管 KV cache 的分页与复用（第 9 章的 PagedAttention
-              就活在这里）；最底下是 Kernels —— FlashAttention、融合 GEMM 这些第 8 章的功臣。更激进的架构如
+              连续批处理、chunked prefill、抢占；Engine 管 KV cache 的分页与复用（<ChapterLink n={9} />的 PagedAttention
+              就活在这里）；最底下是 Kernels —— FlashAttention、融合 GEMM 这些<ChapterLink n={8} />的功臣。更激进的架构如
               DistServe 干脆把 prefill 和 decode 拆到不同的 GPU 池子里（disaggregation），让 compute-bound
               和 memory-bound 的两段人生各自找最适合的硬件配比。
             </>,

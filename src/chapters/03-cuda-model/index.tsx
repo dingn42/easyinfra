@@ -1,4 +1,4 @@
-import { Callout, CodeBlock, Figure, MathTex, Quiz, Section, Term } from '@/components/ui'
+import { Callout, ChapterLink, CodeBlock, Figure, MathTex, Quiz, Section, Term } from '@/components/ui'
 import { useT } from '@/lib/i18n'
 import { IndexFigure } from './IndexFigure'
 import { Grid2DFigure } from './Grid2DFigure'
@@ -576,14 +576,14 @@ export default function Chapter() {
               threads doing actual work. This is exactly why "a job with too little data isn't worth shipping to the
               GPU": no launch configuration can rescue a problem that simply can't keep the machine fed. Another
               intuition: bigger blockDim isn't always better. It affects the scope of cooperation and occupancy
-              (detailed in Chapter 5), but has no effect on "whether the result is correct" — correctness comes from
-              the index formula and the bounds check.
+              (detailed in <ChapterLink n={5} />), but has no effect on "whether the result is correct" — correctness
+              comes from the index formula and the bounds check.
             </>,
             <>
               值得注意的是浪费线程的占比：N=1000、blockDim=256 时只浪费 24/1024 ≈ 2.3%，无伤大雅；但若 N=16、blockDim=1024，
               浪费高达 98%——整卡只有 16 个线程在干活。这也是为什么「数据量太小的活不值得下发到 GPU」：
-              launch 配置救不了本来就喂不饱机器的问题。另一个直觉：blockDim 不是越大越好，它影响的是协作范围和占用率（第
-              5 章细讲），对「能不能算对」没有影响——算对靠的是索引公式和边界检查。
+              launch 配置救不了本来就喂不饱机器的问题。另一个直觉：blockDim 不是越大越好，它影响的是协作范围和占用率（
+              <ChapterLink n={5} />细讲），对「能不能算对」没有影响——算对靠的是索引公式和边界检查。
             </>,
           )}
         </p>
@@ -764,12 +764,13 @@ export default function Chapter() {
                 and 4: PCIe 4.0 x16 measures around 25 GB/s, while H100 VRAM bandwidth is around 3.35 TB/s — two
                 orders of magnitude apart. For a kernel like vecAdd that "moves 12 bytes to do 1 addition," the
                 end-to-end time is spent almost entirely on movement. How to save on movement, and how to overlap
-                compute with movement, is the through-line of Chapters 4 and 6.
+                compute with movement, is the through-line of <ChapterLink n={4} label="Chapters 4" /> and{' '}
+                <ChapterLink n={6} />.
               </>,
               <>
                 五部曲里最贵的常常不是计算而是②和④的 PCIe 搬运：PCIe 4.0 x16 实测约 25 GB/s 上下，而 H100 显存带宽约
                 3.35 TB/s，差出两个数量级。vecAdd 这种「搬 12 字节算 1 次加法」的 kernel，端到端时间几乎全花在搬运上。
-                怎么省搬运、怎么让计算和搬运重叠，是第 4 章和第 6 章的主线。
+                怎么省搬运、怎么让计算和搬运重叠，是 <ChapterLink n={4} /> 和 <ChapterLink n={6} /> 的主线。
               </>,
             )}
           </p>

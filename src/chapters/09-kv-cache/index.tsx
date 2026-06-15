@@ -1,4 +1,4 @@
-import { Callout, CodeBlock, MathTex, Quiz, Section, Term } from '@/components/ui'
+import { Callout, ChapterLink, CodeBlock, HardwareBaseline, MathTex, Quiz, Section, Term } from '@/components/ui'
 import { useT } from '@/lib/i18n'
 import CacheCompareLab from './CacheCompareLab'
 import KVCalcLab from './KVCalcLab'
@@ -57,6 +57,8 @@ export default function Chapter() {
         )}
       </p>
 
+      <HardwareBaseline ids={['a100']} />
+
       <Section
         index={1}
         title={t('Autoregressive generation: only K and V are worth caching', '自回归生成：能缓存的，只有 K 和 V')}
@@ -75,7 +77,7 @@ export default function Chapter() {
               </Term>{' '}
               : step <MathTex tex="t" /> takes all the preceding <MathTex tex="t-1" /> tokens and predicts the{' '}
               <MathTex tex="t" />
-              th. Recall the attention mechanism from Chapter 7. At every layer, the new token does this: it takes its
+              th. Recall the attention mechanism from <ChapterLink n={7} />. At every layer, the new token does this: it takes its
               own query vector <MathTex tex="q_t" /> and dot-products it against the key vectors of{' '}
               <em>every history token</em>, then uses the resulting weights to take a weighted sum over all the history
               value vectors:
@@ -84,7 +86,7 @@ export default function Chapter() {
               大语言模型的生成是<Term t="自回归（autoregressive）">
                 每次只生成一个 token，并把它拼回输入末尾作为下一步预测的条件 —— 输出依赖自己之前的全部输出。
               </Term>的：第 <MathTex tex="t" /> 步拿到前面全部 <MathTex tex="t-1" /> 个 token，预测第{' '}
-              <MathTex tex="t" /> 个。回忆第七章的注意力机制，新 token 在每一层要做的事是：
+              <MathTex tex="t" /> 个。回忆<ChapterLink n={7} />的注意力机制，新 token 在每一层要做的事是：
               用自己的查询向量 <MathTex tex="q_t" /> 去和<em>所有历史 token</em> 的键向量做点积，
               再用得到的权重对所有历史的值向量加权求和：
             </>,
@@ -146,14 +148,14 @@ export default function Chapter() {
                 The cache shaves an order of magnitude off the compute per decode step, but every token's K and V, at
                 every layer, must live resident in memory — and every step still has to read the whole cache back out of
                 HBM. The result: decode goes from "can't compute it fast enough" to "can't read it fast enough." In the
-                language of Chapter 6's roofline, it is a textbook memory-bound workload. This trade moves the
+                language of <ChapterLink n={6} />'s roofline, it is a textbook memory-bound workload. This trade moves the
                 battlefield from compute to memory — capacity decides how many people you can serve at once, bandwidth
                 decides how fast each token comes out. This chapter owns capacity; the next one owns bandwidth.
               </>,
               <>
                 缓存把 decode 每步的计算量砍掉一个数量级，但每个 token、每一层的 K 和 V
                 都要常驻显存 —— 而且每步还得把整个缓存从 HBM 读一遍。结果是 decode
-                从「算不过来」变成了「读不过来」：用第六章 roofline 的语言说，它是个典型的
+                从「算不过来」变成了「读不过来」：用<ChapterLink n={6} /> roofline 的语言说，它是个典型的
                 memory-bound 工作负载。这笔交易把战场从算力挪到了显存 ——
                 容量决定你能同时服务多少人，带宽决定每个 token 出得多快。本章管容量，下一章管带宽。
               </>,
@@ -326,14 +328,14 @@ export default function Chapter() {
               goes 32→8 KV heads, a 4× cut; the factor is n_heads/n_kv, so 70B's 64→8 is 8×), the max concurrency
               quadruples — one line of architecture change worth half a card; (3) switch to 70B — the
               weights alone cross the 80 GB red line, which is why 70B-class models are off the table on a single card
-              and have to wait for Chapter 12's tensor parallelism to be split apart.
+              and have to wait for <ChapterLink n={12} />'s tensor parallelism to be split apart.
             </>,
             <>
               用计算器做三个实验：① 选 7B、4K 上下文，把 batch 从 8 拉到 64 —— 看 KV
               什么时候撞上红线；② 打开 GQA 开关，KV 条瞬间缩成四分之一（这个 7B 是 32→8 个 KV 头，缩 4×；
               缩减倍数 = n_heads/n_kv，所以 70B 的 64→8 是 8×），最大并发翻四倍 ——
               一行架构改动顶得上半张卡；③ 切到 70B —— 权重一项就越过 80GB
-              红线，这就是为什么 70B 级别的模型单卡免谈，必须等到第十二章的张量并行来拆。
+              红线，这就是为什么 70B 级别的模型单卡免谈，必须等到<ChapterLink n={12} />的张量并行来拆。
             </>,
           )}
         </p>

@@ -1,4 +1,4 @@
-import { Callout, MathTex, Quiz, Section, Term } from '@/components/ui'
+import { Callout, ChapterLink, HardwareBaseline, MathTex, Quiz, Section, Term } from '@/components/ui'
 import { useT } from '@/lib/i18n'
 import { FloatBitLab } from './FloatBitLab'
 import { QuantErrorLab } from './QuantErrorLab'
@@ -17,7 +17,7 @@ export default function Chapter() {
             decode also speeds up by nearly <strong>4×</strong>. Notice what's strange about that sentence:
             INT4 multiplication isn't meaningfully faster than FP16 — in many implementations the multiply
             is still done in FP16. The real reason it's faster is that <strong>there are fewer bytes</strong>.
-            The previous chapter's roofline already handed us the answer: decode has an arithmetic intensity
+            <ChapterLink n={6} />{"'s"} roofline already handed us the answer: decode has an arithmetic intensity
             of just 1–2 FLOPs/Byte, the textbook memory-bound regime — every token generated drags the
             entire weight set out of HBM and onto the chip once. Cut the weight bytes to 1/4 and you cut the
             per-token transfer time to 1/4. This chapter pries open "how a number is actually stored" at the
@@ -30,13 +30,18 @@ export default function Chapter() {
             <strong>35 GB</strong>，单卡即可起服务；更反直觉的是，decode 速度还快了接近{' '}
             <strong>4 倍</strong>。注意这句话的诡异之处：INT4 的乘法并没有比 FP16
             快多少，甚至很多实现里乘法还是用 FP16 做的。快的真正原因是<strong>字节变少了</strong>。
-            上一章 roofline 已经给过答案：decode 阶段算术强度只有 1~2 FLOPs/Byte，是典型的
+            <ChapterLink n={6} />的 roofline 已经给过答案：decode 阶段算术强度只有 1~2 FLOPs/Byte，是典型的
             memory-bound —— 每生成一个 token，都要把全部权重从 HBM 搬进片上一遍。权重字节砍到
             1/4，每个 token 的搬运时间就砍到 1/4。这一章我们从比特层面把「数是怎么存的」拆开看，
             再看量化误差从哪来、被什么放大，最后用计算器算清楚：为什么量化几乎是白拿的推理加速。
           </>,
         )}
       </p>
+
+      <HardwareBaseline
+        ids={['a100']}
+        note={t('Figures assume an 80GB-class card (A100/H100).', '数字以 80GB 级别的卡（A100/H100）为准。')}
+      />
 
       <Section
         index={1}

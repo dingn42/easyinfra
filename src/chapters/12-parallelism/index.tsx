@@ -1,4 +1,4 @@
-import { Callout, CodeBlock, MathTex, Quiz, Section, Term } from '@/components/ui'
+import { Callout, ChapterLink, CodeBlock, HardwareBaseline, MathTex, Quiz, Section, Term } from '@/components/ui'
 import { useT } from '@/lib/i18n'
 import { RingAllReduceLab } from './RingAllReduce'
 import { PipelineBubbleLab } from './PipelineBubble'
@@ -38,6 +38,13 @@ export default function Chapter() {
           </>,
         )}
       </p>
+      <HardwareBaseline
+        ids={['a100', 'h100']}
+        note={t(
+          'Training examples use A100; NVLink/IB figures cover both generations.',
+          '训练示例用 A100；NVLink/IB 数字覆盖两代卡。',
+        )}
+      />
       <p>
         {t(
           'Before we pick up a blade, answer a more basic question: what actually eats the memory? Many people’s intuition is "a 7B model is just 7B params ≈ 14GB, an 80G card has plenty of room." That intuition is roughly right for inference and wildly wrong for training — off by an entire order of magnitude.',
@@ -128,10 +135,10 @@ export default function Chapter() {
         <p>
           {t(
             <>
-              So a mere 7B model starts at 112GB just for the "static" training-state ledger, before you add the activations the forward pass saves for the backward — at a 4K sequence, even with FlashAttention sparing you the attention matrix, that's still another dozen-plus GB. <strong>A single 80GB A100/H100 simply can't hold it.</strong> This is the first principle of distributed parallelism: not for speed (that's the second goal), but because <em>it literally doesn't fit</em>. Keep the inference-vs-training gulf in mind too: inference needs only 2 bytes per param plus the KV cache (Chapter 9), so 7B inference fits on a single 24G consumer card; training the same model demands eight times the memory.
+              So a mere 7B model starts at 112GB just for the "static" training-state ledger, before you add the activations the forward pass saves for the backward — at a 4K sequence, even with FlashAttention sparing you the attention matrix, that's still another dozen-plus GB. <strong>A single 80GB A100/H100 simply can't hold it.</strong> This is the first principle of distributed parallelism: not for speed (that's the second goal), but because <em>it literally doesn't fit</em>. Keep the inference-vs-training gulf in mind too: inference needs only 2 bytes per param plus the KV cache (<ChapterLink n={9} />), so 7B inference fits on a single 24G consumer card; training the same model demands eight times the memory.
             </>,
             <>
-              所以一个区区 7B 的模型，训练态的「静态账」就是 112GB 起步，再叠上前向传播留给反向用的激活（activation）—— 4K 序列、即便有 FlashAttention 帮忙省掉注意力矩阵，也还要十几个 GB。<strong>单张 80GB 的 A100/H100 根本放不下</strong>。这就是分布式并行的第一性原理：不是为了快（那是第二目标），而是<em>根本装不下</em>。也请记住推理和训练的鸿沟：推理只要 2 字节每参数加上 KV cache（第九章），7B 推理一张消费级 24G 卡都行；训练同一个模型，显存需求是它的八倍。
+              所以一个区区 7B 的模型，训练态的「静态账」就是 112GB 起步，再叠上前向传播留给反向用的激活（activation）—— 4K 序列、即便有 FlashAttention 帮忙省掉注意力矩阵，也还要十几个 GB。<strong>单张 80GB 的 A100/H100 根本放不下</strong>。这就是分布式并行的第一性原理：不是为了快（那是第二目标），而是<em>根本装不下</em>。也请记住推理和训练的鸿沟：推理只要 2 字节每参数加上 KV cache（<ChapterLink n={9} />），7B 推理一张消费级 24G 卡都行；训练同一个模型，显存需求是它的八倍。
             </>,
           )}
         </p>

@@ -1,4 +1,4 @@
-import { Callout, MathTex, Quiz, Section, Term } from '@/components/ui'
+import { Callout, ChapterLink, HardwareBaseline, MathTex, Quiz, Section, Term } from '@/components/ui'
 import { useT } from '@/lib/i18n'
 import { LayerFlowLab } from './LayerFlowLab'
 import { FlopsExplorer } from './FlopsExplorer'
@@ -30,6 +30,8 @@ export default function Chapter() {
           </>,
         )}
       </p>
+
+      <HardwareBaseline ids={['a100']} />
 
       <Section
         index={1}
@@ -96,7 +98,7 @@ export default function Chapter() {
               projection, and the MLP&apos;s three projections (gate/up count as two). RMSNorm, RoPE, softmax, and the
               residual adds together don&apos;t even reach one part in a thousand of the total. This isn&apos;t a
               coincidence; it&apos;s the design philosophy of the architecture: cram all the &quot;heavy lifting&quot; into
-              GEMM (General Matrix Multiply), because — as Chapter 5 showed — GEMM is the only operation on a GPU that
+              GEMM (General Matrix Multiply), because — as <ChapterLink n={5} /> showed — GEMM is the only operation on a GPU that
               can keep the Tensor Cores fed. Everything else is just seasoning: normalization keeps the numerics
               stable, RoPE injects positional information, and gating supplies nonlinearity.
             </>,
@@ -104,7 +106,7 @@ export default function Chapter() {
               点过一轮你会发现一个干净得近乎无聊的结论：一层 Transformer 的参数和计算几乎全部落在五个矩阵乘法上——
               QKV 三个投影、O 投影、MLP 的三个投影（gate/up 算两个）。RMSNorm、RoPE、softmax、残差加法这些环节合起来
               连总量的千分之一都不到。这不是巧合，而是这套架构的设计哲学：把所有「重活」都塞进
-              GEMM（通用矩阵乘法，General Matrix Multiply），因为第 5 章讲过，GEMM 是 GPU 上唯一能把 Tensor Core
+              GEMM（通用矩阵乘法，General Matrix Multiply），因为<ChapterLink n={5} />讲过，GEMM 是 GPU 上唯一能把 Tensor Core
               喂饱的运算。架构里剩下的部分只负责「调味」：归一化保证数值稳定，RoPE 注入位置信息，门控提供非线性。
             </>,
           )}
@@ -117,13 +119,13 @@ export default function Chapter() {
                 d=4096, one RMSNorm is about 16K operations; the QKV projection right next to it is 100 million — four
                 orders of magnitude apart. So when you tally the books, just drop them; the error won&apos;t exceed one
                 part in a thousand. But beware: &quot;FLOPs negligible&quot; does not mean &quot;time negligible.&quot; These
-                operators are textbook memory-bound; Chapter 6&apos;s roofline already explained why. The FLOPs ledger
+                operators are textbook memory-bound; <ChapterLink n={6} />&apos;s roofline already explained why. The FLOPs ledger
                 and the time ledger are two separate books.
               </>,
               <>
                 这些操作的计算量都正比于 d 或 S（一次方），而 GEMM 正比于 d²。d=4096 时，一次 RMSNorm 约 1.6 万次运算，
                 旁边的 QKV 投影是 1 亿次——差了四个数量级。所以算总账时直接忽略它们，误差不会超过千分之一。但注意：
-                「FLOPs 可以忽略」不等于「耗时可以忽略」，这些算子是典型的 memory-bound（受显存带宽限制），第 6 章的
+                「FLOPs 可以忽略」不等于「耗时可以忽略」，这些算子是典型的 memory-bound（受显存带宽限制），<ChapterLink n={6} />的
                 roofline 已经解释过为什么。FLOPs 账和时间账是两本账。
               </>,
             )}
@@ -292,14 +294,14 @@ export default function Chapter() {
                 compute, no tables required. Running it backwards is even more devastating: an A100&apos;s BF16 peak is
                 312 TFLOPS, so the pure-compute ceiling is 312e12 ÷ 14e9 ≈ 22,000 tokens per second — yet real
                 single-stream decode only does a couple hundred tokens/s. The two-orders-of-magnitude gap isn&apos;t
-                about compute, it&apos;s about bandwidth, and that&apos;s exactly the question Chapter 6&apos;s roofline
-                and Chapter 10&apos;s batching set out to answer.
+                about compute, it&apos;s about bandwidth, and that&apos;s exactly the question <ChapterLink n={6} />&apos;s roofline
+                and <ChapterLink n={10} />&apos;s batching set out to answer.
               </>,
               <>
                 「2 × 参数量」是整个 LLM 推理经济学的心算基础：7B 模型 decode 一个 token ≈ 14 GFLOPs，70B ≈ 140
                 GFLOPs——参数翻 10 倍，每 token 计算量就翻 10 倍，不用查任何表。倒过来用更有杀伤力：一张 A100 的 BF16
                 峰值是 312 TFLOPS，纯算力上限是每秒 312e12 ÷ 14e9 ≈ 22000 个 token——而实际单流 decode 只有一百多
-                token/s。差出两个数量级的原因不在算力而在带宽，这正是第 6 章 roofline 和第 10 章批处理要回答的问题。
+                token/s。差出两个数量级的原因不在算力而在带宽，这正是<ChapterLink n={6} /> roofline 和<ChapterLink n={10} />批处理要回答的问题。
               </>,
             )}
           </p>
@@ -486,8 +488,14 @@ export default function Chapter() {
             {
               text: t('At long sequences the KV cache hit rate drops and recomputation is needed', '长序列下 KV cache 命中率下降，需要重算'),
               explain: t(
-                "The KV cache has no \"hit rate\" — it's an exact cache and never recomputes. At long sequences it brings memory and bandwidth pressure (Chapter 9), but it doesn't change FLOPs.",
-                'KV cache 不存在「命中率」——它是精确缓存，从不重算。长序列下它带来的是显存和带宽压力（第 9 章），不改变 FLOPs。',
+                <>
+                  The KV cache has no &quot;hit rate&quot; — it&apos;s an exact cache and never recomputes. At long
+                  sequences it brings memory and bandwidth pressure (<ChapterLink n={9} />), but it doesn&apos;t change
+                  FLOPs.
+                </>,
+                <>
+                  KV cache 不存在「命中率」——它是精确缓存，从不重算。长序列下它带来的是显存和带宽压力（<ChapterLink n={9} />），不改变 FLOPs。
+                </>,
               ),
             },
           ]}
@@ -557,7 +565,7 @@ export default function Chapter() {
               point is above 160. Two orders of magnitude apart means decode compute utilization is often under 1%, with
               almost all the time spent waiting on memory. So the latency floor of single-stream decode follows
               straight from bandwidth: 13.5GB ÷ 1.9TB/s ≈ 7ms/token, about 140 tokens/s — startlingly close to what you
-              measure. Chapter 10 unfolds this &quot;time ledger&quot; millisecond by millisecond.
+              measure. <ChapterLink n={10} /> unfolds this &quot;time ledger&quot; millisecond by millisecond.
             </>,
             <>
               推理这边，同样的 FLOPs 公式却劈出两个性格迥异的阶段。<strong>Prefill</strong>：prompt 里的 S 个 token
@@ -567,7 +575,7 @@ export default function Chapter() {
               14 GFLOPs——每搬 2 个字节做 2 次运算，算术强度只有 1~2 FLOPs/Byte 的量级，而 A100 的脊点（ridge
               point）在 160 以上。差两个数量级，意味着 decode 时算力利用率常常不到 1%，时间几乎全花在等显存。所以
               单流 decode 的延迟下限可以直接用带宽心算：13.5GB ÷ 1.9TB/s ≈ 7ms/token，约 140 token/s——和实测惊人
-              地接近。这本「时间账」第 10 章会逐毫秒展开。
+              地接近。这本「时间账」<ChapterLink n={10} />会逐毫秒展开。
             </>,
           )}
         </p>
@@ -578,12 +586,12 @@ export default function Chapter() {
                 Raise the batch from 1 to 32 and the weights still get hauled only once, but the FLOPs become 32× —
                 arithmetic intensity rises linearly, the GPU is pushed off the bandwidth wall toward the compute roof,
                 and throughput is nearly a free 32× win. This is why batching is almost free in inference serving, and
-                the starting point for system designs like continuous batching and PagedAttention (Chapter 10).
+                the starting point for system designs like continuous batching and PagedAttention (<ChapterLink n={10} />).
               </>,
               <>
                 把 batch 从 1 加到 32，权重还是只搬一遍，FLOPs 却变成 32 份——算术强度线性上升，GPU 从带宽墙下被推向
                 算力屋顶，吞吐近乎白赚 32 倍。这就是推理服务里 batching（批处理）近乎免费的原因，也是 continuous
-                batching、PagedAttention 这些系统设计的出发点（第 10 章）。
+                batching、PagedAttention 这些系统设计的出发点（<ChapterLink n={10} />）。
               </>,
             )}
           </p>
@@ -677,12 +685,11 @@ export default function Chapter() {
             {t(
               <>
                 <strong>The hidden memory bomb: </strong>naive attention&apos;s S×S score matrix balloons as S², hitting
-                64GB per layer at 32K context — nearly five times the weights. FlashAttention was born for this (Chapter
-                8).
+                64GB per layer at 32K context — nearly five times the weights. FlashAttention was born for this (<ChapterLink n={8} />).
               </>,
               <>
                 <strong>显存的暗雷：</strong>naive attention 的 S×S score 矩阵随 S² 膨胀，32K 上下文时单层 64GB，
-                是权重的近五倍——FlashAttention 因此而生（第 8 章）。
+                是权重的近五倍——FlashAttention 因此而生（<ChapterLink n={8} />）。
               </>,
             )}
           </li>

@@ -1,4 +1,4 @@
-import { Callout, CodeBlock, MathTex, Quiz, Section, Term } from '@/components/ui'
+import { Callout, ChapterLink, CodeBlock, HardwareBaseline, MathTex, Quiz, Section, Term } from '@/components/ui'
 import { useT } from '@/lib/i18n'
 import { DieAreaFigure } from './DieAreaFigure'
 import { ThroughputRace } from './ThroughputRace'
@@ -67,6 +67,14 @@ export default function Chapter() {
           </>,
         )}
       </p>
+
+      <HardwareBaseline
+        ids={['a100', 'h100']}
+        note={t(
+          'A100 is the running example; H100 appears for contrast.',
+          '以 A100 为主线示例，H100 用于对照。',
+        )}
+      />
 
       <Section
         index={1}
@@ -202,13 +210,13 @@ export default function Chapter() {
               GPU dominates, and the more tasks there are the closer the speedup approaches its theoretical limit
               (2048 ÷ 8 ÷ slowdown). Third, the GPU&apos;s progress bar jumps a notch at a time: 2048 cores start
               together and finish together, advancing one &ldquo;wave&rdquo; at a time — a notion that arrives
-              formally in Chapter 2 as the wave/warp.
+              formally in <ChapterLink n={2} /> as the wave/warp.
             </>,
             <>
               你应该观察到了三件事。第一，任务很少时 CPU 赢：64 个任务它 8 µs 就干完了，GPU 光启动就要
               20 µs——杀鸡用牛刀，牛刀抬起来的功夫鸡已经杀完了。第二，任务足够多时 GPU 碾压，而且任务越多
               加速比越接近理论极限（2048 ÷ 8 ÷ 慢倍数）。第三，GPU 的进度条是一格一格跳的：2048
-              个核同时开工、同时交活，一「波」一波地推进——这个「波」的概念在第 2 章会以 wave/warp
+              个核同时开工、同时交活，一「波」一波地推进——这个「波」的概念在<ChapterLink n={2} />会以 wave/warp
               的形式正式登场。
             </>,
           )}
@@ -386,9 +394,15 @@ export default function Chapter() {
               ),
               correct: true,
               explain: t(
-                'Correct. Tens of thousands of cores means you need at least tens of thousands of independent tasks (actually far more — you&apos;ll see why when Chapter 2 covers latency hiding) to fill the machine. When parallelism falls short, all those extra cores can only idle.',
-                '对。几万个核心意味着至少需要几万个（实际上远不止，第 2 章讲延迟隐藏时你会看到需要更多）' +
-                  '互不依赖的任务才能填满机器。并行度不足时，再多的核也只能空转。',
+                <>
+                  Correct. Tens of thousands of cores means you need at least tens of thousands of independent tasks
+                  (actually far more — you&apos;ll see why when <ChapterLink n={2} /> covers latency hiding) to fill
+                  the machine. When parallelism falls short, all those extra cores can only idle.
+                </>,
+                <>
+                  对。几万个核心意味着至少需要几万个（实际上远不止，<ChapterLink n={2} />讲延迟隐藏时你会看到需要更多）
+                  互不依赖的任务才能填满机器。并行度不足时，再多的核也只能空转。
+                </>,
               ),
             },
             {
@@ -451,14 +465,15 @@ export default function Chapter() {
               trade-offs of the two real-world paths. One detail is worth noting: the &ldquo;Typical GPU&rdquo;
               preset does not put cache at 0% — a real GPU keeps a register file, shared memory, and a modest L2,
               whose roles are very different from CPU cache (more like a scratchpad the programmer manages by
-              hand). That&apos;s a centerpiece of Chapters 2 and 4.
+              hand). That&apos;s a centerpiece of Chapters <ChapterLink n={2} label="2" /> and{' '}
+              <ChapterLink n={4} label="4" />.
             </>,
             <>
               试试两个极端：全部砸给 ALU，吞吐分拉满，但单线程分惨不忍睹——这台机器跑串行代码会被手机吊打；
               全部砸给控制和缓存，单线程分也只能逼近渐近线，因为收益递减锁死了天花板。两个预设按钮给出的正是
               现实中两条路线的典型取舍。还有一个细节值得注意：「典型 GPU」预设里缓存并不是
               0%——真实 GPU 保留了寄存器堆、shared memory 和一块不大的 L2，它们的角色和 CPU
-              缓存很不一样（更像程序员手动管理的便签纸），这是第 2 章和第 4 章的重头戏。
+              缓存很不一样（更像程序员手动管理的便签纸），这是<ChapterLink n={2} />和<ChapterLink n={4} />的重头戏。
             </>,
           )}
         </p>
@@ -553,18 +568,17 @@ export default function Chapter() {
               bigger cache like the CPU, but to have a huge number of threads cover for one another: while one
               batch of threads waits on data, it instantly switches to another batch and computes meanwhile,
               hiding latency with parallelism. How this latency-hiding mechanism works and how many threads it
-              takes to hide the latency is the core of Chapter 2; how to organize access patterns so that 2 TB/s
-              of bandwidth is actually saturated rather than squandered on scattered accesses is the entire subject
-              of Chapter 4. Remember this chapter&apos;s conclusion:{' '}
+              takes to hide the latency is the core of <ChapterLink n={2} />; how to organize access patterns so
+              that 2 TB/s of bandwidth is actually saturated rather than squandered on scattered accesses is the
+              entire subject of <ChapterLink n={4} />. Remember this chapter&apos;s conclusion:{' '}
               <strong>compute solves &ldquo;computing fast,&rdquo; the memory system decides &ldquo;whether you
               get fed&rdquo; — and the latter is the bottleneck for most real programs.</strong>
             </>,
             <>
               等一次显存的时间，核心足够做几百次乘加——如果它干等的话。GPU 当然不会干等，它的解法不是像 CPU
               那样修更大的缓存，而是用海量线程互相掩护：一批线程在等数据，就立刻切换到另一批先算着，用并行度把
-              延迟「藏」起来。这套延迟隐藏（latency hiding）机制怎么运转、需要多少线程才藏得住，是第 2 章的
-              核心；而怎么组织访存模式让那 2 TB/s 的带宽真正跑满、而不是浪费在零碎的访问上，是第 4
-              章的全部内容。记住本章的结论：<strong>算力解决「算得快」，内存系统决定「喂不喂得饱」——后者才是
+              延迟「藏」起来。这套延迟隐藏（latency hiding）机制怎么运转、需要多少线程才藏得住，是<ChapterLink n={2} />的
+              核心；而怎么组织访存模式让那 2 TB/s 的带宽真正跑满、而不是浪费在零碎的访问上，是<ChapterLink n={4} />的全部内容。记住本章的结论：<strong>算力解决「算得快」，内存系统决定「喂不喂得饱」——后者才是
               大多数真实程序的瓶颈。</strong>
             </>,
           )}
@@ -632,12 +646,12 @@ export default function Chapter() {
             {t(
               <>
                 <strong>The memory wall lies ahead</strong>: compute grows faster than memory bandwidth, so
-                &ldquo;getting fed&rdquo; is harder than &ldquo;computing fast&rdquo; — the theme of Chapter 2
-                (latency hiding) and Chapter 4 (the memory hierarchy).
+                &ldquo;getting fed&rdquo; is harder than &ldquo;computing fast&rdquo; — the theme of{' '}
+                <ChapterLink n={2} /> (latency hiding) and <ChapterLink n={4} /> (the memory hierarchy).
               </>,
               <>
-                <strong>内存墙在前方</strong>：算力增长快于内存带宽，「喂得饱」比「算得快」更难——这是第 2 章
-                （延迟隐藏）和第 4 章（内存层级）的主题。
+                <strong>内存墙在前方</strong>：算力增长快于内存带宽，「喂得饱」比「算得快」更难——这是<ChapterLink n={2} />
+                （延迟隐藏）和<ChapterLink n={4} />（内存层级）的主题。
               </>,
             )}
           </li>

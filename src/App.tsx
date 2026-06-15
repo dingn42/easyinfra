@@ -5,6 +5,7 @@ import Home from '@/pages/Home'
 import ChapterPage from '@/pages/ChapterPage'
 
 const PlaygroundPage = lazy(() => import('@/pages/PlaygroundPage'))
+const GlossaryPage = lazy(() => import('@/pages/GlossaryPage'))
 
 function PageLoading() {
   return (
@@ -25,6 +26,14 @@ export default function App() {
           element={
             <Suspense fallback={<PageLoading />}>
               <PlaygroundPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/glossary"
+          element={
+            <Suspense fallback={<PageLoading />}>
+              <GlossaryPage />
             </Suspense>
           }
         />

@@ -23,8 +23,8 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         <LanguageToggle />
       </div>
 
-      {/* Playground 入口 */}
-      <div className="px-4 pt-4">
+      {/* Playground + 术语表 入口 */}
+      <div className="space-y-2 px-4 pt-4">
         <NavLink
           to="/playground"
           onClick={onNavigate}
@@ -40,6 +40,23 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           <span>
             <span className="block font-mono text-xs font-medium tracking-wider text-ink">CUDA PLAYGROUND</span>
             <span className="block text-[11px] text-ink3">{t('A GPU simulator in your browser', '浏览器里的 GPU 模拟器')}</span>
+          </span>
+        </NavLink>
+        <NavLink
+          to="/glossary"
+          onClick={onNavigate}
+          className={({ isActive }) =>
+            `flex items-center gap-2.5 rounded-md border px-3.5 py-2 transition-all ${
+              isActive
+                ? 'border-cyan/55 bg-cyan/8'
+                : 'border-line bg-panel2/40 hover:border-cyan/40 hover:bg-cyan/5'
+            }`
+          }
+        >
+          <span className="font-mono text-sm text-cyan">⌗</span>
+          <span>
+            <span className="block font-mono text-xs font-medium tracking-wider text-ink">{t('GLOSSARY', '术语表')}</span>
+            <span className="block text-[11px] text-ink3">{t('Every key term, one place', '关键术语速查')}</span>
           </span>
         </NavLink>
       </div>

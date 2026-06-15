@@ -1,4 +1,4 @@
-import { Callout, MathTex, Quiz, Section, Term } from '@/components/ui'
+import { Callout, ChapterLink, HardwareBaseline, MathTex, Quiz, Section, Term } from '@/components/ui'
 import { useT } from '@/lib/i18n'
 import { IntensityCalc } from './IntensityCalc'
 import { RooflineChart } from './RooflineChart'
@@ -30,6 +30,14 @@ export default function Chapter() {
           </>,
         )}
       </p>
+
+      <HardwareBaseline
+        ids={['a100', 'h100', 'rtx4090']}
+        note={t(
+          'Three cards compared; A100 is the default for worked examples and the ridge ~ 164.',
+          '三卡对比；worked example 默认用 A100，ridge 约 164。',
+        )}
+      />
 
       <Section
         index={1}
@@ -461,15 +469,17 @@ export default function Chapter() {
                 has to sweep the entire KV cache — pinning AI at 1–2 FLOP/B, two orders of magnitude short of the ridge,{' '}
                 <strong>doomed to be memory-bound</strong>. This isn't a bad implementation; it's the shape of the
                 algorithm. So the next several chapters are really all about sliding this one point across the plot: KV
-                cache optimization (CH09) moves fewer bytes per step, batching (CH10) reassembles GEMVs back into GEMM to
-                move right, quantization (CH11) shrinks each weight's byte count — also moving right. Once you've read
+                cache optimization (<ChapterLink n={9} label="CH09" />) moves fewer bytes per step, batching (
+                <ChapterLink n={10} label="CH10" />) reassembles GEMVs back into GEMM to move right, quantization (
+                <ChapterLink n={11} label="CH11" />) shrinks each weight's byte count — also moving right. Once you've read
                 this plot, you already know the shape of the answers in the next three chapters.
               </>,
               <>
                 LLM 逐 token 解码（decode）时，batch=1 的矩阵乘全部退化成 GEMV，再加上每步都要扫一遍 KV cache——AI
                 被钉死在 1~2 FLOP/B，离 ridge 差两个数量级，<strong>注定 memory-bound</strong>。这不是实现不好，是算法形状决定的。
-                所以接下来几章其实都是在这张图上挪点：KV cache 优化（CH09）让每步少搬字节，batching（CH10）把 GEMV
-                重新攒成 GEMM 向右移，量化（CH11）把每个权重的字节数压小、还是向右移。读懂了这张图，后面三章你已经知道答案的形状了。
+                所以接下来几章其实都是在这张图上挪点：KV cache 优化（<ChapterLink n={9} label="CH09" />）让每步少搬字节，batching（
+                <ChapterLink n={10} label="CH10" />）把 GEMV 重新攒成 GEMM 向右移，量化（<ChapterLink n={11} label="CH11" />
+                ）把每个权重的字节数压小、还是向右移。读懂了这张图，后面三章你已经知道答案的形状了。
               </>,
             )}
           </p>
